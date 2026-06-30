@@ -1,0 +1,237 @@
+\section{Coin Change (Minimum Coins)}
+\label{sec:dp-coin-change}
+
+\noindent We now begin the chapter's \textbf{unbounded knapsack} family:
+every problem from here on lets each item (coin denomination, rod
+length) be used an \textbf{unlimited} number of times, which means the
+pick branch stays at the same index instead of advancing -- exactly the
+recursion shape the Recursion chapter's Combination Sum section
+already derived.
+
+\problemstatement{Given an array $\textit{coins}$ of denominations
+(each available in \textbf{unlimited} supply) and a target
+$\textit{amount}$, find the \textbf{minimum} number of coins needed to
+make exactly $\textit{amount}$, or $-1$ if it is impossible.}
+
+\begin{patternbox}
+\emph{``Unlimited supply of each denomination, minimize the count
+used''} is the unbounded-knapsack analogue of
+Section~\ref{sec:dp-subset-sum-target}'s boolean reachability table: the
+pick branch stays at the same index (since the same coin may be reused),
+and the combination operator is a \textbf{minimum} of counts instead of a
+logical OR of reachability.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(\textit{index}, \textit{amount})$ be the minimum number of coins
+(using denominations $0..\textit{index}$) needed to make
+$\textit{amount}$. Either we exclude denomination $\textit{index}$
+entirely ($f(\textit{index}-1, \textit{amount})$), or we use it at least
+once (paying $1$ coin, then recursing on the \emph{same} index since it
+remains available, with the reduced amount):
+\begin{gather*}
+  f(\textit{index}, \textit{amount}) = \min\Big(
+  f(\textit{index}{-}1, \textit{amount}),\ \textit{take} \Big), \\
+  \textit{take} = \textit{coins}[\textit{index}] \le \textit{amount}\ ?\
+  1 + f(\textit{index}, \textit{amount}-\textit{coins}[\textit{index}]) :
+  \infty.
+\end{gather*}
+Base case: $f(0, \textit{amount}) = \textit{amount} /
+\textit{coins}[0]$ if $\textit{amount}$ is exactly divisible by
+$\textit{coins}[0]$, else $\infty$ (using only the first denomination,
+either it divides evenly or it is impossible).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int INF = 1e9;
+
+int coinChangeRecursive(int index, int amount, vector<int>& coins) {
+    if (index == 0) {
+        return (amount % coins[0] == 0) ? amount / coins[0] : INF;
+    }
+
+    int notTake = coinChangeRecursive(index - 1, amount, coins);
+    int take = INF;
+    if (coins[index] <= amount) {
+        take = 1 + coinChangeRecursive(index, amount - coins[index], coins);
+    }
+    return min(notTake, take);
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    int n = coins.size(), amount = 11;
+    int result = coinChangeRecursive(n - 1, amount, coins);
+    cout << (result >= INF ? -1 : result) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} Exponential -- each call can recurse on the same index
+many times (reducing the amount), giving a recursion tree that grows
+combinatorially with $\textit{amount}$.
+\textbf{Space.} $O(\textit{amount})$ recursion stack in the worst case
+(repeatedly taking the smallest coin).
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int INF = 1e9;
+
+int coinChangeMemo(int index, int amount, vector<int>& coins,
+                    vector<vector<int>>& memo) {
+    if (index == 0) {
+        return (amount % coins[0] == 0) ? amount / coins[0] : INF;
+    }
+    if (memo[index][amount] != -1) return memo[index][amount];
+
+    int notTake = coinChangeMemo(index - 1, amount, coins, memo);
+    int take = INF;
+    if (coins[index] <= amount) {
+        take = 1 + coinChangeMemo(index, amount - coins[index], coins, memo);
+    }
+    return memo[index][amount] = min(notTake, take);
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    int n = coins.size(), amount = 11;
+    vector<vector<int>> memo(n, vector<int>(amount + 1, -1));
+    int result = coinChangeMemo(n - 1, amount, coins, memo);
+    cout << (result >= INF ? -1 : result) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot \textit{amount})$.
+\textbf{Space.} $O(n \cdot \textit{amount})$ memo $+$
+$O(\textit{amount})$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int INF = 1e9;
+
+int coinChangeTabulation(vector<int>& coins, int amount) {
+    int n = coins.size();
+    vector<vector<int>> dp(n, vector<int>(amount + 1, INF));
+
+    for (int a = 0; a <= amount; a++) {
+        if (a % coins[0] == 0) dp[0][a] = a / coins[0];
+    }
+
+    for (int index = 1; index < n; index++) {
+        for (int a = 0; a <= amount; a++) {
+            int notTake = dp[index - 1][a];
+            int take = INF;
+            if (coins[index] <= a) {
+                take = 1 + dp[index][a - coins[index]];
+            }
+            dp[index][a] = min(notTake, take);
+        }
+    }
+    int result = dp[n - 1][amount];
+    return result >= INF ? -1 : result;
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    cout << coinChangeTabulation(coins, 11) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{coins} = [1,2,5]$, $\textit{amount}=11$.}
+
+Row $0$ (only coin $1$): $\textit{dp}[0][a] = a$ for all $a$ (every
+amount needs exactly $a$ coins of value $1$). Row $1$ (coins $1,2$):
+e.g.\ $\textit{dp}[1][11] = \min(\textit{dp}[0][11],\ 1+\textit{dp}[1][9])$;
+unrolling, using coin $2$ as many times as possible gives
+$\textit{dp}[1][11]=6$ ($5$ twos and one... actually $11=2\times5+1$,
+so $5$ coins of $2$ plus $1$ coin of $1$ $=6$ coins). Row $2$ (coins
+$1,2,5$): $\textit{dp}[2][11] = \min(\textit{dp}[1][11],\
+1+\textit{dp}[2][6])$; following this through, the optimal is
+$5+5+1=11$ using $3$ coins, giving $\textit{dp}[2][11]=3$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot \textit{amount})$.
+\textbf{Space.} $O(n \cdot \textit{amount})$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int INF = 1e9;
+
+int coinChangeSpaceOptimized(vector<int>& coins, int amount) {
+    int n = coins.size();
+    vector<int> prev(amount + 1, INF);
+
+    for (int a = 0; a <= amount; a++) {
+        if (a % coins[0] == 0) prev[a] = a / coins[0];
+    }
+
+    for (int index = 1; index < n; index++) {
+        vector<int> current(amount + 1, INF);
+        for (int a = 0; a <= amount; a++) {
+            int notTake = prev[a];
+            int take = INF;
+            if (coins[index] <= a) {
+                take = 1 + current[a - coins[index]]; // same row! (unbounded)
+            }
+            current[a] = min(notTake, take);
+        }
+        prev = current;
+    }
+    int result = prev[amount];
+    return result >= INF ? -1 : result;
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    cout << coinChangeSpaceOptimized(coins, 11) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{ideabox}[Why ``Take'' Reads from \textit{current}, Not \textit{prev}]
+Because the pick branch in an \textbf{unbounded} knapsack recurrence
+stays at the \emph{same} index, the space-optimized version must read
+the take-branch value from the row currently being built
+($\textit{current}$), not from the previous row ($\textit{prev}$) --
+the opposite of every 0/1 knapsack-family problem earlier in this
+chapter, where both branches read only from $\textit{prev}$. This
+single detail is the only change space optimization needs when moving
+from the 0/1 family to the unbounded family.
+\end{ideabox}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot \textit{amount})$.
+\textbf{Space.} $O(\textit{amount})$ for the rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Coin Change is 0/1 Knapsack's unbounded twin: same boolean-to-minimum
+combination idea, but with the pick branch staying at the same index --
+exactly the same 0/1-versus-unbounded distinction the Recursion
+chapter drew between Subset Sum II (no reuse) and Combination Sum
+(unlimited reuse). The single space-optimization wrinkle above (reading
+``take'' from the current row) is the one new implementation detail this
+unbounded family introduces.
+\end{takeawaybox}

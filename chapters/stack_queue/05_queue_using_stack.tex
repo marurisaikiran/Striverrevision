@@ -1,0 +1,139 @@
+\section{Implement a Queue using Stacks}
+\label{sec:sq-queue-using-stack}
+
+\problemstatement{Implement a queue (FIFO: \textit{enqueue},
+\textit{dequeue}, \textit{front}) using only the standard operations of a
+stack (\textit{push}, \textit{pop}, \textit{top}) as building blocks.}
+
+\begin{patternbox}
+The reverse simulation of Section~\ref{sec:sq-stack-using-queue}. The key
+fact to recall: reversing a sequence \textbf{twice} restores its original
+order -- so pouring elements through \emph{two} stacks in succession
+(stack $\to$ stack $\to$ stack) flips LIFO order into FIFO order, because
+each individual pour through a stack reverses the order once.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+A single stack inherently reverses whatever order you feed into it: if
+you push $1,2,3$ and then pop everything, you get $3,2,1$ -- reversed. If
+we use \textbf{two} stacks, call them \textit{inStack} and
+\textit{outStack}, and whenever \textit{outStack} runs empty we pour all
+of \textit{inStack} into it (popping from \textit{inStack} and pushing
+each onto \textit{outStack}), the act of pouring reverses the order a
+\emph{second} time -- and two reversals cancel out, restoring the
+original (FIFO) order on \textit{outStack}'s pop sequence.
+
+\begin{ideabox}[Two Stacks: One for Input, One for Output]
+$\textit{enqueue}(x)$: simply push $x$ onto \textit{inStack} -- $O(1)$,
+no reordering needed yet. $\textit{dequeue}()$ (and $\textit{front}()$):
+if \textit{outStack} is empty, pour the entirety of \textit{inStack} into
+it (pop each element off \textit{inStack}, push it onto \textit{outStack});
+this reverses \textit{inStack}'s order, placing the
+\emph{oldest-enqueued, not-yet-dequeued} element on top of
+\textit{outStack}. Then pop (or peek) \textit{outStack}'s top.
+\end{ideabox}
+
+\subsection*{Why pouring only when \textit{outStack} is empty gives amortized $O(1)$}
+
+If we poured on \emph{every} dequeue, each dequeue would cost $O(n)$.
+Instead, we only pour when \textit{outStack} is completely empty -- and
+once poured, \textit{outStack} correctly holds a whole batch of elements
+in the right FIFO order, which can each be dequeued in $O(1)$ without
+needing another pour until that batch is exhausted. Each individual
+element is poured (moved from \textit{inStack} to \textit{outStack}) at
+most \emph{once} in its entire lifetime, so across any sequence of $n$
+enqueue/dequeue operations, the total cost of all pours combined is
+$O(n)$, giving $O(1)$ \emph{amortized} time per operation even though some
+individual dequeues are more expensive than others.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{enqueue}(x)$: push $x$ onto \textit{inStack}.
+  \item $\textit{dequeue}()$ / $\textit{front}()$: if \textit{outStack}
+        is empty, repeatedly pop from \textit{inStack} and push onto
+        \textit{outStack} until \textit{inStack} is empty. Then pop (or
+        peek) \textit{outStack}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Enqueue $1,2,3$; dequeue twice; enqueue $4$; dequeue once.}
+
+\begin{itemize}
+  \item Enqueue $1,2,3$: \textit{inStack} (bottom to top) $=[1,2,3]$;
+        \textit{outStack} $=[]$.
+  \item Dequeue: \textit{outStack} empty, so pour: pop $3,2,1$ from
+        \textit{inStack}, push onto \textit{outStack}, giving
+        \textit{outStack} (bottom to top) $=[3,2,1]$. Pop \textit{outStack}'s
+        top: returns $1$. \textit{outStack}$=[3,2]$.
+  \item Dequeue: \textit{outStack} not empty ($[3,2]$). Pop top: returns
+        $2$. \textit{outStack}$=[3]$.
+  \item Enqueue $4$: push onto \textit{inStack}$=[4]$.
+        \textit{outStack} still $=[3]$, untouched.
+  \item Dequeue: \textit{outStack} not empty. Pop top: returns $3$.
+\end{itemize}
+
+The dequeue sequence $1,2,3$ correctly matches the enqueue order.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class QueueUsingStack {
+    stack<int> inStack, outStack;
+
+    void transferIfNeeded() {
+        if (outStack.empty()) {
+            while (!inStack.empty()) {
+                outStack.push(inStack.top());
+                inStack.pop();
+            }
+        }
+    }
+
+public:
+    void enqueue(int x) {
+        inStack.push(x);
+    }
+
+    int dequeue() {
+        transferIfNeeded();
+        int val = outStack.top();
+        outStack.pop();
+        return val;
+    }
+
+    int front() {
+        transferIfNeeded();
+        return outStack.top();
+    }
+};
+
+int main() {
+    QueueUsingStack q;
+    q.enqueue(1); q.enqueue(2); q.enqueue(3);
+    cout << q.dequeue() << " " << q.dequeue() << endl;
+    q.enqueue(4);
+    cout << q.dequeue() << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $\textit{enqueue}$ is always $O(1)$.
+$\textit{dequeue}$ and $\textit{front}$ are $O(1)$ \textbf{amortized}
+(occasionally $O(n)$ for a pour, but each element is poured at most once
+across its lifetime).
+\textbf{Space Complexity.} $O(n)$ across the two stacks combined.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Reversing twice restores original order -- this is the entire idea behind
+using two stacks to simulate a queue, and it is worth remembering as a
+general trick: any time an algorithm needs to ``undo'' a reversal it was
+forced into, pouring through a second stack is often the simplest fix.
+\end{takeawaybox}

@@ -1,0 +1,121 @@
+\section{01 Matrix}
+\label{sec:graph-01-matrix}
+
+\problemstatement{Given a binary matrix, return a matrix of the same
+size where each cell holds the distance to its \textbf{nearest} cell
+containing $0$ (distance measured in $4$-directional grid steps).}
+
+\begin{patternbox}
+\emph{``Distance to the nearest of several targets''} is
+Section~\ref{sec:graph-rotten-oranges}'s multi-source BFS again, applied
+to a distance-labeling problem instead of a time-to-completion problem:
+seed the queue with every $0$-cell simultaneously (distance $0$), then
+BFS outward, where each level reached corresponds to one more unit of
+distance.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize a $\textit{dist}$ matrix to $0$ wherever the input
+        is $0$, and push every such cell into the BFS queue.
+  \item For every other cell, initialize $\textit{dist}$ to $-1$
+        (unvisited marker) -- this doubles as the \textit{visited}
+        check, exactly as a $-1$/sentinel value did in earlier
+        chapters.
+  \item Run BFS: for each cell popped, examine its $4$ neighbors; any
+        neighbor still at $-1$ gets $\textit{dist}[\textit{neighbor}] =
+        \textit{dist}[\textit{current}] + 1$ and is pushed.
+  \item Return the filled $\textit{dist}$ matrix.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<vector<int>> updateMatrix(vector<vector<int>>& mat) {
+    int rows = mat.size(), cols = mat[0].size();
+    vector<vector<int>> dist(rows, vector<int>(cols, -1));
+    queue<pair<int,int>> q;
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (mat[r][c] == 0) {
+                dist[r][c] = 0;
+                q.push({r, c});
+            }
+        }
+    }
+
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    while (!q.empty()) {
+        auto [r, c] = q.front();
+        q.pop();
+
+        for (int dir = 0; dir < 4; dir++) {
+            int nr = r + dr[dir], nc = c + dc[dir];
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols &&
+                dist[nr][nc] == -1) {
+                dist[nr][nc] = dist[r][c] + 1;
+                q.push({nr, nc});
+            }
+        }
+    }
+    return dist;
+}
+
+int main() {
+    vector<vector<int>> mat = {
+        {0, 0, 0},
+        {0, 1, 0},
+        {1, 1, 1}
+    };
+    vector<vector<int>> result = updateMatrix(mat);
+    for (auto& row : result) {
+        for (int x : row) cout << x << " ";
+        cout << endl;
+    }
+    // 0 0 0
+    // 0 1 0
+    // 1 2 1
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $3\times3$ matrix above.}
+
+Initial queue: every $0$-cell -- $(0,0),(0,1),(0,2),(1,0),(1,2)$, all
+at $\textit{dist}=0$. Processing these, their unvisited neighbors get
+$\textit{dist}=1$: $(1,1)$ (adjacent to $(0,1)$, $(1,0)$, and $(1,2)$,
+whichever processes first), $(2,0)$ (adjacent to $(1,0)$), $(2,2)$
+(adjacent to $(1,2)$). Next level: $(2,1)$, adjacent to both
+$(1,1)$ (now $\textit{dist}=1$) and $(2,0)$/$(2,2)$ (also
+$\textit{dist}=1$), gets $\textit{dist}=2$ (it is reached from a
+$\textit{dist}=1$ cell first, since BFS processes level by level).
+Final matrix matches the expected output, with the single $\textit{dist}=2$
+cell at $(2,1)$ being the only cell two steps from the nearest $0$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\textit{rows} \times \textit{cols})$ --
+each cell is pushed and processed at most once.
+\textbf{Space Complexity.} $O(\textit{rows} \times \textit{cols})$ for
+the \textit{dist} matrix and the queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Rotten Oranges and 01 Matrix are, structurally, the \emph{same}
+algorithm wearing two different costumes: ``minutes until everything is
+reached'' and ``distance to the nearest target'' are both just
+\textbf{the BFS level number at which each cell is first reached},
+read off in two different ways (the level of the very last cell
+reached, versus the level of each individual cell respectively).
+Recognizing multi-source BFS by its shape -- several simultaneous
+starting points, uniform step cost -- matters more than the specific
+wording of what the level number represents.
+\end{takeawaybox}

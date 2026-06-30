@@ -1,0 +1,180 @@
+\section{Best Time to Buy and Sell Stock II}
+\label{sec:dp-stock-2}
+
+\problemstatement{Given $\textit{price}$, find the maximum profit from
+\textbf{any number} of transactions (buy then sell, buy then sell,
+\ldots), as long as you are never holding more than one share at a
+time (you must sell before buying again).}
+
+\begin{patternbox}
+\emph{``Unlimited transactions''} is Section~\ref{sec:dp-stocks-intro}'s
+base recurrence, completely \textbf{unmodified}: selling returns to
+$f(i{+}1, 0)$, leaving the door open for another buy later, exactly as
+the general template already specifies.
+\end{patternbox}
+
+\subsection*{The recurrence}
+
+\[
+  f(i, \textit{holding}) =
+  \begin{cases}
+    \max\big(-\textit{price}[i] + f(i{+}1, 1),\ f(i{+}1, 0)\big) &
+    \text{not holding}, \\
+    \max\big(\textit{price}[i] + f(i{+}1, 0),\ f(i{+}1, 1)\big) &
+    \text{holding.}
+  \end{cases}
+\]
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock2Recursive(int i, int holding, vector<int>& price) {
+    int n = price.size();
+    if (i == n) return 0;
+
+    if (holding) {
+        return max(price[i] + stock2Recursive(i + 1, 0, price),
+                   stock2Recursive(i + 1, 1, price));
+    }
+    return max(-price[i] + stock2Recursive(i + 1, 1, price),
+               stock2Recursive(i + 1, 0, price));
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    cout << stock2Recursive(0, 0, price) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock2Memo(int i, int holding, vector<int>& price, vector<vector<int>>& memo) {
+    int n = price.size();
+    if (i == n) return 0;
+    if (memo[i][holding] != -1) return memo[i][holding];
+
+    int result;
+    if (holding) {
+        result = max(price[i] + stock2Memo(i + 1, 0, price, memo),
+                      stock2Memo(i + 1, 1, price, memo));
+    } else {
+        result = max(-price[i] + stock2Memo(i + 1, 1, price, memo),
+                      stock2Memo(i + 1, 0, price, memo));
+    }
+    return memo[i][holding] = result;
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    int n = price.size();
+    vector<vector<int>> memo(n, vector<int>(2, -1));
+    cout << stock2Memo(0, 0, price, memo) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock2Tabulation(vector<int>& price) {
+    int n = price.size();
+    vector<vector<int>> dp(n + 1, vector<int>(2, 0));
+
+    for (int i = n - 1; i >= 0; i--) {
+        dp[i][1] = max(price[i] + dp[i + 1][0], dp[i + 1][1]);
+        dp[i][0] = max(-price[i] + dp[i + 1][1], dp[i + 1][0]);
+    }
+    return dp[0][0];
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    cout << stock2Tabulation(price) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{price} = [7,1,5,3,6,4]$.}
+
+The optimal strategy buys at price $1$ (day $1$), sells at price $5$
+(day $2$, profit $4$), buys again at price $3$ (day $3$), sells at
+price $6$ (day $4$, profit $3$): total $4+3=7$. The tabulation table,
+filled backward, accumulates exactly this multi-transaction total at
+$\textit{dp}[0][0]=7$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock2SpaceOptimized(vector<int>& price) {
+    int n = price.size();
+    int nextHold = 0, nextNotHold = 0;
+
+    for (int i = n - 1; i >= 0; i--) {
+        int curHold = max(price[i] + nextNotHold, nextHold);
+        int curNotHold = max(-price[i] + nextHold, nextNotHold);
+        nextHold = curHold;
+        nextNotHold = curNotHold;
+    }
+    return nextNotHold;
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    cout << stock2SpaceOptimized(price) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$.
+\end{complexitybox}
+
+\begin{ideabox}[The Greedy Alternative, and Why It Works Here Specifically]
+Unlimited, uncapped transactions also admit a one-line greedy solution:
+sum every positive day-to-day price increase,
+$\sum_i \max(0, \textit{price}[i]-\textit{price}[i-1])$. This works
+because, with no cap on transaction count, capturing every single
+upward price movement (buying right before each rise, selling right
+after) is always achievable and always optimal -- a luxury the capped
+variants (III, IV) and the constrained variants (cooldown, fee) do not
+have, which is exactly why they need the full DP treatment.
+\end{ideabox}
+
+\begin{takeawaybox}
+Stock II's recurrence \emph{is} Section~\ref{sec:dp-stocks-intro}'s base
+template with nothing changed -- it exists in this chapter specifically
+to demonstrate the unmodified template before every later section
+perturbs it.
+\end{takeawaybox}

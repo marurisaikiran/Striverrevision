@@ -1,0 +1,83 @@
+\chapter{Binary Search Trees}
+\chapterepigraph{A binary search tree is binary search wearing a tree's
+clothing. Every node carries the same promise an array's sortedness
+carries -- everything in one direction is smaller, everything in the other
+is larger -- and that single promise is enough to make search, insertion,
+ordered traversal, and rank queries all run in time proportional to the
+tree's height, not its size.}
+
+\section{What Makes a Tree a Search Tree?}
+\label{sec:bst-intro}
+
+A \textbf{binary search tree (BST)} is a binary tree satisfying the
+\textbf{BST invariant}: for every node, every value in its left subtree
+is strictly less than the node's own value, and every value in its right
+subtree is strictly greater. This is a direct generalization of the
+sorted-array invariant that powered the entire Binary Search chapter,
+restructured so that ``go left'' or ``go right'' replaces ``halve the
+search window.''
+
+\begin{ideabox}[The One Fact That Powers Almost Every Section in This Chapter]
+An \textbf{inorder traversal} (left subtree, then the node, then right
+subtree) of a BST always visits nodes in \textbf{strictly increasing
+order}. This is not a coincidence -- it is a direct restatement of the BST
+invariant applied recursively at every node, and it is the single fact
+that connects BSTs back to everything already proven about sorted arrays
+in earlier chapters: an inorder traversal of a BST \emph{is}, in effect, a
+sorted array, just discovered one $O(\log n)$-depth recursive step at a
+time instead of stored contiguously.
+\end{ideabox}
+
+\subsection*{How to Recognise Which Technique a BST Problem Needs}
+
+\begin{patternbox}[Recurring BST Keywords]
+\begin{itemize}
+  \item \textbf{``Search/insert/delete a value''} -- a single
+        root-to-leaf walk, choosing left or right at each node by
+        comparing to the BST invariant, exactly like binary search
+        choosing which half to discard.
+  \item \textbf{``Kth smallest/largest,'' ``floor/ceil,'' or any other
+        \emph{rank}-based query''} -- either an inorder traversal (which
+        visits values in sorted order for free) or a single guided
+        root-to-leaf walk that narrows toward the answer using the BST
+        invariant directly, without visiting every node.
+  \item \textbf{``Validate,'' ``two nodes are swapped,'' or any property
+        phrased in terms of \emph{sortedness}''} -- think in terms of the
+        inorder sequence being (or not being) sorted, rather than
+        reasoning node-by-node about left/right children directly.
+  \item \textbf{``Predecessor/successor,'' or ``iterator that returns
+        values one at a time in sorted order''} -- a controlled,
+        space-efficient version of inorder traversal, often using an
+        explicit stack to simulate the recursion only as deep as
+        currently needed.
+  \item \textbf{``Largest BST within a general binary tree''} -- a
+        bottom-up recursive technique returning, from each subtree,
+        enough information (is it a valid BST? what is its size? what
+        are its min and max?) for its parent to decide validity and size
+        in O(1) extra work per node, very much in the spirit of dynamic
+        programming on trees.
+\end{itemize}
+\end{patternbox}
+
+Each section in this chapter follows the established structure: problem
+statement and keywords; the reasoning that identifies the right traversal
+or recursive technique and why it is correct; the algorithm in words and
+pseudocode; a hand-traced dry run; complete compilable C++ code; and a
+time/space complexity analysis.
+
+\newpage
+
+\input{chapters/bst/01_search_in_bst.tex}
+\input{chapters/bst/02_find_min_max.tex}
+\input{chapters/bst/03_insert_node_bst.tex}
+\input{chapters/bst/04_delete_node_bst.tex}
+\input{chapters/bst/05_floor_ceil_bst.tex}
+\input{chapters/bst/06_kth_smallest_element.tex}
+\input{chapters/bst/07_validate_bst.tex}
+\input{chapters/bst/08_predecessor_successor.tex}
+\input{chapters/bst/09_bst_iterator.tex}
+\input{chapters/bst/10_two_sum_iv.tex}
+\input{chapters/bst/11_lca_bst.tex}
+\input{chapters/bst/12_construct_from_preorder.tex}
+\input{chapters/bst/13_recover_bst.tex}
+\input{chapters/bst/14_largest_bst_in_binary_tree.tex}

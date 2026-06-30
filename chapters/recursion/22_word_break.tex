@@ -1,0 +1,162 @@
+\section{Word Break}
+\label{sec:rec-word-break}
+
+\problemstatement{Given a string $s$ and a dictionary of words
+$\textit{wordDict}$, determine whether $s$ can be segmented into a
+sequence of one or more dictionary words placed consecutively (words may
+be reused any number of times).}
+
+\begin{patternbox}
+Structurally, this is Palindrome Partitioning's
+(Section~\ref{sec:rec-palindrome-partitioning}) ``loop over the next
+piece's extent'' choice shape, combined with Sudoku's and Word Search's
+boolean short-circuit-on-success control flow -- but with one crucial
+difference that makes this section the deliberate bridge into the
+dynamic programming chapters that follow: the sub-problem
+``can $s[\textit{start}..]$ be segmented'' depends only on
+$\textit{start}$, and the \textbf{same} value of $\textit{start}$ can be
+reached through many different earlier choices of piece boundaries --
+these are \textbf{overlapping subproblems}, the defining signature of a
+problem where memoization will pay off enormously.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+From position $\textit{start}$, try every possible end position for the
+next word: if $s[\textit{start}..\textit{end}]$ is in the dictionary,
+recursively check whether the remainder, $s[\textit{end}+1..]$, can also
+be fully segmented. If reaching the very end of the string is possible
+through any sequence of such choices, $s$ is breakable. As in Sudoku
+(Section~\ref{sec:rec-sudoku-solver}), the moment any choice leads to a
+fully successful segmentation of the remainder, we can stop trying
+further alternatives and propagate \texttt{true} immediately.
+
+\begin{ideabox}[Loop Over Dictionary-Matching Prefixes, Short-Circuit on Success]
+$\textsc{Solve}(\textit{start})$: if $\textit{start} = |s|$: return
+\texttt{true} (the whole string has been consumed). Otherwise, for
+$\textit{end}$ from $\textit{start}$ to $|s|-1$: if
+$s[\textit{start}..\textit{end}]$ is in $\textit{wordDict}$ and
+$\textsc{Solve}(\textit{end}+1)$ returns \texttt{true}: return
+\texttt{true} immediately. If no choice of $\textit{end}$ leads to
+success: return \texttt{false}.
+\end{ideabox}
+
+\subsection*{Why this recursion, run naively, repeats the same work exponentially often}
+
+Consider a string with many ways to reach the same intermediate position
+$\textit{start}$ -- for instance, $s=\texttt{"aaaaaaaaaaaaaaaaaaaaaaaab"}$
+with dictionary $\{\texttt{"a"},\texttt{"aa"},\texttt{"aaa"}\}$: the
+position right after consuming, say, the first $10$ characters can be
+reached by choosing word lengths $1+1+\cdots$, or $2+2+\cdots$, or
+$1+2+1+\cdots$, and many other combinations -- yet
+$\textsc{Solve}(10)$ always asks exactly the same question (``can
+$s[10..]$ be segmented'') regardless of \emph{which} combination of
+earlier word choices got us to position $10$. A naive recursive
+implementation recomputes the answer to $\textsc{Solve}(10)$ separately,
+from scratch, every single time any path happens to reach it -- and the
+number of distinct paths reaching a given position can grow
+exponentially with the string's length, even though there are only
+$|s|+1$ \emph{distinct} values $\textit{start}$ could ever take.
+
+\subsection*{The bridge to dynamic programming}
+
+This is precisely the situation dynamic programming exists to fix:
+\textbf{memoization} caches the result of $\textsc{Solve}(\textit{start})$
+the first time it is computed, in an array (or hash map) indexed by
+$\textit{start}$, and every subsequent call with the same
+$\textit{start}$ simply looks up the cached answer in $O(1)$ instead of
+re-deriving it -- collapsing the exponential blowup down to $O(|s|)$
+distinct sub-problems, each solved once. The recursion's
+\emph{structure} (the recurrence relating $\textsc{Solve}(\textit{start})$
+to $\textsc{Solve}(\textit{end}+1)$ for various $\textit{end}$) does not
+change at all; only the bookkeeping around it does. This exact
+transformation -- recognize overlapping subproblems in an already-correct
+recursion, then cache results by the parameters that define each distinct
+subproblem -- is the opening idea of the next chapter, where it is
+applied systematically across dozens of problems, progressing from this
+kind of memoized top-down recursion to fully iterative tabulation and,
+where possible, space-optimized tabulation.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Solve}(\textit{start})$:
+  \begin{enumerate}
+    \item If $\textit{start}=|s|$: return \texttt{true}.
+    \item For $\textit{end}$ from $\textit{start}$ to $|s|-1$: if
+          $s[\textit{start}..\textit{end}] \in \textit{wordDict}$ and
+          $\textsc{Solve}(\textit{end}+1)$: return \texttt{true}.
+    \item Return \texttt{false}.
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"leetcode"}$, $\textit{wordDict} =
+\{\texttt{"leet"}, \texttt{"code"}\}$.}
+
+\begin{itemize}
+  \item $\textsc{Solve}(0)$: try $\textit{end}=0..3$:
+        $s[0..3]=\texttt{"leet"}$ is in the dictionary. Check
+        $\textsc{Solve}(4)$.
+  \item $\textsc{Solve}(4)$: try $\textit{end}=4..7$:
+        $s[4..7]=\texttt{"code"}$ is in the dictionary. Check
+        $\textsc{Solve}(8)$.
+  \item $\textsc{Solve}(8)$: $\textit{start}=8=|s|$. Return
+        \texttt{true}.
+  \item This propagates straight back: $\textsc{Solve}(4)$ returns
+        \texttt{true}; $\textsc{Solve}(0)$ returns \texttt{true}.
+\end{itemize}
+
+The string segments as \texttt{"leet"} + \texttt{"code"}.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool solve(int start, string& s, unordered_set<string>& wordSet) {
+    if (start == (int)s.size()) return true;
+
+    for (int end = start; end < (int)s.size(); end++) {
+        string piece = s.substr(start, end - start + 1);
+        if (wordSet.count(piece) && solve(end + 1, s, wordSet)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool wordBreak(string s, vector<string>& wordDict) {
+    unordered_set<string> wordSet(wordDict.begin(), wordDict.end());
+    return solve(0, s, wordSet);
+}
+
+int main() {
+    vector<string> wordDict = {"leet", "code"};
+    cout << (wordBreak("leetcode", wordDict) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n)$ in the worst case for this naive
+(unmemoized) version, due to the overlapping-subproblem blowup described
+above. With memoization keyed by $\textit{start}$ (an array or hash map
+of size $O(n)$, each computed once in $O(n)$ work to try all
+$\textit{end}$ positions), this drops to $O(n^2)$.
+\textbf{Space Complexity.} $O(n)$ for the recursion depth, plus
+$O(n)$ for the memoization cache once added.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This closing problem of the Recursion chapter is a deliberate hinge:
+everything about its recursive structure is already correct and familiar
+from this chapter's earlier sections, but its overlapping subproblems
+expose recursion's biggest weakness -- redundant recomputation -- setting
+up exactly the problem that memoization and tabulation, covered next, are
+designed to solve. Carry this recursion forward unchanged; only the
+bookkeeping around it is about to be upgraded.
+\end{takeawaybox}

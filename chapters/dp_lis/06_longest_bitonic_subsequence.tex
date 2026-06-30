@@ -1,0 +1,98 @@
+\section{Longest Bitonic Subsequence}
+\label{sec:dp-longest-bitonic-subsequence}
+
+\problemstatement{Given an array $\textit{arr}$, find the length of the
+longest \textbf{bitonic} subsequence: one that first strictly increases,
+then strictly decreases (either the increasing or decreasing part may
+be empty, but not both).}
+
+\begin{patternbox}
+\emph{``Increases then decreases''} is solved by running
+Section~\ref{sec:dp-lis}'s ending-here LIS computation \textbf{twice} --
+once forward (for the increasing run up to each index) and once
+backward (for the decreasing run from each index onward) -- then
+combining the two values at every index, since a bitonic sequence's
+peak can be at any position.
+\end{patternbox}
+
+\subsection*{Deriving the combination formula}
+
+Let $\textit{inc}[i]$ = length of the longest increasing subsequence
+\emph{ending} at index $i$ (exactly Section~\ref{sec:dp-lis}'s table).
+Let $\textit{dec}[i]$ = length of the longest decreasing subsequence
+\emph{starting} at index $i$ -- computed identically, but scanning
+\emph{backward} from the end and requiring $\textit{arr}[i] >
+\textit{arr}[j]$ for $j>i$ (equivalently, LIS run on the array's mirror
+image). If index $i$ is the peak of a bitonic sequence, the increasing
+run contributes $\textit{inc}[i]$ elements and the decreasing run
+contributes $\textit{dec}[i]$ elements, but $\textit{arr}[i]$ itself is
+counted in both, so:
+\[
+  \textit{bitonic}[i] = \textit{inc}[i] + \textit{dec}[i] - 1.
+\]
+The answer is $\max_i \textit{bitonic}[i]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int longestBitonicSubsequence(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> inc(n, 1), dec(n, 1);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++) {
+            if (arr[j] < arr[i]) {
+                inc[i] = max(inc[i], 1 + inc[j]);
+            }
+        }
+    }
+
+    for (int i = n - 1; i >= 0; i--) {
+        for (int j = n - 1; j > i; j--) {
+            if (arr[j] < arr[i]) {
+                dec[i] = max(dec[i], 1 + dec[j]);
+            }
+        }
+    }
+
+    int best = 0;
+    for (int i = 0; i < n; i++) {
+        best = max(best, inc[i] + dec[i] - 1);
+    }
+    return best;
+}
+
+int main() {
+    vector<int> arr = {1, 11, 2, 10, 4, 5, 2, 1};
+    cout << longestBitonicSubsequence(arr) << endl; // 6
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,11,2,10,4,5,2,1]$.}
+
+$\textit{inc} = [1,2,2,3,3,4,2,1]$ (the run $1,2,4,5$ ending at index
+$5$ gives $\textit{inc}[5]=4$). $\textit{dec} = [1,5,2,4,3,3,2,1]$ (the
+run $11,10,5,2,1$ starting at index $1$ gives $\textit{dec}[1]=5$).
+$\textit{bitonic}[1] = \textit{inc}[1]+\textit{dec}[1]-1 = 2+5-1=6$,
+the maximum -- realized by the sequence $1,11,10,5,2,1$, increasing
+from $1$ to the peak $11$ (index $1$) and then decreasing.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ -- two nested-loop passes.
+\textbf{Space Complexity.} $O(n)$ for \textit{inc} and \textit{dec}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem's structure splits naturally into a ``before the
+turning point'' half and an ``after the turning point'' half, compute
+each half's ending-here table independently (one forward, one
+backward) and combine them at every candidate turning point -- a
+pattern that generalizes well beyond bitonic sequences to any
+problem with a single peak or pivot.
+\end{takeawaybox}

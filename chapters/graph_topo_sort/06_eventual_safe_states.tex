@@ -1,0 +1,127 @@
+\section{Eventual Safe States}
+\label{sec:graph-eventual-safe-states}
+
+\problemstatement{Given a directed graph, a node is \textbf{safe} if
+every possible path starting from it eventually leads to a
+\textbf{terminal node} (a node with no outgoing edges) -- meaning no
+path from it can ever enter a cycle. Return all safe nodes, sorted.}
+
+\begin{patternbox}
+\emph{``Never gets stuck in a cycle, on any path''} extends
+Section~\ref{sec:graph-cycle-directed}'s \textit{pathVisited} idea into
+a full \textbf{three-state} DFS: a node is currently
+\textbf{being explored} (on the active path -- analogous to
+\textit{pathVisited}), \textbf{fully confirmed safe}, or
+\textbf{not yet visited}. Reaching a node still being explored signals
+a cycle, exactly as before -- the new piece is caching the confirmed
+\texttt{safe}/\texttt{unsafe} verdict for every node once decided, so
+each node's full reachability is resolved only once.
+\end{patternbox}
+
+\subsection*{Why a single boolean \textit{visited} array is not enough}
+
+A node might be reached by DFS, fully resolved as safe or unsafe, and
+then reached \emph{again} via a different path later in the traversal
+-- a plain \textit{visited} array would either skip re-deriving its
+answer (fine, if it remembers the answer) or, worse, treat it as
+``currently on the path'' if visited and not-yet-finished are
+conflated into one state. Three explicit states --
+$0=\textit{unvisited}$, $1=\textit{visiting}$, $2=\textit{safe}$ --
+avoid this ambiguity entirely.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For each node, maintain a state: $0$ (unvisited), $1$
+        (currently being explored -- on the active DFS path), or $2$
+        (confirmed safe).
+  \item $\textit{dfs}(\textit{node})$: if state is $2$, return
+        \texttt{true} (already confirmed safe). If state is $1$,
+        return \texttt{false} (currently on the path -- this is a back
+        edge, a cycle). Otherwise, mark state $1$ (entering); recurse
+        into every neighbor -- if \emph{any} neighbor's DFS returns
+        \texttt{false}, this node is unsafe, return \texttt{false}
+        immediately. If every neighbor returns \texttt{true}, mark
+        state $2$ (confirmed safe) and return \texttt{true}.
+  \item Collect every node whose DFS returns \texttt{true}.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool dfs(int node, vector<vector<int>>& adj, vector<int>& state) {
+    if (state[node] == 2) return true;
+    if (state[node] == 1) return false;
+
+    state[node] = 1; // currently being explored
+    for (int neighbor : adj[node]) {
+        if (!dfs(neighbor, adj, state)) return false;
+    }
+    state[node] = 2; // confirmed safe
+    return true;
+}
+
+vector<int> eventualSafeNodes(int n, vector<vector<int>>& adj) {
+    vector<int> state(n, 0);
+    vector<int> result;
+
+    for (int i = 0; i < n; i++) {
+        if (dfs(i, adj, state)) {
+            result.push_back(i);
+        }
+    }
+    return result; // already sorted, since nodes are processed in order
+}
+
+int main() {
+    int n = 7;
+    vector<vector<int>> adj(n);
+    adj[0] = {1, 2}; adj[1] = {2, 3}; adj[2] = {5}; adj[3] = {0};
+    adj[4] = {5}; adj[5] = {}; adj[6] = {};
+
+    for (int x : eventualSafeNodes(n, adj)) cout << x << " ";
+    cout << endl; // 2 4 5 6
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the graph above: $0\to1,0\to2,1\to2,1\to3,2\to5,3\to0,
+4\to5$ ($5,6$ terminal).}
+
+$\textit{dfs}(0)$: state$[0]=1$. Neighbor $1$: $\textit{dfs}(1)$:
+state$[1]=1$. Neighbor $2$: $\textit{dfs}(2)$: state$[2]=1$. Neighbor
+$5$: $\textit{dfs}(5)$: no neighbors, state$[5]=2$, return
+\texttt{true}. Back at $2$: state$[2]=2$, return \texttt{true}. Back
+at $1$: neighbor $3$: $\textit{dfs}(3)$: state$[3]=1$. Neighbor $0$:
+state$[0]=1$ -- \textbf{still being explored} -- return
+\texttt{false}. So $\textit{dfs}(3)$ returns \texttt{false}, making
+$\textit{dfs}(1)$ return \texttt{false} (it has an unsafe neighbor),
+which in turn makes $\textit{dfs}(0)$ return \texttt{false}. Continuing
+with $i=2$: already state $2$, returns \texttt{true}, added. $i=4$:
+$\textit{dfs}(4)$: neighbor $5$, already safe (state $2$); $4$ becomes
+safe. $i=5,6$: already safe / trivially safe (no neighbors). Final
+safe nodes: $2,4,5,6$ -- matching the expected output, while $0,1,3$
+are correctly excluded since they all lie on or lead into the cycle
+$0\to1\to3\to0$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- each node's DFS result is
+computed and cached exactly once (the state-$2$ check short-circuits
+any repeat work).
+\textbf{Space Complexity.} $O(V)$ for the state array and the
+recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The white/gray/black three-coloring scheme used here is the general
+form of cycle-aware DFS: ``gray'' (in-progress) plays the role
+\textit{pathVisited} played in plain cycle detection, while ``black''
+(confirmed done) adds memoization on top, caching each node's final
+verdict so a graph with many converging paths is still only ever
+analyzed once per node.
+\end{takeawaybox}

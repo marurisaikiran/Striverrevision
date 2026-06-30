@@ -1,0 +1,190 @@
+\section{Longest Common Substring}
+\label{sec:dp-longest-common-substring}
+
+\problemstatement{Given two strings $s_1$ and $s_2$, find the length of
+their longest common \textbf{substring}: a longest run of
+\textbf{contiguous} characters that appears, unbroken, in both strings.}
+
+\begin{patternbox}
+The keyword shift from \emph{subsequence} (Section~\ref{sec:dp-lcs}) to
+\emph{substring} -- contiguity now required -- breaks the mismatch case
+of the LCS recurrence entirely: a substring cannot ``skip'' a
+mismatched character and continue, so a mismatch must \textbf{reset} the
+current run to length $0$, rather than falling back to the best of two
+neighboring sub-answers.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(i,j)$ be the length of the common substring \textbf{ending
+exactly at} $s_1[i-1]$ and $s_2[j-1]$ (not the best answer over all
+prefixes, as in LCS -- specifically the run ending right here):
+\[
+  f(i,j) =
+  \begin{cases}
+    1 + f(i{-}1,j{-}1) & \text{if } s_1[i{-}1] = s_2[j{-}1], \\
+    0 & \text{otherwise.}
+  \end{cases}
+\]
+Because the answer is not necessarily at $f(n,m)$ (the longest common
+run could end anywhere in either string), we additionally track a
+running global maximum over every $f(i,j)$ computed.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{ideabox}[Why a Direct Recursive Translation Is Awkward Here]
+Unlike every previous problem in this book, $f(i,j)$ alone does not
+directly answer the original question -- the answer is
+$\max_{i,j} f(i,j)$, a quantity that is naturally accumulated during a
+forward (tabulation-style) sweep, not easily expressed as a single
+top-down recursive call. For this reason, Longest Common Substring is
+typically presented starting from tabulation, with the recursive/memoized
+forms understood as computing the same per-cell $f(i,j)$ values, just
+collected via top-down calls instead of a bottom-up loop.
+\end{ideabox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int f(int i, int j, string& s1, string& s2, vector<vector<int>>& memo, int& best) {
+    if (i == 0 || j == 0) return 0;
+    if (memo[i][j] != -1) return memo[i][j];
+
+    int result = 0;
+    if (s1[i - 1] == s2[j - 1]) {
+        result = 1 + f(i - 1, j - 1, s1, s2, memo, best);
+    }
+    best = max(best, result);
+    return memo[i][j] = result;
+}
+
+int longestCommonSubstringMemo(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> memo(n + 1, vector<int>(m + 1, -1));
+    int best = 0;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            f(i, j, s1, s2, memo, best);
+        }
+    }
+    return best;
+}
+
+int main() {
+    string s1 = "abcde", s2 = "abfce";
+    cout << longestCommonSubstringMemo(s1, s2) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ memo.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int longestCommonSubstringTabulation(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+    int best = 0;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                dp[i][j] = 1 + dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = 0;
+            }
+            best = max(best, dp[i][j]);
+        }
+    }
+    return best;
+}
+
+int main() {
+    string s1 = "abcde", s2 = "abfce";
+    cout << longestCommonSubstringTabulation(s1, s2) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $s_1=\texttt{"abcde"}$, $s_2=\texttt{"abfce"}$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c|c|c}
+ & \texttt{""} & \texttt{a} & \texttt{b} & \texttt{f} & \texttt{c} & \texttt{e} \\ \hline
+\texttt{""} & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
+\texttt{a} & 0 & 1 & 0 & 0 & 0 & 0 \\ \hline
+\texttt{b} & 0 & 0 & 2 & 0 & 0 & 0 \\ \hline
+\texttt{c} & 0 & 0 & 0 & 0 & 1 & 0 \\ \hline
+\texttt{d} & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
+\texttt{e} & 0 & 0 & 0 & 0 & 0 & 1
+\end{tabular}
+\end{center}
+
+The running maximum reaches $2$ at cell (\texttt{b}, \texttt{b}) --
+the common substring \texttt{"ab"} -- and never exceeds it elsewhere
+(every other match is isolated, contributing only length $1$ runs).
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int longestCommonSubstringSpaceOptimized(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<int> prev(m + 1, 0), current(m + 1, 0);
+    int best = 0;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                current[j] = 1 + prev[j - 1];
+            } else {
+                current[j] = 0;
+            }
+            best = max(best, current[j]);
+        }
+        prev = current;
+    }
+    return best;
+}
+
+int main() {
+    string s1 = "abcde", s2 = "abfce";
+    cout << longestCommonSubstringSpaceOptimized(s1, s2) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(m)$ for two rolling rows.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Subsequence'' (gaps allowed) and ``substring'' (no gaps allowed) are
+the single most important keyword distinction in string DP, and they
+produce genuinely different recurrences -- LCS falls back to a
+neighboring best-of-two on a mismatch, while Longest Common Substring
+resets to zero, because a broken run cannot be patched back together.
+Always check this one word before assuming a string problem is ``LCS in
+disguise.''
+\end{takeawaybox}

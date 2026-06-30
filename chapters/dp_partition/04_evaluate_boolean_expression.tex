@@ -1,0 +1,125 @@
+\section{Evaluate Boolean Expression to True}
+\label{sec:dp-evaluate-boolean-expression}
+
+\problemstatement{Given a boolean expression string containing
+operands \texttt{T} and \texttt{F} separated by operators
+\texttt{\&} (and), \texttt{|} (or), and \texttt{\^{}} (xor), count the
+number of ways to fully parenthesize the expression so that it
+evaluates to \texttt{True} (answer modulo $10^9+7$).}
+
+\begin{patternbox}
+\emph{``Count the parenthesizations achieving a target outcome''} is
+this chapter's interval template with two simultaneous twists: the
+split points $k$ are restricted to \textbf{operator positions} only
+(operands themselves cannot be split), and each range tracks a
+\textbf{pair} of counts (ways \texttt{True}, ways \texttt{False})
+rather than one number -- because combining two ranges' outcomes through
+an operator needs to know \emph{both} sub-outcomes' counts to compute
+the combined result correctly.
+\end{patternbox}
+
+\subsection*{Deriving the combination rules}
+
+Let $f(i,j) = (\textit{trueWays}, \textit{falseWays})$ for the
+sub-expression spanning operand positions $i$ to $j$. Base case:
+$i=j$ (a single operand): $f(i,i) = (1,0)$ if $\textit{expr}[i]=
+\texttt{T}$, else $(0,1)$. For $i<j$, try every operator position $k$
+strictly between $i$ and $j$, splitting into left $(i,k{-}1)$ and right
+$(k{+}1,j)$, and combine according to which operator sits at $k$:
+
+\begin{itemize}
+  \item \texttt{\&} (and): result is \texttt{True} only if
+        \emph{both} sides are \texttt{True}.
+        $\textit{trueWays} \mathrel{+}= L_T \cdot R_T$.
+        $\textit{falseWays} \mathrel{+}= L_T R_F + L_F R_T + L_F R_F$.
+  \item \texttt{|} (or): result is \texttt{False} only if \emph{both}
+        sides are \texttt{False}.
+        $\textit{trueWays} \mathrel{+}= L_T R_T + L_T R_F + L_F R_T$.
+        $\textit{falseWays} \mathrel{+}= L_F R_F$.
+  \item \texttt{\^{}} (xor): result is \texttt{True} only if the sides
+        \emph{differ}.
+        $\textit{trueWays} \mathrel{+}= L_T R_F + L_F R_T$.
+        $\textit{falseWays} \mathrel{+}= L_T R_T + L_F R_F$.
+\end{itemize}
+Sum these contributions over every valid operator position $k$.
+
+\subsection*{C++ implementation (memoization)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+pair<long long, long long> evalMemo(int i, int j, string& expr,
+                                     vector<vector<pair<long long,long long>>>& memo) {
+    if (i == j) {
+        return expr[i] == 'T' ? make_pair(1LL, 0LL) : make_pair(0LL, 1LL);
+    }
+    if (memo[i][j].first != -1) return memo[i][j];
+
+    long long trueWays = 0, falseWays = 0;
+    for (int k = i + 1; k < j; k += 2) { // operators sit at odd offsets
+        auto [lt, lf] = evalMemo(i, k - 1, expr, memo);
+        auto [rt, rf] = evalMemo(k + 1, j, expr, memo);
+
+        if (expr[k] == '&') {
+            trueWays = (trueWays + lt * rt) % MOD;
+            falseWays = (falseWays + lt * rf + lf * rt + lf * rf) % MOD;
+        } else if (expr[k] == '|') {
+            trueWays = (trueWays + lt * rt + lt * rf + lf * rt) % MOD;
+            falseWays = (falseWays + lf * rf) % MOD;
+        } else { // '^'
+            trueWays = (trueWays + lt * rf + lf * rt) % MOD;
+            falseWays = (falseWays + lt * rt + lf * rf) % MOD;
+        }
+    }
+    return memo[i][j] = {trueWays, falseWays};
+}
+
+int evaluateBooleanExpr(string expr) {
+    int n = expr.size();
+    vector<vector<pair<long long,long long>>> memo(n, vector<pair<long long,long long>>(n, {-1, -1}));
+    return evalMemo(0, n - 1, expr, memo).first;
+}
+
+int main() {
+    cout << evaluateBooleanExpr("T|F&T^F") << endl; // example expression
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{expr} = \texttt{"T\^{}F|F"}$ (positions:
+$0{=}\texttt{T}$, $1{=}\texttt{\^{}}$, $2{=}\texttt{F}$,
+$3{=}\texttt{|}$, $4{=}\texttt{F}$).}
+
+Base cases: $f(0,0)=(1,0)$, $f(2,2)=(0,1)$, $f(4,4)=(0,1)$.
+$f(0,2)$ (sub-expression \texttt{"T\^{}F"}, operator \texttt{\^{}} at
+position $1$): $L=(1,0)$, $R=(0,1)$.
+$\textit{trueWays}=L_T R_F+L_F R_T=1\cdot1+0\cdot0=1$.
+$\textit{falseWays}=L_T R_T+L_F R_F=1\cdot0+0\cdot1=0$. So
+$f(0,2)=(1,0)$. $f(0,4)$ (the full expression, one operator position
+to try, $k=3$, operator \texttt{|}): $L=f(0,2)=(1,0)$, $R=f(4,4)=(0,1)$.
+$\textit{trueWays}=L_T R_T+L_T R_F+L_F R_T=1\cdot0+1\cdot1+0\cdot0=1$.
+$\textit{falseWays}=L_F R_F=0\cdot1=0$. Final answer:
+$\textit{trueWays}=1$ (the single way: $(\texttt{T}\,\texttt{\^{}}\,
+\texttt{F})\,\texttt{|}\,\texttt{F}$ evaluates to
+$\texttt{True}\,\texttt{|}\,\texttt{False}=\texttt{True}$).
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^3)$ (the same interval-DP bound, with
+the operator-only stride halving the constant but not the asymptotic
+order).
+\textbf{Space Complexity.} $O(n^2)$ for the memo table (each cell
+storing a pair).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever an interval DP's combination step has more than one possible
+\emph{outcome} (here, \texttt{True} or \texttt{False}), and a later
+combination needs to know the count for \emph{each} outcome to compute
+its own result, track a small tuple of values per cell instead of a
+single number -- the same upgrade Number of LIS made to its
+length-only table.
+\end{takeawaybox}

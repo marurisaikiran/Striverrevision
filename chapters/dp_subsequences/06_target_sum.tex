@@ -1,0 +1,97 @@
+\section{Target Sum}
+\label{sec:dp-target-sum}
+
+\problemstatement{Given an array $\textit{nums}$ and an integer
+$\textit{target}$, assign either a $+$ or $-$ sign to each element, and
+count the number of distinct sign assignments that make the total
+expression evaluate to exactly $\textit{target}$.}
+
+\begin{patternbox}
+\emph{``Assign $+$ or $-$ to each element to reach a target sum''} is,
+word for word, Section~\ref{sec:dp-count-partitions-diff}'s partition
+problem in disguise: every element assigned $+$ belongs to one ``subset''
+$P$ (positive sum), every element assigned $-$ belongs to the other
+subset $N$ (negative sum), and the expression's value is exactly
+$P - N$. Counting sign assignments reaching $\textit{target}$ is
+therefore exactly counting partitions with difference
+$d = \textit{target}$ -- \textbf{no new derivation is needed at all.}
+\end{patternbox}
+
+\subsection*{Understanding the reduction}
+
+Every element of $\textit{nums}$ goes into exactly one of two groups:
+those assigned $+$ (summing to $P$) and those assigned $-$ (summing to
+$N$, as a positive magnitude). The expression's total value is $P-N$,
+and $P+N$ is always the array's total sum (every element contributes its
+magnitude to exactly one of the two groups). This is precisely
+Section~\ref{sec:dp-count-partitions-diff}'s setup, with $d =
+\textit{target}$: count subsets summing to $(\textit{totalSum} +
+\textit{target})/2$.
+
+\subsection*{All Four Approaches}
+
+Every stage is Section~\ref{sec:dp-count-partitions-diff}'s
+implementation, called unchanged with $d = \textit{target}$.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSubsetsSpaceOptimized(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<int> prev(k + 1, 0);
+
+    prev[0] = (arr[0] == 0) ? 2 : 1;
+    if (arr[0] != 0 && arr[0] <= k) prev[arr[0]] = 1;
+
+    for (int index = 1; index < n; index++) {
+        vector<int> current(k + 1, 0);
+        for (int target = 0; target <= k; target++) {
+            int notPick = prev[target];
+            int pick = (arr[index] <= target) ? prev[target - arr[index]] : 0;
+            current[target] = notPick + pick;
+        }
+        prev = current;
+    }
+    return prev[k];
+}
+
+int findTargetSumWays(vector<int>& nums, int target) {
+    int totalSum = accumulate(nums.begin(), nums.end(), 0);
+    if ((totalSum + target) % 2 != 0 || totalSum + target < 0) return 0;
+
+    int p = (totalSum + target) / 2;
+    return countSubsetsSpaceOptimized(nums, p);
+}
+
+int main() {
+    vector<int> nums = {1, 1, 1, 1, 1};
+    cout << findTargetSumWays(nums, 3) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [1,1,1,1,1]$, $\textit{target}=3$.}
+
+$\textit{totalSum}=5$. $P = (5+3)/2 = 4$. Counting subsets of five
+$1$s summing to $4$: there are $\binom{5}{4}=5$ ways to choose which
+four of the five $1$s are positive (the remaining one is negative),
+giving $5$ valid sign assignments -- each evaluates to
+$1+1+1+1-1=3=\textit{target}$, confirming the answer.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot \textit{totalSum})$, inherited
+from Section~\ref{sec:dp-count-subsets-sum-k}.
+\textbf{Space Complexity.} $O(\textit{totalSum})$ for the rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This section is intentionally almost content-free beyond the reduction
+itself: once Count Partitions with a Given Difference is solved, Target
+Sum requires recognizing the disguise and nothing more. A surprising
+number of seemingly distinct DP problems on interview sheets are exactly
+this -- the same two or three core recurrences, wearing different cover
+stories.
+\end{takeawaybox}

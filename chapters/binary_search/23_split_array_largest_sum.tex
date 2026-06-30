@@ -1,0 +1,107 @@
+\section{Split Array -- Largest Sum}
+\label{sec:bs-split-array}
+
+\problemstatement{We are given an array $\textit{nums}$ of $n$ non-negative
+integers and an integer $m$. We must split $\textit{nums}$ into $m$
+\textbf{contiguous, non-empty} subarrays so as to \textbf{minimize the
+largest sum} among the $m$ subarrays.}
+
+\begin{patternbox}
+This is, word for word, the Book Allocation Problem
+(Section~\ref{sec:bs-book-allocation}) with ``books/pages/students''
+relabeled as ``array/elements/subarrays.'' There is no new idea to extract
+here beyond confirming, explicitly, that you recognize the relabeling --
+which is itself the point of including this problem on the sheet
+immediately after book allocation: to test whether the pattern has truly
+been internalized, or only memorized under one specific cover story.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Exactly as in Section~\ref{sec:bs-book-allocation}, define
+$\textit{partsNeeded}(\textit{maxSum})$ as the minimum number of
+contiguous parts needed if no part's sum may exceed $\textit{maxSum}$,
+computed by the same greedy bucket-filling simulation. This is
+non-increasing in $\textit{maxSum}$, giving the same monotonic structure.
+
+\begin{ideabox}[Candidate Space and Predicate]
+Candidate space: integer sums in $[\max(\textit{nums}),
+\sum(\textit{nums})]$. Predicate:
+$P(\textit{maxSum}) = (\textit{partsNeeded}(\textit{maxSum}) \le m)$. Want
+the smallest $\textit{maxSum}$ where $P$ holds.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+Identical to Algorithm~\ref{sec:bs-book-allocation}'s
+\textsc{BookAllocation}, with \textit{pages} relabeled \textit{nums} and
+$m$ meaning the number of parts directly.
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [7,2,5,10,8]$, $m = 2$.}
+
+$\max=10$, $\sum=32$. Binary search converges to $\textit{maxSum}=18$: one
+valid split is $[7,2,5]$ (sum $14$) and $[10,8]$ (sum $18$), giving largest
+sum $18$; checking $17$ shows it forces a third part
+($[7,2,5]=14$, then $[10]=10$ would leave $[8]$ separately, or
+$[7,2,5,10]=24>17$ forces an earlier break, ultimately requiring $3$
+parts), confirming $18$ is minimal.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int partsNeeded(vector<int>& nums, int maxSum) {
+    int parts = 1;
+    long long currentSum = 0;
+
+    for (int x : nums) {
+        if (currentSum + x > maxSum) {
+            parts++;
+            currentSum = 0;
+        }
+        currentSum += x;
+    }
+    return parts;
+}
+
+int splitArray(vector<int>& nums, int m) {
+    int lo = *max_element(nums.begin(), nums.end());
+    int hi = accumulate(nums.begin(), nums.end(), 0);
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (partsNeeded(nums, mid) <= m) {
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> nums = {7, 2, 5, 10, 8};
+    cout << "Minimized largest sum: "
+         << splitArray(nums, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.}
+$O(n \log(\sum(\textit{nums})))$, identical to
+Section~\ref{sec:bs-book-allocation}.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The fastest way to solve this problem is to recognize it as Book
+Allocation in disguise. Building a small catalogue of templates -- rather
+than a catalogue of individual problems -- is what lets binary search on
+the answer scale to dozens of seemingly distinct sheet problems with only
+a handful of underlying ideas.
+\end{takeawaybox}

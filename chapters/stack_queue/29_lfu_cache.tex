@@ -1,0 +1,189 @@
+\section{LFU Cache}
+\label{sec:sq-lfu-cache}
+
+\problemstatement{Design a cache with a fixed capacity supporting
+$\textit{get}(\textit{key})$ and $\textit{put}(\textit{key},
+\textit{value})$, both in $O(1)$, where eviction (when the cache is full
+and a new key must be inserted) removes the \textbf{least frequently
+used} key; if multiple keys share the lowest frequency, the
+\textbf{least recently used} among them is evicted.}
+
+\begin{patternbox}
+LFU is LRU (Section~\ref{sec:sq-lru-cache}) with a second tie-breaking
+dimension added: eviction priority is now \emph{(frequency, recency)},
+not recency alone. The keyword to notice: whenever a tie-breaking rule is
+layered on top of a structure you already have working (here, LRU's
+hash-map-plus-doubly-linked-list), try \textbf{bucketing} by the primary
+key (frequency) and reusing the existing structure (an LRU list) as the
+secondary tie-breaker \emph{within} each bucket, rather than designing an
+entirely new structure from scratch.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Group keys by their current access frequency into separate buckets. Each
+bucket, internally, only ever needs to break ties by recency among keys
+that share that exact frequency -- which is exactly the LRU Cache
+substructure from Section~\ref{sec:sq-lru-cache}, reused once per
+distinct frequency value. Eviction always targets the \emph{lowest}
+currently-occupied frequency bucket, and within it, removes that
+bucket's least-recently-used key (the LRU substructure's own eviction
+rule, applied locally).
+
+\begin{ideabox}[A Hash Map of Frequency Buckets, Each an LRU List]
+Maintain: a hash map $\textit{keyData}$ from key to $(\textit{value},
+\textit{freq})$; a hash map $\textit{freqBuckets}$ from frequency to a
+doubly linked list (an LRU list) of keys currently at that frequency,
+ordered by recency within the bucket; and a single integer
+$\textit{minFreq}$, tracking the smallest frequency currently occupied by
+any key. On every access to an existing key (via \textit{get} or an
+updating \textit{put}): remove it from its current frequency bucket
+(inserting it at the front, i.e.\ most-recent position, of the
+\emph{next} frequency bucket up), incrementing its stored frequency; if
+its old bucket becomes empty and was the minimum, increment
+$\textit{minFreq}$. On inserting a brand-new key when the cache is full:
+evict the least-recently-used key from the $\textit{minFreq}$ bucket, then
+insert the new key into the frequency-$1$ bucket and reset
+$\textit{minFreq} \gets 1$.
+\end{ideabox}
+
+\subsection*{Why tracking \textit{minFreq} explicitly avoids an expensive search}
+
+Without an explicit running $\textit{minFreq}$, finding ``the lowest
+currently-occupied frequency'' would require scanning all buckets,
+costing more than $O(1)$. Because frequency only ever \textbf{increases}
+by exactly $1$ per access, and a brand-new key always enters at frequency
+$1$, we can maintain $\textit{minFreq}$ incrementally with simple,
+local updates: it can only decrease (to $1$) when a new key is inserted,
+and it can only increase when the bucket it currently points to becomes
+completely empty (because the key that just left was the last one at that
+frequency, and every other key's frequency is, by definition, at least
+\textit{minFreq}, so the new minimum must be \textit{minFreq}+1 in that
+specific case). This local bookkeeping replaces a potentially expensive
+global search with $O(1)$ updates.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Touch}($\textit{key}$) (shared helper for get and
+        updating put): look up $(\textit{value}, f)$ in
+        $\textit{keyData}$; remove $\textit{key}$ from
+        $\textit{freqBuckets}[f]$; if that bucket is now empty and
+        $f = \textit{minFreq}$, increment \textit{minFreq}; insert
+        $\textit{key}$ at the front of $\textit{freqBuckets}[f+1]$;
+        update $\textit{keyData}[\textit{key}] \gets (\textit{value},
+        f+1)$.
+  \item \textsc{Get}($\textit{key}$): if absent, return $-1$. Else:
+        \textsc{Touch}($\textit{key}$); return its value.
+  \item \textsc{Put}($\textit{key}, \textit{value}$): if present, update
+        the stored value and call \textsc{Touch}($\textit{key}$).
+        Otherwise, if at capacity: evict the least-recently-used key
+        from $\textit{freqBuckets}[\textit{minFreq}]$ (and its
+        $\textit{keyData}$ entry). Insert $\textit{key}$ at the front of
+        $\textit{freqBuckets}[1]$; set $\textit{keyData}[\textit{key}]
+        \gets (\textit{value}, 1)$; set $\textit{minFreq} \gets 1$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Capacity $2$. \textsc{Put}(1,1), \textsc{Put}(2,2),
+\textsc{Get}(1) (freq of $1$ becomes $2$), \textsc{Put}(3,3) (cache full;
+evict lowest-frequency key, which is $2$, frequency $1$), \textsc{Get}(2).}
+
+\begin{itemize}
+  \item Put(1,1): bucket[1]$=[1]$. minFreq$=1$.
+  \item Put(2,2): bucket[1]$=[2,1]$ (2 most recent). minFreq$=1$.
+  \item Get(1): touch $1$ (freq $1\to2$). Remove from bucket[1]:
+        bucket[1]$=[2]$ (not empty, minFreq stays $1$). Insert into
+        bucket[2]$=[1]$.
+  \item Put(3,3): cache full ($2$ keys). Evict from bucket[\textit{minFreq}=1]'s
+        LRU end: bucket[1]$=[2]$, evict $2$. bucket[1] now empty. Insert
+        $3$ into bucket[1]$=[3]$. minFreq reset to $1$.
+  \item Get(2): key $2$ was evicted; returns $-1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class LFUCache {
+    int capacity, minFreq;
+    unordered_map<int, pair<int,int>> keyData; // key -> (value, freq)
+    unordered_map<int, list<int>> freqBuckets;  // freq -> keys (front = most recent)
+    unordered_map<int, list<int>::iterator> keyIter; // key -> its position in its bucket
+
+    void touch(int key) {
+        auto [value, freq] = keyData[key];
+        freqBuckets[freq].erase(keyIter[key]);
+        if (freqBuckets[freq].empty()) {
+            freqBuckets.erase(freq);
+            if (freq == minFreq) minFreq++;
+        }
+        freqBuckets[freq + 1].push_front(key);
+        keyIter[key] = freqBuckets[freq + 1].begin();
+        keyData[key] = {value, freq + 1};
+    }
+
+public:
+    LFUCache(int cap) : capacity(cap), minFreq(0) {}
+
+    int get(int key) {
+        if (!keyData.count(key)) return -1;
+        touch(key);
+        return keyData[key].first;
+    }
+
+    void put(int key, int value) {
+        if (capacity == 0) return;
+
+        if (keyData.count(key)) {
+            keyData[key].first = value;
+            touch(key);
+            return;
+        }
+
+        if ((int)keyData.size() == capacity) {
+            int evictKey = freqBuckets[minFreq].back();
+            freqBuckets[minFreq].pop_back();
+            keyData.erase(evictKey);
+            keyIter.erase(evictKey);
+        }
+
+        keyData[key] = {value, 1};
+        freqBuckets[1].push_front(key);
+        keyIter[key] = freqBuckets[1].begin();
+        minFreq = 1;
+    }
+};
+
+int main() {
+    LFUCache cache(2);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cout << cache.get(1) << endl; // 1
+    cache.put(3, 3);              // evicts key 2
+    cout << cache.get(2) << endl; // -1
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ for both $\textit{get}$ and
+$\textit{put}$ -- every step is a hash map lookup or a constant number of
+doubly linked list operations, with $\textit{minFreq}$ maintained
+incrementally rather than recomputed.
+\textbf{Space Complexity.} $O(\textit{capacity})$ across the hash maps
+and linked lists.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This closing problem of the chapter is a deliberate capstone, much like
+Median of a Row-wise Sorted Matrix was for the Binary Search chapter: it
+requires recognizing that a new, seemingly more complex requirement
+(frequency-based eviction) can be built by \emph{bucketing} on the new
+dimension and reusing an already-solved structure (LRU's doubly linked
+list) as the tie-breaker within each bucket -- composition of known
+pieces, rather than a wholly new design, solves the harder problem.
+\end{takeawaybox}

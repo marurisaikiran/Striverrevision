@@ -1,0 +1,151 @@
+\section{Letter Combinations of a Phone Number}
+\label{sec:rec-letter-combinations}
+
+\problemstatement{Given a string of digits from $2$ to $9$, where each
+digit maps to a fixed set of letters exactly as on a telephone keypad
+(e.g.\ $2 \to \texttt{abc}$, $3 \to \texttt{def}$, \ldots, $7 \to
+\texttt{pqrs}$, $9 \to \texttt{wxyz}$), return every possible letter
+combination obtainable by choosing one letter for each digit, in order.}
+
+\begin{patternbox}
+\emph{``Choose one option per position, from a different choice set at
+each position''} generalizes Section~\ref{sec:rec-power-set}'s binary
+pick/not-pick into an $n$-ary branch at every level: instead of $2$
+choices (include/exclude) at each position, there are however many
+letters the current digit maps to, and the recursion simply loops over
+all of them instead of hard-coding exactly two branches.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Each digit position contributes one letter to the final combination,
+chosen independently from that digit's fixed mapping (e.g.\ digit
+$\texttt{'2'}$ contributes one of $\texttt{a},\texttt{b},\texttt{c}$).
+Since these choices are independent across positions, exactly as the
+pick/not-pick choices were independent across array elements in
+Section~\ref{sec:rec-power-set}, the total number of combinations is the
+\textbf{product} of each digit's letter count, and a recursion that
+loops through all letters for the current digit, recursing once per
+letter, visits every combination exactly once.
+
+\begin{ideabox}[Loop Over the Current Digit's Letters Instead of a Fixed Binary Choice]
+$\textsc{Solve}(\textit{index}, \textit{current})$: if
+$\textit{index} = |\textit{digits}|$: record $\textit{current}$;
+return. Otherwise: for each letter $c$ in the mapping for
+$\textit{digits}[\textit{index}]$: append $c$ to $\textit{current}$;
+recurse $\textsc{Solve}(\textit{index}+1, \textit{current})$; remove $c$
+(undo).
+\end{ideabox}
+
+\subsection*{Why looping generalizes the binary pick/not-pick template directly}
+
+The pick/not-pick recursion in Section~\ref{sec:rec-power-set} is the
+special case of this loop where every position's choice set happens to
+have exactly $2$ options (``include'' or ``exclude''). Here, the choice
+set size varies by digit (e.g.\ $3$ letters for most digits, but $4$ for
+$\texttt{7}$ and $\texttt{9}$), so the recursion is written as a general
+loop over however many choices exist at the current position, rather
+than two separately hard-coded branches -- the same choose/recurse/un-choose
+rhythm applies uniformly, regardless of how many choices the loop
+iterates over.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Define the digit-to-letters mapping (a fixed lookup table).
+  \item $\textsc{Solve}(\textit{index}, \textit{current})$:
+  \begin{enumerate}
+    \item If $\textit{index} = |\textit{digits}|$: record
+          $\textit{current}$; return.
+    \item For each letter $c$ mapped from
+          $\textit{digits}[\textit{index}]$: append $c$; recurse
+          $\textsc{Solve}(\textit{index}+1, \textit{current})$; remove
+          (undo).
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0, \texttt{""})$ (return an empty list
+        immediately if $\textit{digits}$ is empty, as a special case).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{digits} = \texttt{"23"}$ ($2\to\texttt{abc}$,
+$3\to\texttt{def}$).}
+
+\begin{itemize}
+  \item $\textsc{Solve}(0,\texttt{""})$: loop over $\texttt{a,b,c}$ for
+        digit $\texttt{'2'}$.
+  \begin{itemize}
+    \item $c=\texttt{a}$: $\textsc{Solve}(1,\texttt{"a"})$: loop over
+          $\texttt{d,e,f}$ for digit $\texttt{'3'}$: record
+          \texttt{"ad"}, \texttt{"ae"}, \texttt{"af"}.
+    \item $c=\texttt{b}$: $\textsc{Solve}(1,\texttt{"b"})$: record
+          \texttt{"bd"}, \texttt{"be"}, \texttt{"bf"}.
+    \item $c=\texttt{c}$: $\textsc{Solve}(1,\texttt{"c"})$: record
+          \texttt{"cd"}, \texttt{"ce"}, \texttt{"cf"}.
+  \end{itemize}
+\end{itemize}
+
+Result: \texttt{"ad","ae","af","bd","be","bf","cd","ce","cf"} -- all
+$3\times3=9$ combinations.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(int index, string& digits, string& current,
+           vector<string>& mapping, vector<string>& result) {
+    if (index == (int)digits.size()) {
+        result.push_back(current);
+        return;
+    }
+    string letters = mapping[digits[index] - '0'];
+    for (char c : letters) {
+        current.push_back(c);
+        solve(index + 1, digits, current, mapping, result);
+        current.pop_back();
+    }
+}
+
+vector<string> letterCombinations(string digits) {
+    if (digits.empty()) return {};
+
+    vector<string> mapping = {
+        "", "", "abc", "def", "ghi", "jkl",
+        "mno", "pqrs", "tuv", "wxyz"
+    };
+
+    vector<string> result;
+    string current;
+    solve(0, digits, current, mapping, result);
+    return result;
+}
+
+int main() {
+    for (string& s : letterCombinations("23")) cout << s << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} If each digit maps to at most $4$ letters,
+there are at most $4^L$ combinations for a digit string of length $L$,
+each costing $O(L)$ to build, giving
+\[
+  O(L \cdot 4^L).
+\]
+\textbf{Space Complexity.} $O(L)$ for the recursion depth.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A loop-based recursive branch (``try every choice in this position's
+choice set'') is the natural generalization of a hard-coded binary
+pick/not-pick, and is the more common shape for backtracking problems in
+practice, since most real choice sets have more than two options. Every
+remaining backtracking problem in this chapter
+(Sections~\ref{sec:rec-rat-in-maze}--\ref{sec:rec-word-search}) uses this
+loop-based shape, with the choice set determined by the problem's
+specific structure (grid moves, board placements, partition points).
+\end{takeawaybox}

@@ -1,0 +1,98 @@
+\section{Count Partitions with a Given Difference}
+\label{sec:dp-count-partitions-diff}
+
+\problemstatement{Given an array $\textit{arr}$ and an integer $d$,
+count the number of ways to partition $\textit{arr}$ into two subsets
+$S_1$ and $S_2$ such that $S_1 - S_2 = d$ (where $S_1, S_2$ denote the
+sums of the two subsets, and every element belongs to exactly one of
+them).}
+
+\begin{patternbox}
+Another reduction to an already-solved problem: given
+$S_1 - S_2 = d$ and $S_1 + S_2 = \textit{totalSum}$ (every element is in
+exactly one subset), solving this small system of two equations gives
+$S_1 = (\textit{totalSum}+d)/2$ -- turning the partition-counting
+question into exactly Section~\ref{sec:dp-count-subsets-sum-k}'s
+``count subsets summing to $K$,'' with $K = (\textit{totalSum}+d)/2$.
+\end{patternbox}
+
+\subsection*{Understanding the reduction}
+
+Adding the two equations $S_1-S_2=d$ and $S_1+S_2=\textit{totalSum}$
+eliminates $S_2$: $2S_1 = \textit{totalSum}+d$, so $S_1 =
+(\textit{totalSum}+d)/2$. If $\textit{totalSum}+d$ is odd, no integer
+$S_1$ satisfies this, so the answer is immediately $0$. Otherwise, every
+way of choosing a subset summing to exactly this $S_1$ corresponds to
+exactly one valid partition (the chosen subset is $S_1$, everything else
+is $S_2$, and $S_2 = \textit{totalSum}-S_1$ automatically satisfies
+$S_1-S_2=d$) -- so the answer is exactly
+Section~\ref{sec:dp-count-subsets-sum-k}'s subset-count, evaluated at
+this derived target.
+
+\subsection*{All Four Approaches}
+
+Every stage reuses Section~\ref{sec:dp-count-subsets-sum-k}'s
+implementation unchanged, called with $k = (\textit{totalSum}+d)/2$.
+Only the space-optimized version, plus the reduction wrapper, is shown.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSubsetsSpaceOptimized(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<int> prev(k + 1, 0);
+
+    prev[0] = (arr[0] == 0) ? 2 : 1;
+    if (arr[0] != 0 && arr[0] <= k) prev[arr[0]] = 1;
+
+    for (int index = 1; index < n; index++) {
+        vector<int> current(k + 1, 0);
+        for (int target = 0; target <= k; target++) {
+            int notPick = prev[target];
+            int pick = (arr[index] <= target) ? prev[target - arr[index]] : 0;
+            current[target] = notPick + pick;
+        }
+        prev = current;
+    }
+    return prev[k];
+}
+
+int countPartitionsWithDiff(vector<int>& arr, int d) {
+    int totalSum = accumulate(arr.begin(), arr.end(), 0);
+    if ((totalSum + d) % 2 != 0 || totalSum + d < 0) return 0;
+
+    int s1 = (totalSum + d) / 2;
+    return countSubsetsSpaceOptimized(arr, s1);
+}
+
+int main() {
+    vector<int> arr = {1, 1, 2, 3};
+    cout << countPartitionsWithDiff(arr, 1) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,1,2,3]$, $d=1$.}
+
+$\textit{totalSum}=7$. $S_1 = (7+1)/2 = 4$. Counting subsets summing to
+$4$: $\{1,3\}$ (using the first $1$), $\{1,3\}$ (using the second $1$),
+and $\{1,1,2\}$ -- three subsets, giving $\textit{answer}=3$. Checking
+one of them: subset $\{1,3\}$ has sum $4$; the complementary subset
+$\{1,2\}$ has sum $3$; difference $4-3=1=d$, confirmed.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot \textit{totalSum})$, inherited
+from Section~\ref{sec:dp-count-subsets-sum-k}.
+\textbf{Space Complexity.} $O(\textit{totalSum})$ for the rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a problem describes a partition in terms of a \textbf{sum and a
+difference} of the two parts, solving the resulting two-equation system
+for one part's target sum is almost always the fastest path to reusing
+an already-solved subset-counting DP, rather than inventing a new
+two-dimensional recurrence that tracks both parts directly.
+\end{takeawaybox}

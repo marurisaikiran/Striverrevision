@@ -1,0 +1,93 @@
+\section{Find How Many Times an Array Has Been Rotated}
+\label{sec:bs-how-many-rotations}
+
+\problemstatement{Given a sorted array that has been rotated some number of
+times (all elements distinct), determine \textbf{how many times} it has
+been rotated -- equivalently, find the number of left rotations applied to
+the original sorted array.}
+
+\begin{patternbox}
+This problem is solved by noticing that it is asking for almost the same
+quantity as Section~\ref{sec:bs-find-min-rotated}, phrased differently: the
+number of left rotations applied to a sorted array equals exactly the
+\textbf{index} of the minimum element. If the original sorted array is
+rotated left by $k$ positions, the element that used to be at index $0$
+(the global minimum) ends up sitting at index $k$. Whenever a problem
+about a rotated array asks for ``how many rotations,'' translate it
+immediately into ``find the index of the minimum.''
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Picture the original sorted array $[v_0 < v_1 < \cdots < v_{n-1}]$. Rotating
+it left by $k$ positions produces
+$[v_k, v_{k+1}, \dots, v_{n-1}, v_0, v_1, \dots, v_{k-1}]$. The smallest
+value $v_0$ now sits at position $k$ in the rotated array. So finding the
+number of rotations is exactly finding the position of the minimum element
+-- the same quantity computed in Section~\ref{sec:bs-find-min-rotated},
+except we now want the \emph{index} rather than the \emph{value}.
+
+\begin{ideabox}[Reuse, Don't Re-derive]
+Apply the exact same binary search as
+Section~\ref{sec:bs-find-min-rotated} to locate the minimum, but track and
+return $\textit{lo}$ (the index) instead of $\textit{arr}[\textit{lo}]$
+(the value).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+Identical to Algorithm~\ref{sec:bs-find-min-rotated}'s \textsc{FindMin}
+procedure, returning $\textit{lo}$ instead of $\textit{arr}[\textit{lo}]$.
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [4,5,6,7,0,1,2]$ (same array as
+Section~\ref{sec:bs-find-min-rotated}).}
+
+The binary search trace is identical to before, terminating with
+$\textit{lo} = 4$. So the array has been rotated $4$ times -- indeed, the
+original sorted array would have been $[0,1,2,4,5,6,7]$, and rotating it
+left by $4$ positions gives exactly $[4,5,6,7,0,1,2]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countRotations(vector<int>& arr) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1;
+
+    while (lo < hi) {
+        if (arr[lo] <= arr[hi]) break; // already sorted
+
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] >= arr[lo]) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo; // index of the minimum = number of rotations
+}
+
+int main() {
+    vector<int> arr = {4, 5, 6, 7, 0, 1, 2};
+    cout << "Number of rotations: " << countRotations(arr) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\log n)$, identical to
+Section~\ref{sec:bs-find-min-rotated}.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a new problem statement turns out to want the \emph{index} of a
+quantity you already know how to binary search for (rather than its
+\emph{value}), there is usually nothing new to derive -- just track the
+index alongside, or instead of, the value throughout the same search.
+\end{takeawaybox}

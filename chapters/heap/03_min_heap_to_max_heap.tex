@@ -1,0 +1,170 @@
+\section{Convert a Min Heap to a Max Heap}
+\label{sec:heap-min-to-max}
+
+\problemstatement{Given an array that currently satisfies the min-heap
+property, rearrange it in place so that it satisfies the max-heap property
+instead.}
+
+\begin{patternbox}
+The keyword here is \emph{``convert,'' not ``rebuild from a sorted
+list''} -- the existing min-heap order is, in fact, almost entirely
+irrelevant to solving this efficiently; the fastest approach simply
+\textbf{re-heapifies the array from scratch as a max-heap}, ignoring its
+current (min-heap) structure. This problem is the natural place to
+introduce the classic $O(n)$ \textbf{build-heap} algorithm, which is
+faster than the $O(n \log n)$ you would get by popping every element from
+the min-heap and pushing it into a fresh max-heap one at a time.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The simplest correct approach: treat the existing array's \emph{values}
+as an unordered list of $n$ numbers (discard the fact that they currently
+satisfy a min-heap arrangement -- it buys us nothing for the new task),
+and re-heapify in place into a max-heap. The key efficiency insight is
+that \emph{any} array can be turned into a valid heap in $O(n)$ time, not
+$O(n \log n)$, by sifting down starting from the \textbf{last internal
+node} and working backward to the root.
+
+\begin{ideabox}[Why Starting from the Last Internal Node Works]
+A leaf node trivially satisfies the heap property on its own. If we
+process internal nodes in \emph{reverse} level order (bottom-most,
+right-most internal node first, ending at the root), then by the time we
+sift-down a given node $i$, both of its children's subtrees have
+\emph{already} been fixed into valid max-heaps (since they were processed
+earlier, being lower in the tree). Sifting node $i$ down then only needs
+to resolve a violation between $i$ and the roots of two already-valid
+subtrees -- exactly the situation sift-down is designed to fix -- so a
+single bottom-up pass, sifting each internal node down once, is enough to
+turn the entire array into a valid heap.
+\end{ideabox}
+
+\subsection*{Why this build-heap process is $O(n)$, not $O(n \log n)$}
+
+Each sift-down costs time proportional to the \emph{height of the subtree
+rooted at that node}, not the height of the whole tree. Most nodes are
+near the bottom of the tree, where subtree heights are tiny; only the
+handful of nodes near the root have a large subtree height. Formally, the
+total work is
+\[
+  \sum_{h=0}^{\log n} \frac{n}{2^{h+1}} \cdot h = O(n),
+\]
+since the number of nodes at height $h$ from the bottom is roughly
+$n/2^{h+1}$, and this geometric-times-linear sum converges to $O(n)$
+rather than the naive (and incorrect) $O(n \log n)$ upper bound you would
+get by assuming every node costs the full tree height.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item The last internal node (one with at least one child) is at index
+        $\lfloor n/2 \rfloor - 1$.
+  \item For $i$ from $\lfloor n/2 \rfloor - 1$ down to $0$: sift-down
+        node $i$, using max-heap comparisons (swap with the \emph{larger}
+        child whenever a child exceeds the current node).
+  \item The array now satisfies the max-heap property.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Build a Max-Heap In Place (Heapify)}
+\begin{algorithmic}[1]
+\Procedure{BuildMaxHeap}{\textit{arr}}
+  \For{$i \gets \lfloor n/2 \rfloor - 1$ \textbf{down to} $0$}
+    \State \Call{SiftDownMax}{\textit{arr}, $i$, $n$}
+  \EndFor
+\EndProcedure
+\Procedure{SiftDownMax}{\textit{arr}, $i$, $n$}
+  \While{\textbf{true}}
+    \State $\textit{largest} \gets i$, $\textit{left} \gets 2i+1$, $\textit{right} \gets 2i+2$
+    \If{$\textit{left} < n$ \textbf{and} $\textit{arr}[\textit{left}] > \textit{arr}[\textit{largest}]$}
+      \State $\textit{largest} \gets \textit{left}$
+    \EndIf
+    \If{$\textit{right} < n$ \textbf{and} $\textit{arr}[\textit{right}] > \textit{arr}[\textit{largest}]$}
+      \State $\textit{largest} \gets \textit{right}$
+    \EndIf
+    \If{$\textit{largest} = i$} \textbf{break} \EndIf
+    \State swap $\textit{arr}[i]$ and $\textit{arr}[\textit{largest}]$; $i \gets \textit{largest}$
+  \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take the min-heap $\textit{arr} = [1,3,5,4,6,7,8]$ ($n=7$).}
+
+Last internal node: $\lfloor 7/2 \rfloor - 1 = 2$.
+
+\begin{itemize}
+  \item $i=2$ (value $5$): children at $5,6$ are $7,8$. Largest child is
+        $8$ at index $6$. $8>5$: swap. $\textit{arr}=[1,3,8,4,6,7,5]$.
+        Index $6$ is a leaf; stop.
+  \item $i=1$ (value $3$): children at $3,4$ are $4,6$. Largest is $6$ at
+        index $4$. $6>3$: swap. $\textit{arr}=[1,6,8,4,3,7,5]$. Index $4$
+        is a leaf; stop.
+  \item $i=0$ (value $1$): children at $1,2$ are $6,8$. Largest is $8$ at
+        index $2$. $8>1$: swap. $\textit{arr}=[8,6,1,4,3,7,5]$. Now at
+        index $2$ (value $1$): children at $5,6$ are $7,5$. Largest is
+        $7$ at index $5$. $7>1$: swap.
+        $\textit{arr}=[8,6,7,4,3,1,5]$. Index $5$ is a leaf; stop.
+\end{itemize}
+
+The final array $[8,6,7,4,3,1,5]$ satisfies the max-heap property (the
+root $8$ is the maximum, and every parent exceeds its children).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void siftDownMax(vector<int>& arr, int i, int n) {
+    while (true) {
+        int largest = i, left = 2 * i + 1, right = 2 * i + 2;
+        if (left < n && arr[left] > arr[largest]) largest = left;
+        if (right < n && arr[right] > arr[largest]) largest = right;
+        if (largest == i) break;
+        swap(arr[i], arr[largest]);
+        i = largest;
+    }
+}
+
+void minHeapToMaxHeap(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = n / 2 - 1; i >= 0; i--) {
+        siftDownMax(arr, i, n);
+    }
+}
+
+int main() {
+    vector<int> arr = {1, 3, 5, 4, 6, 7, 8}; // valid min-heap
+    minHeapToMaxHeap(arr);
+
+    cout << "Max-heap: ";
+    for (int x : arr) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The build-heap process visits $O(n/2)$ internal
+nodes with total sift-down work summing to
+\[
+  O(n)
+\]
+across the whole array (not $O(n \log n)$), by the height-weighted
+geometric sum argument above.
+\textbf{Space Complexity.} $O(1)$ auxiliary space (the conversion is done
+in place).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Re-heapifying an entire array from scratch is $O(n)$, not $O(n \log n)$ --
+a fact that is easy to misremember because a \emph{single} sift-down is
+$O(\log n)$, tempting you to multiply by $n$ insertions. The $O(n)$ bound
+only holds when you build the whole heap at once via bottom-up sift-down,
+not when you insert $n$ elements one at a time via repeated sift-up.
+\textsc{std::make\_heap} in C++ uses exactly this $O(n)$ bottom-up
+technique internally.
+\end{takeawaybox}

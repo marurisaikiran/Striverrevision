@@ -1,0 +1,159 @@
+\section{Maximal Rectangle}
+\label{sec:sq-maximal-rectangle}
+
+\problemstatement{Given an $n \times m$ binary matrix, find the area of
+the largest rectangle that contains only $1$s.}
+
+\begin{patternbox}
+\emph{``Largest all-$1$s rectangle in a binary matrix''} is Largest
+Rectangle in Histogram (Section~\ref{sec:sq-largest-rectangle-histogram})
+applied \textbf{once per row}, where each row defines a histogram of
+``how tall a column of consecutive $1$s ends here.'' The keyword to
+notice: a 2D ``maximal rectangle of some property'' problem often reduces
+to a 1D technique applied row by row, with state carried forward between
+rows.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For each row $r$, define $\textit{height}[j]$ as the number of
+consecutive $1$s ending at row $r$ in column $j$, looking upward (so
+$\textit{height}[j] = 0$ if $\textit{matrix}[r][j] = 0$, and
+$\textit{height}[j] = \textit{height}_{\text{previous row}}[j] + 1$ if
+$\textit{matrix}[r][j] = 1$). This $\textit{height}$ array is exactly a
+histogram: a rectangle of all $1$s that has its \emph{bottom edge} on row
+$r$ corresponds exactly to a rectangle in this histogram, since the
+histogram's height at column $j$ tells us exactly how far upward a solid
+column of $1$s extends from row $r$.
+
+\begin{ideabox}[Run Largest-Rectangle-in-Histogram Once per Row]
+Maintain a running $\textit{height}$ array across rows, updating it as
+described above after moving to each new row. After updating
+$\textit{height}$ for row $r$, run
+Algorithm~\ref{sec:sq-largest-rectangle-histogram}'s histogram algorithm
+on it, and record the resulting maximum area as a candidate for the
+overall answer. After processing every row, the largest area seen across
+all rows is the answer.
+\end{ideabox}
+
+\subsection*{Why checking every row's histogram captures every possible rectangle}
+
+Every all-$1$s rectangle in the matrix has \emph{some} specific bottom
+row $r$. When we process row $r$, the running $\textit{height}$ array at
+that point correctly reflects, for every column, how far a solid run of
+$1$s extends upward from row $r$ -- so the histogram-area algorithm run on
+that exact $\textit{height}$ array is guaranteed to find the largest
+rectangle with bottom edge on row $r$ specifically. Since every possible
+all-$1$s rectangle has its bottom edge on \emph{some} row, running this
+check for every row and taking the overall maximum is guaranteed not to
+miss any candidate rectangle.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{height}[0..m-1] \gets 0$ and
+        $\textit{maxArea} \gets 0$.
+  \item For each row $r$ from $0$ to $n-1$:
+  \begin{enumerate}
+    \item For each column $j$: if $\textit{matrix}[r][j] = 1$:
+          $\textit{height}[j] \gets \textit{height}[j]+1$; else:
+          $\textit{height}[j] \gets 0$.
+    \item Run the largest-rectangle-in-histogram algorithm on
+          $\textit{height}$; update $\textit{maxArea}$ with the result.
+  \end{enumerate}
+  \item Return \textit{maxArea}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the matrix
+$\begin{bmatrix} 1&0&1&0&0 \\ 1&0&1&1&1 \\ 1&1&1&1&1 \\ 1&0&0&1&0
+\end{bmatrix}$.}
+
+\begin{itemize}
+  \item Row $0$: $\textit{height}=[1,0,1,0,0]$. Largest histogram
+        rectangle: each isolated bar of height $1$, area $1$.
+        $\textit{maxArea}=1$.
+  \item Row $1$: $\textit{height}=[2,0,2,1,1]$. Largest rectangle: bars
+        at indices $2,3,4$ with heights $2,1,1$ give area
+        $1\times3=3$ (limited by the shortest, height $1$); also
+        indices $0$ alone gives $2$; index $2$ alone gives $2$.
+        Best here is $3$. $\textit{maxArea}=3$.
+  \item Row $2$: $\textit{height}=[3,1,3,2,2]$. Largest rectangle:
+        indices $2,3,4$ with heights $3,2,2$ give area $2\times3=6$.
+        $\textit{maxArea}=6$.
+  \item Row $3$: $\textit{height}=[4,0,0,3,0]$. Largest rectangle:
+        index $0$ alone gives $4$; index $3$ alone gives $3$. Best here
+        is $4$, not exceeding $6$.
+\end{itemize}
+
+The maximal rectangle has area $\boxed{6}$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int largestRectangleArea(vector<int> heights) {
+    heights.push_back(0);
+    int n = heights.size();
+    stack<int> st;
+    long long maxArea = 0;
+
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && heights[i] < heights[st.top()]) {
+            int j = st.top();
+            st.pop();
+            int width = st.empty() ? i : i - st.top() - 1;
+            maxArea = max(maxArea, (long long)heights[j] * width);
+        }
+        st.push(i);
+    }
+    return maxArea;
+}
+
+int maximalRectangle(vector<vector<int>>& matrix) {
+    int n = matrix.size(), m = matrix[0].size();
+    vector<int> height(m, 0);
+    int maxArea = 0;
+
+    for (int r = 0; r < n; r++) {
+        for (int j = 0; j < m; j++) {
+            height[j] = (matrix[r][j] == 1) ? height[j] + 1 : 0;
+        }
+        maxArea = max(maxArea, largestRectangleArea(height));
+    }
+    return maxArea;
+}
+
+int main() {
+    vector<vector<int>> matrix = {
+        {1,0,1,0,0},
+        {1,0,1,1,1},
+        {1,1,1,1,1},
+        {1,0,0,1,0}
+    };
+    cout << "Maximal rectangle area: " << maximalRectangle(matrix) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Updating the height array for each row costs
+$O(m)$, and running the histogram algorithm costs $O(m)$, for a total of
+$O(m)$ per row across $n$ rows, giving
+\[
+  O(nm).
+\]
+\textbf{Space Complexity.} $O(m)$ for the running height array and the
+histogram algorithm's stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A 2D ``maximal region with some property'' problem often decomposes into
+``run a 1D algorithm on a derived array, once per row (or column), with
+the derived array updated incrementally as you move between rows.'' Once
+you have Largest Rectangle in Histogram, Maximal Rectangle requires no new
+stack logic at all -- only the row-by-row height bookkeeping is new.
+\end{takeawaybox}

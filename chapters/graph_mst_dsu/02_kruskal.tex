@@ -1,0 +1,124 @@
+\section{Kruskal's Algorithm (Minimum Spanning Tree)}
+\label{sec:graph-kruskal}
+
+\problemstatement{Given a weighted, connected, undirected graph, find a
+\textbf{Minimum Spanning Tree} (MST) -- a subset of edges connecting
+all nodes, with no cycles, at the minimum possible total weight.}
+
+\begin{patternbox}
+\emph{``Connect everything as cheaply as possible''} is solved
+greedily: sort all edges by weight, and consider them from
+\textbf{cheapest to most expensive}, adding each edge to the MST
+unless it would create a \textbf{cycle} -- checked instantly using
+Section~\ref{sec:graph-disjoint-set-impl}'s Disjoint Set
+($\textit{find}$ on both endpoints; if equal, they're already
+connected, so this edge would close a cycle and is skipped).
+\end{patternbox}
+
+\subsection*{Why the greedy choice is correct (the cut property)}
+
+For any partition of the nodes into two non-empty groups, the
+\textbf{cheapest} edge crossing between them must belong to \emph{some}
+MST -- if it didn't, swapping it in for whatever more expensive edge
+\emph{does} cross between the groups in that MST would only decrease
+the total weight, contradicting minimality. Processing edges from
+cheapest to most expensive and greedily accepting any edge that
+connects two still-separate components is exactly repeatedly applying
+this cut property, which is why the greedy strategy provably produces
+an MST.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort all edges by weight, ascending.
+  \item Initialize a Disjoint Set over all $n$ nodes.
+  \item For each edge $(u,v,w)$ in sorted order: if $\textit{find}(u)
+        \neq \textit{find}(v)$, add the edge to the MST (accumulate
+        its weight) and $\textit{unite}(u,v)$.
+  \item Stop once $n{-}1$ edges have been added (a spanning tree on
+        $n$ nodes always has exactly $n{-}1$ edges).
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent, size;
+public:
+    DisjointSet(int n) : parent(n), size(n, 1) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(int x, int y) {
+        int rootX = find(x), rootY = find(y);
+        if (rootX == rootY) return;
+        if (size[rootX] < size[rootY]) swap(rootX, rootY);
+        parent[rootY] = rootX;
+        size[rootX] += size[rootY];
+    }
+};
+
+int kruskalMST(int n, vector<vector<int>>& edges) {
+    sort(edges.begin(), edges.end(),
+         [](const vector<int>& a, const vector<int>& b) { return a[2] < b[2]; });
+
+    DisjointSet ds(n);
+    int totalWeight = 0, edgesUsed = 0;
+
+    for (auto& e : edges) {
+        int u = e[0], v = e[1], w = e[2];
+        if (ds.find(u) != ds.find(v)) {
+            ds.unite(u, v);
+            totalWeight += w;
+            edgesUsed++;
+            if (edgesUsed == n - 1) break;
+        }
+    }
+    return totalWeight;
+}
+
+int main() {
+    vector<vector<int>> edges = {{0,1,4},{0,2,1},{1,2,2},{1,3,5},{2,3,8}};
+    cout << kruskalMST(4, edges) << endl; // 8
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take edges $0{-}1(4),0{-}2(1),1{-}2(2),1{-}3(5),2{-}3(8)$,
+$n=4$.}
+
+Sorted: $0{-}2(1),1{-}2(2),0{-}1(4),1{-}3(5),2{-}3(8)$. Take $0{-}2$
+(weight $1$): different components, add; total $=1$. Take $1{-}2$
+(weight $2$): $\textit{find}(1) \neq \textit{find}(2)$, add; total
+$=3$; now $\{0,1,2\}$ connected. Take $0{-}1$ (weight $4$):
+$\textit{find}(0)=\textit{find}(1)$ (both already in $\{0,1,2\}$'s
+group) -- \textbf{skip}, would form a cycle. Take $1{-}3$ (weight
+$5$): different components ($3$ is still separate), add; total
+$=8$. Now $3$ edges used ($0{-}2$, $1{-}2$, $1{-}3$) $=n{-}1=3$, stop.
+Final MST weight: $8$ -- node $3$'s cheapest available connection in
+this graph is the weight-$5$ edge to node $1$, since the alternative
+$2{-}3$ edge costs $8$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(E \log E)$ for sorting, plus
+$O(E \cdot \alpha(V))$ for the Disjoint Set operations:
+$O(E \log E)$ overall.
+\textbf{Space Complexity.} $O(V)$ for the Disjoint Set, plus $O(E)$ for
+sorting the edge list.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Kruskal's algorithm is a direct, clean composition of two ideas already
+established elsewhere in this book series: sorting to consider choices
+in a greedy-optimal order (the same idea behind every Greedy chapter
+algorithm), and Disjoint Set to reject cycle-forming choices in
+near-constant time. Neither idea is new here -- their combination is.
+\end{takeawaybox}

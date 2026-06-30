@@ -1,0 +1,189 @@
+\section{Capacity to Ship Packages within D Days}
+\label{sec:bs-ship-packages}
+
+\problemstatement{We are given an array $\textit{weights}$ of $n$ package
+weights, which must be shipped \textbf{in the given order} (no
+reordering). Each day, the ship loads a contiguous run of packages, in
+order, whose total weight does not exceed the ship's capacity, then sails;
+the next day starts loading from the next unshipped package. We must find
+the \textbf{minimum ship capacity} that allows all packages to be shipped
+within $D$ days.}
+
+\begin{patternbox}
+\emph{``Minimum capacity such that all items can be processed within a day
+limit, items must stay in order''} is another binary-search-on-the-answer
+problem, but the feasibility check itself is structurally different from
+Sections~\ref{sec:bs-koko}--\ref{sec:bs-smallest-divisor}: rather than
+summing independent per-item costs, we must \textbf{greedily simulate} a
+day-by-day loading process, because the order constraint means packages
+cannot be considered independently of their neighbors. Whenever a
+binary-search-on-the-answer problem also mentions \emph{order} or
+\emph{contiguity} constraints on how items are grouped, expect the
+feasibility check itself to require a small greedy simulation rather than
+a single summation formula.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For a fixed candidate capacity $c$, simulate the shipping process greedily:
+start a new day, and keep adding the next package's weight to today's load
+as long as it does not exceed $c$; the moment adding the next package
+would exceed $c$, end the day and start a new one with that package. This
+greedy simulation is itself optimal for \emph{counting the minimum days
+needed for a fixed capacity} -- packing each day as full as possible before
+moving to the next day can never use \emph{more} days than any other valid
+loading strategy, because deliberately under-loading a day only defers
+weight to later days without ever reducing the total weight that must
+still be shipped.
+
+Define $\textit{daysNeeded}(c)$ as the number of days this greedy
+simulation takes. As $c$ increases, each day can carry at least as much as
+before, so $\textit{daysNeeded}(c)$ is non-increasing in $c$.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is integer capacities in
+$[\max(\textit{weights}), \sum(\textit{weights})]$: the capacity must be
+at least the heaviest single package (otherwise that package alone could
+never be shipped), and capacity equal to the total weight always finishes
+in exactly $1$ day. The predicate is
+$P(c) = (\textit{daysNeeded}(c) \le D)$, and we want the smallest $c$
+where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why the greedy simulation inside the predicate is valid}
+
+This is a small but important instance of \emph{nesting} a greedy
+algorithm inside a binary search predicate: the binary search handles
+\emph{which} capacity to test, while a greedy simulation -- packing each
+day as full as the fixed capacity allows before moving on -- handles
+\emph{whether} that capacity is feasible. The greedy simulation's
+correctness rests on the exchange argument that ending a day early
+(loading less than the maximum the capacity allows) can never help and can
+only push more weight into later days, since the in-order constraint means
+no future package can be moved earlier to compensate. This nested
+structure -- binary search over a monotonic outer property, with a greedy
+or simulation-based feasibility check inside -- is common throughout the
+``binary search on the answer'' family and is exactly what makes capacity
+$c$ feasible or infeasible a well-defined, monotonic question.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets \max(\textit{weights})$,
+        $\textit{hi} \gets \sum(\textit{weights})$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Compute $\textit{daysNeeded}(\textit{mid})$ by greedily
+          simulating loading days.
+    \item If $\textit{daysNeeded}(\textit{mid}) \le D$: feasible; try
+          smaller: $\textit{hi} \gets \textit{mid}-1$.
+    \item Else: infeasible; try larger: $\textit{lo} \gets \textit{mid}+1$.
+  \end{enumerate}
+  \item Return \textit{lo}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Minimum Capacity to Ship within D Days}
+\begin{algorithmic}[1]
+\Procedure{ShipWithinDays}{\textit{weights}, $D$}
+  \State $\textit{lo} \gets \max(\textit{weights})$, $\textit{hi} \gets \sum(\textit{weights})$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{days} \gets \Call{DaysNeeded}{\textit{weights}, \textit{mid}}$
+    \If{$\textit{days} \le D$}
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{lo}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{weights} = [1,2,3,4,5,6,7,8,9,10]$, $D = 5$.}
+
+$\max = 10$, $\sum = 55$.
+
+\begin{itemize}
+  \item $\textit{lo}=10,\textit{hi}=55$: $\textit{mid}=32$. Simulating: day
+        loads accumulate $1{+}2{+}3{+}4{+}5{+}6{+}7=28$ (next, $8$, would
+        make $36>32$, so day ends); day 2 loads $8{+}9{+}10=27$. Total
+        $\textit{daysNeeded}=2 \le 5$. Feasible. $\textit{hi}=31$.
+  \item Binary search continues narrowing downward; eventually it
+        converges to $\textit{lo}=15$, the minimum feasible capacity (with
+        capacity $15$: day loads $1{+}2{+}3{+}4{+}5=15$; day 2 loads
+        $6{+}7=13$ (next, $8$, would make $21>15$); day 3 loads $8$ alone
+        (next, $9$, would make $17>15$); day 4 loads $9$ alone (next,
+        $10$, would make $19>15$); day 5 loads $10$. Total
+        $\textit{daysNeeded}=5 \le 5$ -- exactly feasible, and capacity
+        $14$ can be checked to need $6$ days, confirming $15$ is minimal).
+\end{itemize}
+
+The answer is $15$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int daysNeeded(vector<int>& weights, int capacity) {
+    int days = 1;
+    long long currentLoad = 0;
+
+    for (int w : weights) {
+        if (currentLoad + w > capacity) {
+            days++;
+            currentLoad = 0;
+        }
+        currentLoad += w;
+    }
+    return days;
+}
+
+int shipWithinDays(vector<int>& weights, int D) {
+    int lo = *max_element(weights.begin(), weights.end());
+    int hi = accumulate(weights.begin(), weights.end(), 0);
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (daysNeeded(weights, mid) <= D) {
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> weights = {1,2,3,4,5,6,7,8,9,10};
+    cout << "Minimum capacity: "
+         << shipWithinDays(weights, 5) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The candidate capacity range halves each
+iteration, costing $O(\log(\sum(\textit{weights})))$ iterations, and each
+feasibility check costs $O(n)$ for the greedy simulation, giving
+\[
+  O(n \log(\sum(\textit{weights}))).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When the items being processed must stay in a fixed order, the
+feasibility check for binary search on the answer is usually a greedy
+simulation (pack as much as possible into each ``bucket'' before starting
+a new one) rather than a simple per-item summation. Verify, separately,
+that the greedy simulation itself is optimal for the fixed-candidate
+sub-problem -- here, via the exchange argument that under-loading a day
+never helps -- before trusting it as the feasibility predicate.
+\end{takeawaybox}

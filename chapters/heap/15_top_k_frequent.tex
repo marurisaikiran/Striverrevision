@@ -1,0 +1,144 @@
+\section{Top K Frequent Elements}
+\label{sec:heap-top-k-frequent}
+
+\problemstatement{Given an array $\textit{nums}$ and an integer $k$,
+return the $k$ elements that appear \textbf{most frequently} in the
+array.}
+
+\begin{patternbox}
+\emph{``Top $k$ frequent''} is the size-$k$ heap technique from
+Section~\ref{sec:heap-kth-largest}, applied not to the raw values
+themselves but to a \textbf{derived key} -- here, frequency, computed once
+via a hash map before the heap ever comes into play. Whenever a problem
+asks for the top/bottom $k$ items ranked by something other than their
+own raw value (frequency, distance, a custom score), first compute that
+key for every item, then apply the familiar size-$k$ heap exactly as if
+the key were the value.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+First, count the frequency of every distinct element using a hash map --
+this converts the problem from ``top $k$ frequent elements'' into ``top
+$k$ elements by a number we now have for each of them,'' which is exactly
+the shape of Section~\ref{sec:heap-kth-largest}, just with $(\textit{key} =
+\textit{frequency}, \textit{value} = \textit{element})$ pairs instead of
+raw numbers.
+
+\begin{ideabox}[Reuse, with a Derived Key]
+Build a frequency map. Maintain a min-heap of size $k$, ordered by
+frequency, holding $(\textit{frequency}, \textit{element})$ pairs.
+Process each distinct element: push it; if the heap exceeds size $k$, pop
+the pair with the smallest frequency (the current weakest member of the
+top-$k$-frequent set). At the end, the heap holds exactly the $k$ most
+frequent elements.
+\end{ideabox}
+
+\subsection*{Why the size-$k$ heap argument transfers unchanged}
+
+The correctness argument from Section~\ref{sec:heap-kth-largest} never
+actually depended on the heap being keyed by the element's own value --
+it only depended on the key being a single comparable number that we want
+to rank by. Replacing ``value'' with ``frequency of that value'' changes
+nothing about why the size-$k$ min-heap correctly converges to the top-$k$
+set: the same induction (the heap always holds the best $k$ keys seen so
+far, by the same push-then-evict-the-worst logic) applies verbatim.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build a frequency map of $\textit{nums}$.
+  \item For each distinct $(\textit{element}, \textit{freq})$ pair:
+  \begin{enumerate}
+    \item Push $(\textit{freq}, \textit{element})$ onto a min-heap
+          (ordered by \textit{freq}).
+    \item If the heap's size exceeds $k$: pop the minimum.
+  \end{enumerate}
+  \item Return the elements remaining in the heap.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Top K Frequent Elements}
+\begin{algorithmic}[1]
+\Procedure{TopKFrequent}{\textit{nums}, $k$}
+  \State build frequency map \textit{freq} of \textit{nums}
+  \State $\textit{heap} \gets$ empty min-heap (by frequency)
+  \For{each $(\textit{elem}, f)$ in \textit{freq}}
+    \State push $(f, \textit{elem})$ onto \textit{heap}
+    \If{$|\textit{heap}| > k$} pop the minimum \EndIf
+  \EndFor
+  \State \Return all elements remaining in \textit{heap}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [1,1,1,2,2,3]$, $k = 2$.}
+
+Frequency map: $1{:}3, 2{:}2, 3{:}1$.
+
+\begin{itemize}
+  \item Push $(3,1)$: heap $=\{(3,1)\}$.
+  \item Push $(2,2)$: heap $=\{(2,2),(3,1)\}$. Size $2 \le 2$.
+  \item Push $(1,3)$: heap $=\{(1,3),(2,2),(3,1)\}$. Size $3>2$: pop min
+        $(1,3)$. Heap $=\{(2,2),(3,1)\}$.
+\end{itemize}
+
+The final heap holds elements $\{2, 1\}$, the two most frequent values
+(frequencies $2$ and $3$ respectively).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> topKFrequent(vector<int>& nums, int k) {
+    unordered_map<int,int> freq;
+    for (int x : nums) freq[x]++;
+
+    priority_queue<pair<int,int>, vector<pair<int,int>>,
+                   greater<pair<int,int>>> minHeap; // (freq, element)
+
+    for (auto& [elem, f] : freq) {
+        minHeap.push({f, elem});
+        if ((int)minHeap.size() > k) minHeap.pop();
+    }
+
+    vector<int> result;
+    while (!minHeap.empty()) {
+        result.push_back(minHeap.top().second);
+        minHeap.pop();
+    }
+    return result;
+}
+
+int main() {
+    vector<int> nums = {1, 1, 1, 2, 2, 3};
+    for (int x : topKFrequent(nums, 2)) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Building the frequency map costs $O(n)$.
+Processing each of the $d \le n$ distinct elements costs $O(\log k)$,
+giving an overall time complexity of
+\[
+  O(n + d \log k).
+\]
+\textbf{Space Complexity.} $O(d)$ for the frequency map plus $O(k)$ for
+the heap.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This closing problem of the chapter is a deliberate reminder: nearly
+every heap problem you will face is one of a small number of templates --
+size-$k$ heap, merge-$k$-sources, two-balanced-heaps, or
+always-take-the-best-remaining-greedy -- applied to whatever key the
+problem actually cares about ranking by. Compute that key first (here,
+frequency, via a hash map), and the heap logic that follows is almost
+always one you have already written in this chapter.
+\end{takeawaybox}

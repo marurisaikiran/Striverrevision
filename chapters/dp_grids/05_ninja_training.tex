@@ -1,0 +1,248 @@
+\section{Ninja's Training}
+\label{sec:dp-ninja-training}
+
+\problemstatement{A ninja has $n$ days of training. On each day, they
+must perform exactly one of $3$ activities (indexed $0,1,2$), earning
+$\textit{points}[\textit{day}][\textit{activity}]$ points -- but they may
+\textbf{not} perform the \textbf{same} activity on two consecutive days.
+Maximize the total points earned over all $n$ days.}
+
+\begin{patternbox}
+\emph{``Choose one of several options each day, but not the same option
+as the previous day''} is the keyword pattern from
+Section~\ref{sec:dp-grids-intro} for a DP state with a \textbf{non-spatial
+second dimension}: the state needs both \emph{which day} we are on and
+\emph{which activity was excluded} (because it was used the day before),
+even though there is no grid or spatial structure here at all -- the
+``two dimensions'' are day and constraint, not row and column.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(\textit{day}, \textit{last})$ be the maximum points earnable from
+day $0$ through day $\textit{day}$, given that activity $\textit{last}$
+is forbidden on day $\textit{day}$ specifically (because it was used on
+day $\textit{day}+1$, which we are building backward from -- or, viewed
+forward, because it was the most recently committed activity choice we
+must avoid repeating). For each candidate activity $\textit{task} \ne
+\textit{last}$:
+\[
+  f(\textit{day}, \textit{last}) = \max_{\textit{task} \ne \textit{last}}
+  \Big(\textit{points}[\textit{day}][\textit{task}] +
+  f(\textit{day}-1, \textit{task})\Big).
+\]
+Base case: $f(0, \textit{last}) = \max_{\textit{task} \ne \textit{last}}
+\textit{points}[0][\textit{task}]$ (no earlier day to recurse into). The
+final answer is $f(n-1, 3)$, using a sentinel value $3$ (outside the
+valid activity range $\{0,1,2\}$) to mean ``no activity is forbidden on
+the last day,'' since nothing comes after it.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int ninjaTrainingRecursive(int day, int last, vector<vector<int>>& points) {
+    if (day == 0) {
+        int best = 0;
+        for (int task = 0; task < 3; task++) {
+            if (task != last) best = max(best, points[0][task]);
+        }
+        return best;
+    }
+
+    int best = 0;
+    for (int task = 0; task < 3; task++) {
+        if (task != last) {
+            int candidate = points[day][task] +
+                ninjaTrainingRecursive(day - 1, task, points);
+            best = max(best, candidate);
+        }
+    }
+    return best;
+}
+
+int main() {
+    vector<vector<int>> points = {{10,40,70},{20,50,80},{30,60,90}};
+    int n = points.size();
+    cout << ninjaTrainingRecursive(n - 1, 3, points) << endl; // 210
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(3^n)$ -- up to $3$ branches per call, depth $n$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int ninjaTrainingMemo(int day, int last, vector<vector<int>>& points,
+                       vector<vector<int>>& memo) {
+    if (day == 0) {
+        int best = 0;
+        for (int task = 0; task < 3; task++) {
+            if (task != last) best = max(best, points[0][task]);
+        }
+        return best;
+    }
+    if (memo[day][last] != -1) return memo[day][last];
+
+    int best = 0;
+    for (int task = 0; task < 3; task++) {
+        if (task != last) {
+            int candidate = points[day][task] +
+                ninjaTrainingMemo(day - 1, task, points, memo);
+            best = max(best, candidate);
+        }
+    }
+    return memo[day][last] = best;
+}
+
+int main() {
+    vector<vector<int>> points = {{10,40,70},{20,50,80},{30,60,90}};
+    int n = points.size();
+    vector<vector<int>> memo(n, vector<int>(4, -1));
+    cout << ninjaTrainingMemo(n - 1, 3, points, memo) << endl; // 210
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot 4 \cdot 3) = O(n)$ -- $n$ days, $4$ possible
+\textit{last} values, $3$ choices of \textit{task} per state.
+\textbf{Space.} $O(n)$ memo (the $4$ factor is a constant) $+$ $O(n)$
+recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int ninjaTrainingTabulation(vector<vector<int>>& points) {
+    int n = points.size();
+    vector<vector<int>> dp(n, vector<int>(4, 0));
+
+    for (int last = 0; last < 4; last++) {
+        int best = 0;
+        for (int task = 0; task < 3; task++) {
+            if (task != last) best = max(best, points[0][task]);
+        }
+        dp[0][last] = best;
+    }
+
+    for (int day = 1; day < n; day++) {
+        for (int last = 0; last < 4; last++) {
+            int best = 0;
+            for (int task = 0; task < 3; task++) {
+                if (task != last) {
+                    int candidate = points[day][task] + dp[day-1][task];
+                    best = max(best, candidate);
+                }
+            }
+            dp[day][last] = best;
+        }
+    }
+    return dp[n - 1][3];
+}
+
+int main() {
+    vector<vector<int>> points = {{10,40,70},{20,50,80},{30,60,90}};
+    cout << ninjaTrainingTabulation(points) << endl; // 210
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{points} = [[10,40,70],[20,50,80],[30,60,90]]$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+$\textit{day}$ & $\textit{last}=0$ & $\textit{last}=1$ &
+$\textit{last}=2$ & $\textit{last}=3$ \\ \hline
+$0$ & 70 & 70 & 40 & 70 \\ \hline
+$1$ & 120 & 120 & 120 & 120 \\ \hline
+$2$ & 210 & 210 & 180 & 210
+\end{tabular}
+\end{center}
+
+Reading $\textit{dp}[0][2]=40$: with activity $2$ forbidden on day $0$,
+the best of $\{\textit{points}[0][0],\textit{points}[0][1]\} =
+\{10,40\}$ is $40$. Reading $\textit{dp}[1][3]$ (no restriction on day
+$1$): $\max(20+\textit{dp}[0][0],\ 50+\textit{dp}[0][1],\
+80+\textit{dp}[0][2]) = \max(20{+}70,\ 50{+}70,\ 80{+}40) =
+\max(90,120,120) = 120$. Reading the final answer,
+$\textit{dp}[2][3]$: $\max(30+\textit{dp}[1][0],\ 60+\textit{dp}[1][1],\
+90+\textit{dp}[1][2]) = \max(30{+}120,\ 60{+}120,\ 90{+}120) =
+\max(150,180,210) = 210$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$ (the $4 \times 3$ factor is a constant).
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int ninjaTrainingSpaceOptimized(vector<vector<int>>& points) {
+    int n = points.size();
+    vector<int> prevDay(4, 0);
+
+    for (int last = 0; last < 4; last++) {
+        int best = 0;
+        for (int task = 0; task < 3; task++) {
+            if (task != last) best = max(best, points[0][task]);
+        }
+        prevDay[last] = best;
+    }
+
+    for (int day = 1; day < n; day++) {
+        vector<int> currentDay(4, 0);
+        for (int last = 0; last < 4; last++) {
+            int best = 0;
+            for (int task = 0; task < 3; task++) {
+                if (task != last) {
+                    best = max(best, points[day][task] + prevDay[task]);
+                }
+            }
+            currentDay[last] = best;
+        }
+        prevDay = currentDay;
+    }
+    return prevDay[3];
+}
+
+int main() {
+    vector<vector<int>> points = {{10,40,70},{20,50,80},{30,60,90}};
+    cout << ninjaTrainingSpaceOptimized(points) << endl; // 210
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$ (a fixed-size array of $4$ entries, independent
+of $n$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+A DP state's second dimension does not need to be spatial -- here, it is
+``which choice is currently forbidden,'' a small, fixed-size constraint
+dimension exactly analogous to the visited-tracking state used in
+backtracking, but folded directly into the DP table's indexing instead
+of an external visited structure. Whenever a problem's choice at step
+$i$ is constrained only by the choice at step $i-1$ (not by anything
+further back), this ``day $\times$ last choice'' state shape applies
+directly.
+\end{takeawaybox}

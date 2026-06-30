@@ -1,0 +1,166 @@
+\section{Kth Element of Two Sorted Arrays}
+\label{sec:bs-kth-element}
+
+\problemstatement{We are given two sorted arrays $\textit{nums1}$ (size
+$n_1$) and $\textit{nums2}$ (size $n_2$), and an integer $k$. We must find
+the $k$-th smallest element (1-indexed) of the combined sorted array,
+without merging, in $O(\log(\min(n_1,n_2)))$ time.}
+
+\begin{patternbox}
+This is the direct generalization of
+Section~\ref{sec:bs-median-two-arrays}: the median is simply the special
+case $k = \lceil (n_1+n_2)/2 \rceil$ (for odd total length) or the average
+of the $k$-th and $(k{+}1)$-th elements (for even total length). The same
+``binary search on a partition split between two arrays'' technique
+applies, with the partition sized to put exactly $k$ elements on the left
+instead of exactly half.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+We again look for a split $(\textit{cut1}, \textit{cut2})$ with
+$\textit{cut1} + \textit{cut2} = k$, $0 \le \textit{cut1} \le n_1$, and
+$0 \le \textit{cut2} \le n_2$, such that the left side (the first
+$\textit{cut1}$ elements of $\textit{nums1}$ and first $\textit{cut2}$
+elements of $\textit{nums2}$) contains exactly the $k$ smallest elements
+overall. The same four boundary values $l_1, r_1, l_2, r_2$ and the same
+validity condition $l_1 \le r_2$ and $l_2 \le r_1$ from
+Section~\ref{sec:bs-median-two-arrays} apply unchanged.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is $\textit{cut1} \in [\max(0, k-n_2), \min(k, n_1)]$
+(the lower bound ensures $\textit{cut2} = k - \textit{cut1} \le n_2$; the
+upper bound ensures $\textit{cut1} \le n_1$ and $\textit{cut2} \ge 0$).
+The predicate is the same validity check as
+Section~\ref{sec:bs-median-two-arrays}: $P(\textit{cut1}) = (l_1 \le r_2
+\text{ and } l_2 \le r_1)$.
+\end{ideabox}
+
+\subsection*{Why only the target split size changes}
+
+Nothing about the underlying correctness argument changes from
+Section~\ref{sec:bs-median-two-arrays} -- we are still looking for the
+unique partition where the left side's largest element does not exceed
+the right side's smallest element, guaranteeing the left side is exactly
+the $k$ smallest elements of the combined array. Once a valid partition is
+found, the $k$-th smallest element is simply $\max(l_1, l_2)$ -- the
+largest element among the $k$ elements placed on the left.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{lo} \gets \max(0, k-n_2)$,
+        $\textit{hi} \gets \min(k, n_1)$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{cut1} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$,
+          $\textit{cut2} \gets k-\textit{cut1}$.
+    \item Compute $l_1, r_1, l_2, r_2$ exactly as in
+          Section~\ref{sec:bs-median-two-arrays}.
+    \item If $l_1 \le r_2$ and $l_2 \le r_1$: return $\max(l_1,l_2)$.
+    \item Else if $l_1 > r_2$: $\textit{hi} \gets \textit{cut1}-1$.
+    \item Else: $\textit{lo} \gets \textit{cut1}+1$.
+  \end{enumerate}
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Kth Element of Two Sorted Arrays}
+\begin{algorithmic}[1]
+\Procedure{KthElement}{$\textit{nums1}, \textit{nums2}, k$}
+  \State $\textit{lo} \gets \max(0, k-n_2)$, $\textit{hi} \gets \min(k, n_1)$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{cut1} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{cut2} \gets k - \textit{cut1}$
+    \State $l_1 \gets (\textit{cut1}=0)\ ? -\infty : \textit{nums1}[\textit{cut1}-1]$
+    \State $r_1 \gets (\textit{cut1}=n_1)\ ? +\infty : \textit{nums1}[\textit{cut1}]$
+    \State $l_2 \gets (\textit{cut2}=0)\ ? -\infty : \textit{nums2}[\textit{cut2}-1]$
+    \State $r_2 \gets (\textit{cut2}=n_2)\ ? +\infty : \textit{nums2}[\textit{cut2}]$
+    \If{$l_1 \le r_2$ \textbf{and} $l_2 \le r_1$}
+      \State \Return $\max(l_1, l_2)$
+    \ElsIf{$l_1 > r_2$}
+      \State $\textit{hi} \gets \textit{cut1} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{cut1} + 1$
+    \EndIf
+  \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums1} = [2,3,6,7,9]$, $\textit{nums2} = [1,4,8,10]$,
+$k = 5$.}
+
+$n_1=5$, $n_2=4$. $\textit{lo}=\max(0,5-4)=1$,
+$\textit{hi}=\min(5,5)=5$.
+
+\begin{itemize}
+  \item $\textit{lo}=1,\textit{hi}=5$: $\textit{cut1}=3$,
+        $\textit{cut2}=5-3=2$. $l_1=\textit{nums1}[2]=6$,
+        $r_1=\textit{nums1}[3]=7$. $l_2=\textit{nums2}[1]=4$,
+        $r_2=\textit{nums2}[2]=8$. Check: $l_1=6 \le r_2=8$? Yes.
+        $l_2=4 \le r_1=7$? Yes. Valid partition.
+\end{itemize}
+
+The answer is $\max(l_1,l_2) = \max(6,4) = 6$. Checking by hand: the
+merged array is $[1,2,3,4,6,7,8,9,10]$, whose $5$-th smallest element
+(1-indexed) is indeed $6$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int kthElement(vector<int>& nums1, vector<int>& nums2, int k) {
+    int n1 = nums1.size(), n2 = nums2.size();
+
+    int lo = max(0, k - n2);
+    int hi = min(k, n1);
+
+    while (lo <= hi) {
+        int cut1 = lo + (hi - lo) / 2;
+        int cut2 = k - cut1;
+
+        int l1 = (cut1 == 0) ? INT_MIN : nums1[cut1 - 1];
+        int r1 = (cut1 == n1) ? INT_MAX : nums1[cut1];
+        int l2 = (cut2 == 0) ? INT_MIN : nums2[cut2 - 1];
+        int r2 = (cut2 == n2) ? INT_MAX : nums2[cut2];
+
+        if (l1 <= r2 && l2 <= r1) {
+            return max(l1, l2);
+        } else if (l1 > r2) {
+            hi = cut1 - 1;
+        } else {
+            lo = cut1 + 1;
+        }
+    }
+    return -1; // unreachable for valid input with 1 <= k <= n1+n2
+}
+
+int main() {
+    vector<int> nums1 = {2, 3, 6, 7, 9};
+    vector<int> nums2 = {1, 4, 8, 10};
+    cout << "5th smallest element: "
+         << kthElement(nums1, nums2, 5) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The binary search range has width at most
+$\min(k, n_1) - \max(0, k-n_2) \le \min(n_1, n_2)$, giving
+\[
+  O(\log(\min(n_1, n_2))).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Median-of-two-sorted-arrays and $k$-th-element-of-two-sorted-arrays are the
+same partition-search technique with only the target split size changed
+from ``half'' to ``$k$.'' Whenever you solve one binary-search-on-a-
+partition problem, immediately check whether nearby sheet problems are
+just different target split sizes of the same idea.
+\end{takeawaybox}

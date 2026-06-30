@@ -1,0 +1,171 @@
+\section{Search in a 2D Matrix II}
+\label{sec:bs-search-2d-matrix-2}
+
+\problemstatement{We are given an $n \times m$ matrix in which every row
+is sorted in increasing order \textbf{left to right}, and every column is
+sorted in increasing order \textbf{top to bottom} -- but, unlike
+Section~\ref{sec:bs-search-2d-matrix}, there is \textbf{no} guarantee
+chaining one row to the next (the last element of a row may be larger
+than the first element of the next row). Given a target $X$, determine
+whether it exists in the matrix.}
+
+\begin{patternbox}
+The missing row-chaining guarantee is the keyword to notice by its
+\emph{absence}: it means the matrix can \textbf{not} be treated as a
+flattened sorted 1D array (Section~\ref{sec:bs-search-2d-matrix}'s
+virtual-index trick would give wrong answers here, since the virtual
+sequence is not globally sorted). Instead, the two \emph{independent}
+sortedness guarantees -- rows increasing rightward, columns increasing
+downward -- call for a different technique: starting from a corner where
+one direction increases and the other decreases the candidate's relation
+to $X$, and walking a single staircase path.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Start at the \textbf{top-right} corner, $(\textit{row}, \textit{col}) =
+(0, m-1)$. From this corner: moving \textbf{left} (decreasing
+\textit{col}) only ever decreases the value (row sortedness), and moving
+\textbf{down} (increasing \textit{row}) only ever increases the value
+(column sortedness). This gives us a clean three-way comparison at every
+step:
+
+\begin{itemize}
+  \item If $\textit{matrix}[\textit{row}][\textit{col}] = X$: found it.
+  \item If $\textit{matrix}[\textit{row}][\textit{col}] > X$: every entry
+        further right in this row is even larger (row sortedness), so $X$
+        cannot be in the rest of this row; move left:
+        $\textit{col} \gets \textit{col}-1$.
+  \item If $\textit{matrix}[\textit{row}][\textit{col}] < X$: every entry
+        further up in this column is even smaller (column sortedness), so
+        $X$ cannot be above in this column; move down:
+        $\textit{row} \gets \textit{row}+1$.
+\end{itemize}
+
+\begin{ideabox}[Why the Top-Right Corner Is the Only Safe Starting Point]
+The top-left corner is the smallest element in the entire matrix (both
+row and column sortedness make every other element $\ge$ it), so both
+``move right'' and ``move down'' would increase the value -- a comparison
+there gives no way to discard a direction safely. The bottom-right corner
+is symmetric (the largest element, both directions only decrease).
+\emph{Only} the top-right (or, symmetrically, bottom-left) corner has the
+property that one direction strictly increases the value while the other
+strictly decreases it, which is exactly what is needed to safely discard
+an entire row or column on each comparison.
+\end{ideabox}
+
+\subsection*{Why this staircase walk is correct and terminates in $O(n+m)$}
+
+At each step, the walk either eliminates an entire remaining row's worth
+of values (when it moves left, the eliminated value and everything to its
+right in that row are confirmed too large) or an entire remaining column's
+worth (when it moves down, the eliminated value and everything above it in
+that column are confirmed too small) -- but more precisely, each step
+moves the pointer one position left or one position down, and since
+\textit{col} can decrease at most $m$ times and \textit{row} can increase
+at most $n$ times before going out of bounds, the walk terminates after at
+most $n+m$ steps, either finding $X$ or running off the matrix entirely
+(confirming $X$ is absent).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{row} \gets 0$, $\textit{col} \gets m-1$.
+  \item While $\textit{row} < n$ and $\textit{col} \ge 0$:
+  \begin{enumerate}
+    \item If $\textit{matrix}[\textit{row}][\textit{col}] = X$: return
+          \texttt{true}.
+    \item If $\textit{matrix}[\textit{row}][\textit{col}] > X$:
+          $\textit{col} \gets \textit{col}-1$.
+    \item Else: $\textit{row} \gets \textit{row}+1$.
+  \end{enumerate}
+  \item Return \texttt{false}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Search in a 2D Matrix II (Staircase Search)}
+\begin{algorithmic}[1]
+\Procedure{SearchMatrixII}{\textit{matrix}, $X$}
+  \State $\textit{row} \gets 0$, $\textit{col} \gets m-1$
+  \While{$\textit{row} < n$ \textbf{and} $\textit{col} \ge 0$}
+    \If{$\textit{matrix}[\textit{row}][\textit{col}] = X$} \Return \textbf{true} \EndIf
+    \If{$\textit{matrix}[\textit{row}][\textit{col}] > X$}
+      \State $\textit{col} \gets \textit{col} - 1$
+    \Else
+      \State $\textit{row} \gets \textit{row} + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textbf{false}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{matrix} = \begin{bmatrix} 1&4&7&11 \\ 2&5&8&12 \\
+3&6&9&16 \\ 10&13&14&17 \end{bmatrix}$, $X = 5$. ($n=m=4$.)}
+
+\begin{itemize}
+  \item $\textit{row}=0,\textit{col}=3$: $\textit{matrix}[0][3]=11 > 5$.
+        $\textit{col}=2$.
+  \item $\textit{row}=0,\textit{col}=2$: $\textit{matrix}[0][2]=7 > 5$.
+        $\textit{col}=1$.
+  \item $\textit{row}=0,\textit{col}=1$: $\textit{matrix}[0][1]=4 < 5$.
+        $\textit{row}=1$.
+  \item $\textit{row}=1,\textit{col}=1$: $\textit{matrix}[1][1]=5 = 5$.
+        Return \texttt{true}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool searchMatrixII(vector<vector<int>>& matrix, int X) {
+    int n = matrix.size(), m = matrix[0].size();
+    int row = 0, col = m - 1;
+
+    while (row < n && col >= 0) {
+        if (matrix[row][col] == X) return true;
+        else if (matrix[row][col] > X) col--;
+        else row++;
+    }
+    return false;
+}
+
+int main() {
+    vector<vector<int>> matrix = {
+        {1, 4, 7, 11},
+        {2, 5, 8, 12},
+        {3, 6, 9, 16},
+        {10, 13, 14, 17}
+    };
+    cout << (searchMatrixII(matrix, 5) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each step decreases \textit{col} or increases
+\textit{row}, and there are at most $m$ decreases and $n$ increases before
+the pointer exits the matrix, giving
+\[
+  O(n+m).
+\]
+Note this is not $O(\log(nm))$ -- the lack of row-chaining genuinely costs
+us the logarithmic complexity available in
+Section~\ref{sec:bs-search-2d-matrix}, even though this is still a vast
+improvement over the $O(nm)$ brute-force scan.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a 2D matrix is sorted along both rows and columns independently but
+not chained into one global order, look for a corner where the two
+sortedness directions act as \emph{opposite} comparisons (one direction
+increasing, the other decreasing) relative to the target -- that corner is
+always the unique safe starting point for a linear ``staircase'' walk,
+even though it does not give the $O(\log(nm))$ that full chaining would
+allow.
+\end{takeawaybox}

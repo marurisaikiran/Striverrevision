@@ -1,0 +1,203 @@
+\section{Design Twitter}
+\label{sec:heap-design-twitter}
+
+\problemstatement{Design a simplified Twitter supporting: $\textit{postTweet}
+(\textit{userId}, \textit{tweetId})$ -- a user composes a new tweet;
+$\textit{getNewsFeed}(\textit{userId})$ -- return the $10$ most recent
+tweet IDs from the given user and everyone they follow, most recent
+first; $\textit{follow}(\textit{followerId}, \textit{followeeId})$; and
+$\textit{unfollow}(\textit{followerId}, \textit{followeeId})$.}
+
+\begin{patternbox}
+\emph{``Most recent $k$ items, drawn from several independently
+time-ordered sources''} is exactly Merge K Sorted Lists
+(Section~\ref{sec:heap-merge-k-lists}) combined with the Kth Largest
+size-bounded heap idea (Section~\ref{sec:heap-kth-largest}), applied
+together: each followed user's tweet history is individually
+time-ordered (most recent last, or equivalently, sorted by a timestamp),
+and we need the top $10$ across all of them -- a direct fusion of two
+patterns already established in this chapter, now applied inside a larger
+system-design problem.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Each user's tweets, in posting order, already form an individually sorted
+sequence (sorted by time posted). Getting a news feed means merging the
+relevant followed users' tweet sequences and taking the top $10$ most
+recent -- structurally identical to merging $k$ sorted lists and only
+needing the first $10$ elements of the merge, rather than the full merge.
+We assign a global, strictly increasing \textit{timestamp} to every tweet
+at the moment it is posted (a simple counter, incremented on every
+$\textit{postTweet}$ call across \emph{all} users), so that ``most
+recent'' always corresponds to ``largest timestamp,'' comparable across
+different users.
+
+\begin{ideabox}[Data Structures]
+\begin{itemize}
+  \item A global counter \textit{timestamp}, incremented on every post.
+  \item For each user, a list of $(\textit{timestamp}, \textit{tweetId})$
+        pairs, in posting order (so the most recent tweet is always at
+        the end).
+  \item For each user, a set of followee user IDs (a user is always
+        considered to follow themselves, for news-feed purposes, without
+        needing an explicit \textit{follow} call).
+\end{itemize}
+\end{ideabox}
+
+\begin{ideabox}[News Feed via a Bounded Max-Heap]
+For $\textit{getNewsFeed}(\textit{userId})$: for each followee (including
+the user themselves), look only at their \emph{most recent} tweet first
+(the tail of their tweet list) -- exactly like the ``current head of each
+sorted source'' idea from merging $k$ sorted lists, just read from the end
+instead of the front, since within a user's own list, later postings have
+larger timestamps. Push each followee's most recent tweet into a max-heap
+keyed by timestamp. Repeatedly pop the global maximum, record its tweet
+ID, and if that same followee has an earlier tweet remaining (walking
+backward through their list), push that earlier tweet in its place. Stop
+after popping $10$ tweets or exhausting the heap.
+\end{ideabox}
+
+\subsection*{Why this bounded heap pop is correct and efficient}
+
+This is precisely the merge-$k$-sorted-lists technique, with two
+adjustments: we traverse each followee's list from most recent to least
+recent (so the heap always offers the next-best candidate, by timestamp,
+in the right direction), and we stop after $10$ pops rather than draining
+the entire merge, since the problem only ever wants the top $10$. Stopping
+early is valid precisely because a max-heap's repeated-pop sequence
+\emph{is} a fully sorted (by timestamp, descending) traversal of the
+union of all followees' tweets -- truncating that sorted traversal at $10$
+elements is exactly the $10$ most recent tweets, with no need to ever
+materialize the full merge.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{PostTweet}($\textit{userId}, \textit{tweetId}$): append
+        $(\textit{timestamp}{+}{+}, \textit{tweetId})$ to
+        $\textit{userId}$'s tweet list.
+  \item \textsc{Follow}/\textsc{Unfollow}: add/remove
+        $\textit{followeeId}$ from $\textit{followerId}$'s followee set.
+  \item \textsc{GetNewsFeed}($\textit{userId}$):
+  \begin{enumerate}
+    \item For each followee $f$ in $\textit{userId}$'s followee set
+          (plus $\textit{userId}$ itself): if $f$ has at least one
+          tweet, push $(\textit{their last tweet's timestamp}, f,
+          \textit{index of that tweet})$ onto a max-heap.
+    \item Repeat up to $10$ times: pop the maximum; record its tweet ID;
+          if the popped followee has an earlier tweet at
+          $\textit{index}-1$, push that one.
+    \item Return the recorded tweet IDs, in the order popped (already
+          most-recent-first).
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{User $1$ posts tweets $5$ (at timestamp $1$) and $3$ (at
+timestamp $2$). User $2$ posts tweet $101$ (at timestamp $3$). User $1$
+follows User $2$. \textsc{GetNewsFeed}($1$) is called.}
+
+User $1$'s followees (including self): $\{1, 2\}$. Most recent tweet of
+user $1$: $(2, 3)$ -- timestamp $2$, tweet $3$. Most recent tweet of user
+$2$: $(3, 101)$ -- timestamp $3$, tweet $101$. Heap initialized with both.
+
+\begin{itemize}
+  \item Pop max: $(3, 101)$ from user $2$. Record tweet $101$. User $2$
+        has no earlier tweet; nothing pushed back.
+  \item Pop max: $(2, 3)$ from user $1$. Record tweet $3$. User $1$ has
+        an earlier tweet at timestamp $1$ (tweet $5$); push $(1, 5)$.
+  \item Pop max: $(1, 5)$ from user $1$. Record tweet $5$. No earlier
+        tweet from user $1$.
+  \item Heap empty; fewer than $10$ tweets total, so we stop here anyway.
+\end{itemize}
+
+The news feed is $[101, 3, 5]$, most recent first -- correct.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Twitter {
+    int timestamp = 0;
+    unordered_map<int, vector<pair<int,int>>> tweets; // userId -> (time, tweetId)
+    unordered_map<int, unordered_set<int>> following;  // userId -> followees
+
+public:
+    void postTweet(int userId, int tweetId) {
+        tweets[userId].push_back({timestamp++, tweetId});
+    }
+
+    vector<int> getNewsFeed(int userId) {
+        // (timestamp, userId, index into that user's tweet list)
+        priority_queue<tuple<int,int,int>> maxHeap;
+
+        auto consider = [&](int uid) {
+            if (!tweets[uid].empty()) {
+                int idx = tweets[uid].size() - 1;
+                maxHeap.push({tweets[uid][idx].first, uid, idx});
+            }
+        };
+
+        consider(userId);
+        for (int f : following[userId]) consider(f);
+
+        vector<int> result;
+        while (!maxHeap.empty() && (int)result.size() < 10) {
+            auto [time, uid, idx] = maxHeap.top();
+            maxHeap.pop();
+            result.push_back(tweets[uid][idx].second);
+
+            if (idx > 0) {
+                maxHeap.push({tweets[uid][idx-1].first, uid, idx-1});
+            }
+        }
+        return result;
+    }
+
+    void follow(int followerId, int followeeId) {
+        if (followerId != followeeId) following[followerId].insert(followeeId);
+    }
+
+    void unfollow(int followerId, int followeeId) {
+        following[followerId].erase(followeeId);
+    }
+};
+
+int main() {
+    Twitter tw;
+    tw.postTweet(1, 5);
+    tw.postTweet(1, 3);
+    tw.postTweet(2, 101);
+    tw.follow(1, 2);
+
+    for (int id : tw.getNewsFeed(1)) cout << id << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $\textit{postTweet}$, $\textit{follow}$, and
+$\textit{unfollow}$ are $O(1)$ amortized. $\textit{getNewsFeed}$ pushes at
+most $f$ initial candidates (one per followee, $f \le$ number followed)
+and performs at most $10$ pop/push rounds, each $O(\log f)$, giving
+\[
+  O(f \log f)
+\]
+per call, independent of the total number of tweets ever posted.
+\textbf{Space Complexity.} $O(T)$ to store all $T$ tweets ever posted,
+plus $O(f)$ per news feed query for the heap.
+\end{complexitybox}
+
+\begin{takeawaybox}
+System-design problems frequently turn out to be direct compositions of
+patterns you already know: this one is exactly ``merge $k$ sorted
+sources'' (Section~\ref{sec:heap-merge-k-lists}) plus ``stop after the
+top $k$'' (Section~\ref{sec:heap-kth-largest}), wrapped in bookkeeping for
+followers and a global timestamp. Recognizing the composition is more
+valuable than treating it as an unfamiliar new problem.
+\end{takeawaybox}

@@ -1,0 +1,98 @@
+\section{Course Schedule II}
+\label{sec:graph-course-schedule-2}
+
+\problemstatement{Given $\textit{numCourses}$ and prerequisite pairs
+$[a,b]$ as in Section~\ref{sec:graph-course-schedule-1}, return
+\textbf{one valid order} to take all courses, or an empty array if no
+valid order exists.}
+
+\begin{patternbox}
+\emph{``Return a valid order respecting prerequisites''} is a direct
+restatement of topological sort
+(Sections~\ref{sec:graph-topo-sort-dfs}--\ref{sec:graph-topo-sort-kahn}):
+build the same prerequisite graph as Course Schedule I, then run either
+topological sort algorithm. Kahn's algorithm is the natural choice here
+since it detects the no-valid-order case (a cycle) \textbf{for free},
+via the same processed-count check from Section~\ref{sec:graph-cycle-directed}.
+\end{patternbox}
+
+\subsection*{Reduction}
+
+Build the graph identically to Course Schedule I ($b \to a$ for every
+pair $[a,b]$), run Kahn's algorithm, and return the resulting order --
+but only if every node was processed; otherwise return an empty array
+(a cycle means no valid order exists).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> findOrder(int numCourses, vector<vector<int>>& prerequisites) {
+    vector<vector<int>> adj(numCourses);
+    vector<int> inDegree(numCourses, 0);
+
+    for (auto& p : prerequisites) {
+        int a = p[0], b = p[1];
+        adj[b].push_back(a);
+        inDegree[a]++;
+    }
+
+    queue<int> q;
+    for (int i = 0; i < numCourses; i++) {
+        if (inDegree[i] == 0) q.push(i);
+    }
+
+    vector<int> order;
+    while (!q.empty()) {
+        int node = q.front();
+        q.pop();
+        order.push_back(node);
+
+        for (int neighbor : adj[node]) {
+            inDegree[neighbor]--;
+            if (inDegree[neighbor] == 0) q.push(neighbor);
+        }
+    }
+
+    if ((int)order.size() != numCourses) return {}; // cycle: no valid order
+    return order;
+}
+
+int main() {
+    vector<vector<int>> prerequisites = {{1, 0}, {2, 0}, {3, 1}, {3, 2}};
+    vector<int> order = findOrder(4, prerequisites);
+    for (int x : order) cout << x << " ";
+    cout << endl; // 0 1 2 3  (one valid order)
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{numCourses}=4$,
+$\textit{prerequisites}=[[1,0],[2,0],[3,1],[3,2]]$ (course $3$ needs
+both $1$ and $2$; both $1$ and $2$ need $0$).}
+
+Edges: $0\to1,0\to2,1\to3,2\to3$. In-degrees: $0$:$0$, $1$:$1$,
+$2$:$1$, $3$:$2$. Initial queue: $[0]$. Pop $0$: order $[0]$; decrement
+$1\to0$ (push), $2\to0$ (push). Queue: $[1,2]$. Pop $1$: order
+$[0,1]$; decrement $3\to1$ (not $0$ yet). Pop $2$: order $[0,1,2]$;
+decrement $3\to0$ (push). Pop $3$: order $[0,1,2,3]$. Size $4 =
+\textit{numCourses}$: valid order found.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$, inherited unchanged from Kahn's
+algorithm.
+\textbf{Space Complexity.} $O(V+E)$ for the adjacency list and
+in-degree array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Course Schedule I and II together demonstrate the cleanest possible
+illustration of this chapter's two core tools applied side by side:
+the exact same prerequisite graph answers ``is it possible'' via cycle
+detection and ``what is an order'' via topological sort, with no
+additional derivation needed for either once the graph is built.
+\end{takeawaybox}

@@ -1,0 +1,155 @@
+\section{N-Queens}
+\label{sec:rec-n-queens}
+
+\problemstatement{Place $n$ queens on an $n \times n$ chessboard so that
+no two queens attack each other (no two share a row, a column, or a
+diagonal). Return every distinct valid placement.}
+
+\begin{patternbox}
+\emph{``Place $n$ non-attacking items on a board''} is a constraint-satisfaction
+backtracking problem where a powerful structural shortcut is available:
+since a valid solution can have \textbf{at most one queen per row}
+(two queens in the same row always attack each other), we can place
+exactly one queen \textbf{per row}, in row order, reducing the search
+from ``choose a subset of cells'' to ``choose one column per row,''
+checking only column and diagonal conflicts against \emph{already-placed}
+queens in earlier rows.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Because we place queens one complete row at a time, by the time we
+decide row $r$'s queen, rows $0, \dots, r-1$ already have their queens
+correctly and safely placed; we never need to recheck them against each
+other again, only check the new candidate column against those already
+fixed. A candidate column $c$ in row $r$ is safe if no earlier queen
+shares column $c$, and no earlier queen lies on either diagonal passing
+through $(r,c)$ -- a queen at $(r', c')$ shares a diagonal with $(r,c)$
+exactly when $|r-r'| = |c-c'|$.
+
+\begin{ideabox}[Track Occupied Columns and Diagonals for $O(1)$ Safety Checks]
+Maintain three boolean arrays: $\textit{colUsed}[c]$ (is column $c$
+occupied by some already-placed queen), and two diagonal arrays indexed
+by the constant value along each diagonal direction:
+$\textit{diag1}[r+c]$ (the ``$\backslash$''-diagonal) and
+$\textit{diag2}[r-c+n-1]$ (the ``$/$''-diagonal, offset to stay
+non-negative). $\textsc{Solve}(\textit{row})$: if $\textit{row}=n$:
+record the current board; return. Otherwise, for each column $c$ from
+$0$ to $n-1$: if none of $\textit{colUsed}[c]$, $\textit{diag1}[r+c]$,
+$\textit{diag2}[r-c+n-1]$ are set: place the queen, mark all three
+arrays, recurse $\textsc{Solve}(\textit{row}+1)$, then unmark all three
+(undo) and remove the queen.
+\end{ideabox}
+
+\subsection*{Why diagonal membership reduces to a single sum or difference}
+
+Every cell on the same ``$\backslash$''-diagonal (running from upper-left
+to lower-right) shares the same value of $\textit{row}+\textit{col}$;
+every cell on the same ``$/$''-diagonal (lower-left to upper-right)
+shares the same value of $\textit{row}-\textit{col}$. This means
+checking ``does any earlier queen share a diagonal with $(r,c)$'' reduces
+to a single array lookup at index $r+c$ (or $r-c$, shifted to stay a
+valid non-negative array index) rather than scanning every previously
+placed queen and computing $|r-r'|$ versus $|c-c'|$ each time -- turning
+an $O(n)$ safety check into an $O(1)$ one, and the whole algorithm's
+per-placement cost from $O(n)$ down to $O(1)$.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{colUsed}, \textit{diag1}, \textit{diag2}$
+        as all-false boolean arrays of appropriate sizes.
+  \item $\textsc{Solve}(\textit{row})$:
+  \begin{enumerate}
+    \item If $\textit{row}=n$: record the board; return.
+    \item For $c$ from $0$ to $n-1$: if $\textit{colUsed}[c]$,
+          $\textit{diag1}[\textit{row}+c]$, and
+          $\textit{diag2}[\textit{row}-c+n-1]$ are all false: place the
+          queen at $(\textit{row},c)$; set all three arrays true;
+          recurse $\textsc{Solve}(\textit{row}+1)$; set all three
+          arrays back to false (undo); remove the queen.
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=4$.}
+
+The search places a queen in row $0$, tries each column, and recurses;
+the only two solutions (up to the board's symmetry) for $n=4$ are
+columns $[1,3,0,2]$ and $[2,0,3,1]$ (queen in row $0$ at column $1$ or
+$2$ respectively, with the rest determined by the safety constraints).
+Tracing column $1$ for row $0$: row $1$'s columns $0,1,2$ are all
+unsafe (column $1$ taken, or diagonal conflicts), leaving only column
+$3$ safe; row $2$'s only safe column, given rows $0,1$, is $0$; row
+$3$'s only safe column, given rows $0,1,2$, is $2$ -- yielding the
+complete solution $[1,3,0,2]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(int row, int n, vector<int>& cols, vector<bool>& colUsed,
+           vector<bool>& diag1, vector<bool>& diag2,
+           vector<vector<int>>& result) {
+    if (row == n) {
+        result.push_back(cols);
+        return;
+    }
+    for (int c = 0; c < n; c++) {
+        int d1 = row + c, d2 = row - c + n - 1;
+        if (colUsed[c] || diag1[d1] || diag2[d2]) continue;
+
+        cols[row] = c;
+        colUsed[c] = diag1[d1] = diag2[d2] = true;
+
+        solve(row + 1, n, cols, colUsed, diag1, diag2, result);
+
+        colUsed[c] = diag1[d1] = diag2[d2] = false;
+    }
+}
+
+vector<vector<int>> solveNQueens(int n) {
+    vector<vector<int>> result;
+    vector<int> cols(n, -1);
+    vector<bool> colUsed(n, false), diag1(2 * n, false), diag2(2 * n, false);
+
+    solve(0, n, cols, colUsed, diag1, diag2, result);
+    return result;
+}
+
+int main() {
+    auto solutions = solveNQueens(4);
+    cout << "Number of solutions: " << solutions.size() << endl;
+    for (auto& sol : solutions) {
+        for (int c : sol) cout << c << " ";
+        cout << endl;
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Bounded by $O(n!)$ in the absolute worst case
+(one queen per row, up to $n$ column choices each, shrinking as
+constraints accumulate), though the $O(1)$ safety check via the
+tracking arrays makes each individual placement attempt fast; the true
+practical running time is much smaller due to aggressive pruning from
+the column/diagonal constraints.
+\textbf{Space Complexity.} $O(n)$ for the tracking arrays and the
+recursion depth.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a backtracking constraint can be reduced to membership in a small
+number of equivalence classes (here, columns and the two diagonal
+directions), maintain one boolean array per class for $O(1)$
+membership checks, instead of recomputing the constraint from scratch
+by scanning all previously placed items on every attempt. This
+``maintain auxiliary used/unused trackers, mark and unmark them in
+lockstep with placing and removing a choice'' idea generalizes directly
+to Sudoku's row/column/box constraints in the next section.
+\end{takeawaybox}

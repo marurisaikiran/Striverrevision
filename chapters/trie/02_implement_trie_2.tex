@@ -1,0 +1,190 @@
+\section{Implement Trie II (Count and Erase)}
+\label{sec:trie-implement-2}
+
+\problemstatement{Implement a trie supporting $\textit{insert}(word)$,
+$\textit{countWordsEqualTo}(word)$ (how many times $word$ has been
+inserted, counting duplicates), $\textit{countWordsStartingWith}(prefix)$
+(how many inserted words, counting duplicates, begin with $prefix$), and
+$\textit{erase}(word)$ (remove one occurrence of a previously inserted
+$word$).}
+
+\begin{patternbox}
+The keyword shift from Section~\ref{sec:trie-implement} is from a
+yes/no question (\emph{is this word present}) to a \textbf{counting}
+question (\emph{how many times}, including duplicates and including
+prefix counts), plus \textbf{removal}. The fix is to annotate every node,
+not just mark a single boolean: track how many inserted words
+\textbf{pass through} this node (as part of some longer word, or ending
+exactly here), and how many \textbf{end exactly} at this node.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Every node along the path of an inserted word is, by definition, a
+prefix of that word -- so if we increment a $\textit{countPrefix}$
+counter at \emph{every} node visited during an insertion, that counter at
+any given node ends up holding exactly the number of inserted words
+(counting duplicates) that share this far as a common prefix. Separately,
+incrementing an $\textit{countEnd}$ counter only at the \emph{final} node
+of each inserted word tracks exactly how many times that complete word
+itself was inserted.
+
+\begin{ideabox}[Two Counters per Node: Prefix-Passes and Exact-Ends]
+$\textit{insert}(word)$: walk the word's path, creating nodes as needed
+(as in Section~\ref{sec:trie-implement}), and increment
+$\textit{countPrefix}$ at \emph{every} node visited along the way
+(including the final one); increment $\textit{countEnd}$ only at the
+final node. $\textit{countWordsEqualTo}(word)$: walk the path; if it
+exists in full, return the final node's $\textit{countEnd}$ (else $0$).
+$\textit{countWordsStartingWith}(prefix)$: walk the path; if it exists in
+full, return the final node's $\textit{countPrefix}$ (else $0$).
+$\textit{erase}(word)$: walk the path (assuming $word$ was indeed
+previously inserted), \textbf{decrementing} $\textit{countPrefix}$ at
+every node visited, and decrementing $\textit{countEnd}$ at the final
+node.
+\end{ideabox}
+
+\subsection*{Why two separate counters are needed, not just one}
+
+A single counter cannot distinguish ``$\textit{prefix}$ is itself a
+complete inserted word $k$ times'' from ``$\textit{prefix}$ is merely a
+prefix of $k$ longer inserted words.'' For example, after inserting
+``app'' once and ``apple'' once, the node at the end of ``app'' has
+$\textit{countPrefix}=2$ (both words pass through it) but
+$\textit{countEnd}=1$ (only ``app'' itself ends there) --
+$\textit{countWordsEqualTo}(\texttt{"app"})$ must report $1$, while
+$\textit{countWordsStartingWith}(\texttt{"app"})$ must report $2$, and
+no single counter can serve both queries correctly.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Insert}($word$): walk/create the path; increment
+        $\textit{countPrefix}$ at every visited node; increment
+        $\textit{countEnd}$ at the final node.
+  \item \textsc{CountWordsEqualTo}($word$): walk the path; return the
+        final node's $\textit{countEnd}$, or $0$ if the path does not
+        fully exist.
+  \item \textsc{CountWordsStartingWith}($prefix$): walk the path; return
+        the final node's $\textit{countPrefix}$, or $0$ if the path does
+        not fully exist.
+  \item \textsc{Erase}($word$): walk the path; decrement
+        $\textit{countPrefix}$ at every visited node; decrement
+        $\textit{countEnd}$ at the final node.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Insert \texttt{"apple"} twice, insert \texttt{"app"} once. Query
+$\textit{countWordsEqualTo}(\texttt{"apple"})$,
+$\textit{countWordsStartingWith}(\texttt{"app"})$. Then erase
+\texttt{"apple"} once and repeat both queries.}
+
+\begin{itemize}
+  \item After both insertions: node at \texttt{"app"} has
+        $\textit{countPrefix}=3$ (all three insertions pass through
+        it), $\textit{countEnd}=1$ (only the single ``app'' insertion
+        ends there). Node at \texttt{"apple"} has
+        $\textit{countPrefix}=2$, $\textit{countEnd}=2$.
+  \item $\textit{countWordsEqualTo}(\texttt{"apple"}) = 2$.
+        $\textit{countWordsStartingWith}(\texttt{"app"}) = 3$.
+  \item Erase \texttt{"apple"} once: decrement $\textit{countPrefix}$
+        along the whole path (node at \texttt{"app"}: $3\to2$; node at
+        \texttt{"apple"}: $2\to1$), and $\textit{countEnd}$ at the final
+        node ($2\to1$).
+  \item Now $\textit{countWordsEqualTo}(\texttt{"apple"}) = 1$.
+        $\textit{countWordsStartingWith}(\texttt{"app"}) = 2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TrieNode {
+    TrieNode* children[26] = {nullptr};
+    int countPrefix = 0;
+    int countEnd = 0;
+};
+
+class TrieII {
+    TrieNode* root;
+
+public:
+    TrieII() { root = new TrieNode(); }
+
+    void insert(string word) {
+        TrieNode* node = root;
+        for (char c : word) {
+            int idx = c - 'a';
+            if (!node->children[idx]) node->children[idx] = new TrieNode();
+            node = node->children[idx];
+            node->countPrefix++;
+        }
+        node->countEnd++;
+    }
+
+    int countWordsEqualTo(string word) {
+        TrieNode* node = root;
+        for (char c : word) {
+            int idx = c - 'a';
+            if (!node->children[idx]) return 0;
+            node = node->children[idx];
+        }
+        return node->countEnd;
+    }
+
+    int countWordsStartingWith(string prefix) {
+        TrieNode* node = root;
+        for (char c : prefix) {
+            int idx = c - 'a';
+            if (!node->children[idx]) return 0;
+            node = node->children[idx];
+        }
+        return node->countPrefix;
+    }
+
+    void erase(string word) {
+        TrieNode* node = root;
+        for (char c : word) {
+            int idx = c - 'a';
+            if (!node->children[idx]) return; // not present
+            node = node->children[idx];
+            node->countPrefix--;
+        }
+        node->countEnd--;
+    }
+};
+
+int main() {
+    TrieII trie;
+    trie.insert("apple");
+    trie.insert("apple");
+    trie.insert("app");
+
+    cout << trie.countWordsEqualTo("apple") << endl;        // 2
+    cout << trie.countWordsStartingWith("app") << endl;      // 3
+
+    trie.erase("apple");
+    cout << trie.countWordsEqualTo("apple") << endl;        // 1
+    cout << trie.countWordsStartingWith("app") << endl;      // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(L)$ for every operation.
+\textbf{Space Complexity.} $O(\Sigma \cdot N)$, as in
+Section~\ref{sec:trie-implement}, with two integer counters added per
+node.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a trie problem needs counts rather than a single boolean,
+annotate every node with the counters the queries actually need --
+typically ``how many words pass through here'' and/or ``how many words
+end exactly here'' -- and update them incrementally on insert and erase.
+This is a direct generalization of the single $\textit{isEnd}$ flag from
+Section~\ref{sec:trie-implement}.
+\end{takeawaybox}

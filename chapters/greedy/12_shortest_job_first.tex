@@ -1,0 +1,186 @@
+\section{Shortest Job First (SJF) CPU Scheduling}
+\label{sec:shortest-job-first}
+
+\problemstatement{We are given the burst times (the amount of CPU time
+each process needs) of $n$ processes, all of which arrive and are ready to
+run at time $0$. Only one process can run on the CPU at a time, and once we
+commit to running a process we run it to completion (non-preemptive
+scheduling). We must decide the order in which to run the processes so as
+to \textbf{minimize the average waiting time}, where the waiting time of a
+process is the amount of time it sits ready in the queue before it actually
+starts executing.}
+
+\begin{patternbox}
+\emph{``Minimize average waiting time, single CPU, run-to-completion
+(non-preemptive), all jobs ready at the same time''} is the textbook
+\emph{Shortest Job First} scheduling rule. The keyword combination to watch
+for is \textbf{``minimize the average (or total) waiting/completion
+time''} together with \textbf{``one task at a time, no preemption.''}
+Whenever every job is available from the very start, the order of execution
+is the only choice that matters, and there is a clean, provable rule for the
+best order: process the \textbf{shortest job first}. This is conceptually
+close to a sorting greedy, but the insight worth absorbing is \emph{why}
+ordering by burst time, rather than any other attribute, minimizes the
+\emph{average} of a quantity that depends on cumulative sums.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If we decide to run the processes in some order $p_1, p_2, \dots, p_n$ with
+burst times $b_1, b_2, \dots, b_n$ (relabelled according to this order),
+then process $p_1$ waits $0$ time units, process $p_2$ waits $b_1$ time
+units (it has to wait for $p_1$ to finish), process $p_3$ waits
+$b_1 + b_2$, and in general process $p_k$ waits
+\[
+  W_k = b_1 + b_2 + \cdots + b_{k-1}.
+\]
+The total waiting time is
+\[
+  \sum_{k=1}^{n} W_k = \sum_{k=1}^{n} \sum_{j=1}^{k-1} b_j
+                      = \sum_{j=1}^{n} (n - j)\, b_j,
+\]
+since burst time $b_j$ is counted once for every process that comes after
+it in the order -- exactly $n-j$ of them. This formula reveals the key
+structural fact: \textbf{burst times that appear earlier in the order are
+multiplied by a larger coefficient} ($n-1$ for the very first job, down to
+$0$ for the last job). To minimize this weighted sum, we should pair the
+\emph{largest} coefficients with the \emph{smallest} burst times -- which
+means running the shortest jobs first.
+
+\begin{ideabox}[Greedy Choice]
+Sort the processes in increasing order of burst time, and run them strictly
+in that order.
+\end{ideabox}
+
+\subsection*{Why shortest-job-first is optimal}
+
+This is a direct instance of the \emph{rearrangement inequality}: given two
+sequences of numbers, the sum of pairwise products is minimized when one
+sequence is sorted increasing and the other is sorted decreasing (so that
+large values are paired with small values), and maximized when both are
+sorted in the same direction. Here, the coefficients $n-1, n-2, \dots, 0$
+are fixed and strictly decreasing by position; to minimize
+$\sum_j (n-j) b_j$, the burst times $b_j$ must be arranged in strictly
+\emph{increasing} order alongside these strictly decreasing coefficients --
+that is, the smallest burst time should receive the largest coefficient
+(run first, waited-for by the most subsequent jobs), and the largest burst
+time should receive the smallest coefficient (run last, waited-for by
+nobody).
+
+An equivalent and perhaps more intuitive exchange argument: suppose two
+adjacent jobs in some schedule are out of order, i.e.\ a longer job runs
+immediately before a shorter job. Swapping them leaves the waiting time of
+every other job completely unchanged (the total time consumed by this pair
+together is the same regardless of their internal order, so everything
+after them starts at the same time either way), but it strictly decreases
+the combined waiting time of \emph{this pair}, because the shorter job, now
+running first, makes the longer job wait less than the longer job, when
+running first, made the shorter job wait. Repeatedly fixing such
+adjacent inversions -- exactly what sorting does -- can only decrease total
+waiting time, so the fully sorted (shortest first) order is optimal.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort the burst times in increasing order.
+  \item Initialize $\textit{waitingTime} \gets 0$ and
+        $\textit{totalWait} \gets 0$.
+  \item For $i \gets 0$ to $n-1$ (processing jobs in sorted order):
+  \begin{enumerate}
+    \item Add $\textit{waitingTime}$ to $\textit{totalWait}$ (this is the
+          waiting time of the current job).
+    \item $\textit{waitingTime} \gets \textit{waitingTime} +
+          \textit{burst}[i]$ (the next job must wait for this one to
+          finish too).
+  \end{enumerate}
+  \item Return $\textit{totalWait} / n$ as the average waiting time.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Shortest Job First Scheduling}
+\begin{algorithmic}[1]
+\Procedure{SJF}{\textit{burst}}
+  \State sort \textit{burst} in increasing order
+  \State $\textit{waitingTime} \gets 0$, $\textit{totalWait} \gets 0$
+  \For{$i \gets 0$ to $n-1$}
+    \State $\textit{totalWait} \gets \textit{totalWait} + \textit{waitingTime}$
+    \State $\textit{waitingTime} \gets \textit{waitingTime} + \textit{burst}[i]$
+  \EndFor
+  \State \Return $\textit{totalWait} / n$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take burst times $[6, 1, 8, 9, 3]$.}
+
+Sorted increasing: $[1, 3, 6, 8, 9]$.
+
+\begin{itemize}
+  \item $i=0$ (burst $1$): job waits $\textit{waitingTime}=0$.
+        $\textit{totalWait}=0$. Update $\textit{waitingTime}=0+1=1$.
+  \item $i=1$ (burst $3$): job waits $1$. $\textit{totalWait}=1$. Update
+        $\textit{waitingTime}=1+3=4$.
+  \item $i=2$ (burst $6$): job waits $4$. $\textit{totalWait}=5$. Update
+        $\textit{waitingTime}=4+6=10$.
+  \item $i=3$ (burst $8$): job waits $10$. $\textit{totalWait}=15$. Update
+        $\textit{waitingTime}=10+8=18$.
+  \item $i=4$ (burst $9$): job waits $18$. $\textit{totalWait}=33$. Update
+        $\textit{waitingTime}=18+9=27$.
+\end{itemize}
+
+Total waiting time is $33$, and the average waiting time is
+$33 / 5 = 6.6$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+double shortestJobFirst(vector<int>& burst) {
+    sort(burst.begin(), burst.end());
+
+    int n = burst.size();
+    long long waitingTime = 0, totalWait = 0;
+
+    for (int i = 0; i < n; i++) {
+        totalWait += waitingTime;
+        waitingTime += burst[i];
+    }
+
+    return (double)totalWait / n;
+}
+
+int main() {
+    vector<int> burst = {6, 1, 8, 9, 3};
+    cout << "Average waiting time: "
+         << shortestJobFirst(burst) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting the $n$ burst times costs
+$O(n \log n)$. The subsequent single pass to accumulate waiting times costs
+$O(n)$. The overall time complexity is
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} Sorting is performed in place, and we use only a
+constant number of extra scalar variables, giving auxiliary space
+complexity $O(1)$ (ignoring sort's recursion stack).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever the objective is a sum of the form $\sum (\text{fixed
+position-dependent coefficient}) \times (\text{value you get to order})$,
+and the coefficients are monotonic in position, the rearrangement
+inequality tells you exactly how to order the values for the minimum (or
+maximum) possible sum: pair the largest coefficients with the smallest
+values (or vice versa for maximization). Recognizing this pattern --
+``minimize a sum of weighted, orderable quantities'' -- immediately tells
+you to sort, without needing to reconstruct the exchange argument from
+scratch every time.
+\end{takeawaybox}

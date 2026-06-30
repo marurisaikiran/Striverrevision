@@ -1,0 +1,135 @@
+\section{Kth Largest Element in a Stream}
+\label{sec:heap-kth-largest-stream}
+
+\problemstatement{Design a class initialized with an integer $k$ and an
+initial array $\textit{nums}$, supporting $\textit{add}(\textit{val})$:
+add $\textit{val}$ to the running stream and return the $k$-th largest
+element among \textbf{all} elements seen so far (including the initial
+array and every value added).}
+
+\begin{patternbox}
+This is Section~\ref{sec:heap-kth-largest}'s ``Kth Largest Element in an
+Array'' made \textbf{incremental}: instead of computing the answer once
+for a fixed array, we must maintain it continuously as new elements
+stream in, one at a time. The keyword shift from a single static query to
+a class with a repeated $\textit{add}$ method is the signal that the
+size-$k$ min-heap should be built \emph{once} and \emph{kept alive}
+across calls, rather than recomputed from scratch on every query.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The min-heap-of-size-$k$ technique from
+Section~\ref{sec:heap-kth-largest} already processes elements one at a
+time and remains correct at \emph{every intermediate point} during that
+processing -- the heap, after processing any prefix of elements, always
+holds the $k$ largest elements seen \emph{so far}, with the $k$-th largest
+sitting at the root. This means no new derivation is needed: we simply
+keep the heap object alive as part of the class's state, seed it with the
+initial array, and apply the exact same push-then-conditionally-pop step
+to each newly added value.
+
+\begin{ideabox}[Reuse: Make the Heap Persistent]
+On construction: build a min-heap from the initial $\textit{nums}$,
+trimming it down to size $k$ using the same push-then-pop-if-oversized
+rule as Algorithm~\ref{sec:heap-kth-largest}. On each $\textit{add}(val)$:
+apply that same rule to $\textit{val}$ alone, then return the heap's
+current root.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Constructor}($k$, \textit{nums}): for each $x$ in
+        \textit{nums}, push $x$ onto the min-heap; if size exceeds $k$,
+        pop the minimum.
+  \item \textsc{Add}($\textit{val}$): push $\textit{val}$ onto the
+        min-heap; if size exceeds $k$, pop the minimum; return the
+        heap's current top.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Kth Largest Element in a Stream}
+\begin{algorithmic}[1]
+\Procedure{Constructor}{$k$, \textit{nums}}
+  \State $\textit{heap} \gets$ empty min-heap
+  \For{each $x$ in \textit{nums}}
+    \State push $x$ onto \textit{heap}
+    \If{$|\textit{heap}| > k$} pop the minimum \EndIf
+  \EndFor
+\EndProcedure
+\Procedure{Add}{\textit{val}}
+  \State push \textit{val} onto \textit{heap}
+  \If{$|\textit{heap}| > k$} pop the minimum \EndIf
+  \State \Return top of \textit{heap}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $k=3$, initial $\textit{nums}=[4,5,8,2]$, then call
+$\textit{add}(3)$, $\textit{add}(5)$, $\textit{add}(10)$.}
+
+\begin{itemize}
+  \item Construct: push $4,5,8,2$ one at a time, trimming to size $3$
+        each time it exceeds $3$. After all four: heap holds the $3$
+        largest of $\{4,5,8,2\}$, which are $\{4,5,8\}$ (root $=4$).
+  \item $\textit{add}(3)$: push $3$; heap $=\{3,4,5,8\}$, size $4>3$:
+        pop min ($3$). Heap $=\{4,5,8\}$. Return $4$.
+  \item $\textit{add}(5)$: push $5$; heap $=\{4,5,5,8\}$, size $4>3$:
+        pop min ($4$). Heap $=\{5,5,8\}$. Return $5$.
+  \item $\textit{add}(10)$: push $10$; heap $=\{5,5,8,10\}$, size $4>3$:
+        pop min ($5$). Heap $=\{5,8,10\}$. Return $5$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class KthLargest {
+    int k;
+    priority_queue<int, vector<int>, greater<int>> minHeap;
+
+public:
+    KthLargest(int k, vector<int>& nums) : k(k) {
+        for (int x : nums) {
+            minHeap.push(x);
+            if ((int)minHeap.size() > k) minHeap.pop();
+        }
+    }
+
+    int add(int val) {
+        minHeap.push(val);
+        if ((int)minHeap.size() > k) minHeap.pop();
+        return minHeap.top();
+    }
+};
+
+int main() {
+    vector<int> nums = {4, 5, 8, 2};
+    KthLargest kl(3, nums);
+
+    cout << kl.add(3) << endl;
+    cout << kl.add(5) << endl;
+    cout << kl.add(10) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Construction costs $O(n \log k)$ for the
+initial $n$ elements. Each subsequent $\textit{add}$ call costs
+$O(\log k)$.
+\textbf{Space Complexity.} $O(k)$, since the heap never exceeds size $k$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Many ``streaming'' versions of array problems require no new algorithmic
+idea at all -- only recognizing that the data structure from the static
+version (here, a size-$k$ min-heap) is already incremental by
+construction, and simply needs to be kept alive as persistent state
+rather than rebuilt on every query.
+\end{takeawaybox}

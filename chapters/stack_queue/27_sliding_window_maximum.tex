@@ -1,0 +1,153 @@
+\section{Sliding Window Maximum}
+\label{sec:sq-sliding-window-max}
+
+\problemstatement{Given an array $\textit{nums}$ and a window size $k$,
+return an array containing the maximum element of every contiguous
+window of size $k$ as it slides from the start of the array to the end.}
+
+\begin{patternbox}
+\emph{``Maximum (or minimum) over every sliding window''} is the
+\textbf{monotonic deque} keyword from Section~\ref{sec:sq-intro}: a
+single index can remain a useful candidate for the maximum across
+\emph{many} consecutive windows, but it must also eventually be evicted
+once the window slides past it -- requiring removal from \textbf{both}
+ends (the back, when a better candidate arrives; the front, when the
+oldest index falls out of the window), which is exactly what a
+double-ended queue (deque) provides.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Maintain a deque of \emph{indices} (not values), kept in decreasing order
+of their corresponding values from front to back, and restricted to
+indices currently inside the window. The front of the deque is always the
+index of the current window's maximum, because it is both the largest
+remaining value (by the decreasing-order invariant) and guaranteed to
+still be within the window (indices that fall out are actively removed
+from the front).
+
+\begin{ideabox}[Monotonic Deque: Evict from the Back on Value, from the Front on Position]
+For each new index $i$: first, while the deque is non-empty and the value
+at its back index is $\le \textit{nums}[i]$, pop from the back (those
+indices can never again be the maximum of any window containing $i$,
+since $i$ is both newer and at least as large -- the same domination
+argument as next greater element). Push $i$ to the back. Then, while the
+deque's front index is $\le i-k$ (i.e.\ has fallen outside the current
+window), pop from the front. Once $i \ge k-1$, the deque's front index is
+the maximum of the current window.
+\end{ideabox}
+
+\subsection*{Why eviction from both ends preserves correctness}
+
+Eviction from the \textbf{back} is exactly the monotonic-stack domination
+argument from Section~\ref{sec:sq-next-greater-1}: a smaller, older index
+can never be the maximum once a newer, at-least-as-large value has
+arrived, anywhere within the window. Eviction from the \textbf{front} is
+new to this section and is required because, unlike a plain monotonic
+stack, indices here have a finite lifetime determined by the window's
+position -- even an index that has never been dominated by value must
+still be discarded once it ages out of the window. Both evictions
+together guarantee that the deque, at every step, contains exactly the
+indices that are both currently in-window \emph{and} not dominated by
+any later in-window value, kept in decreasing order -- so its front is
+always correct.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty deque of indices and an empty result list.
+  \item For $i$ from $0$ to $n-1$:
+  \begin{enumerate}
+    \item While the deque is non-empty and
+          $\textit{nums}[\text{back index}] \le \textit{nums}[i]$: pop
+          from the back.
+    \item Push $i$ to the back.
+    \item While the deque's front index $\le i-k$: pop from the front.
+    \item If $i \ge k-1$: append $\textit{nums}[\text{front index}]$ to
+          the result.
+  \end{enumerate}
+  \item Return the result.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [1,3,-1,-3,5,3,6,7]$, $k=3$.}
+
+\begin{itemize}
+  \item $i=0$ ($1$): deque empty, push. Deque $=[0]$. $i<k-1=2$, no
+        output.
+  \item $i=1$ ($3$): back is index $0$ (value $1\le3$), pop. Push $1$.
+        Deque $=[1]$. $i<2$, no output.
+  \item $i=2$ ($-1$): back is index $1$ (value $3 \not\le -1$), no pop.
+        Push $2$. Deque $=[1,2]$. Front index $1 > i-k=-1$, no pop.
+        $i=2\ge2$: output $\textit{nums}[1]=3$.
+  \item $i=3$ ($-3$): no pop (back value $-1\not\le-3$). Push $3$.
+        Deque $=[1,2,3]$. Front index $1 \le i-k=0$? No ($1>0$). Output
+        $\textit{nums}[1]=3$.
+  \item $i=4$ ($5$): back values $-3,-1,3$ all $\le5$: pop all. Deque
+        $=[]$, push $4$. Deque $=[4]$. Front $4 \le i-k=1$? No. Output
+        $\textit{nums}[4]=5$.
+  \item $i=5$ ($3$): back value $5\not\le3$, no pop. Push $5$. Deque
+        $=[4,5]$. Front $4\le i-k=2$? No. Output $\textit{nums}[4]=5$.
+  \item $i=6$ ($6$): back values $3,5$ both $\le6$: pop both. Push $6$.
+        Deque $=[6]$. Front $6\le i-k=3$? No. Output
+        $\textit{nums}[6]=6$.
+  \item $i=7$ ($7$): back value $6\le7$, pop. Push $7$. Deque $=[7]$.
+        Front $7\le i-k=4$? No. Output $\textit{nums}[7]=7$.
+\end{itemize}
+
+Result: $[3,3,5,5,6,7]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+    deque<int> dq; // stores indices
+    vector<int> result;
+
+    for (int i = 0; i < (int)nums.size(); i++) {
+        while (!dq.empty() && nums[dq.back()] <= nums[i]) {
+            dq.pop_back();
+        }
+        dq.push_back(i);
+
+        while (dq.front() <= i - k) {
+            dq.pop_front();
+        }
+
+        if (i >= k - 1) {
+            result.push_back(nums[dq.front()]);
+        }
+    }
+    return result;
+}
+
+int main() {
+    vector<int> nums = {1, 3, -1, -3, 5, 3, 6, 7};
+    for (int x : maxSlidingWindow(nums, 3)) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each index is pushed to the back once and
+popped (from either end) at most once across the whole scan, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(k)$ for the deque in the worst case.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A monotonic deque is a monotonic stack with one extra capability: aging
+out elements from the opposite end once they fall outside a window. Any
+time a problem combines ``sliding window'' with ``maximum/minimum within
+the window,'' this is the data structure to reach for, rather than
+re-scanning each window from scratch (which would cost $O(nk)$) or using
+a heap (which would cost $O(n \log k)$ but require extra bookkeeping to
+evict stale entries lazily).
+\end{takeawaybox}

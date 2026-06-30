@@ -1,0 +1,121 @@
+\section{Surrounded Regions}
+\label{sec:graph-surrounded-regions}
+
+\problemstatement{Given an $m \times n$ board of \texttt{'X'} and
+\texttt{'O'}, \textbf{capture} every region of \texttt{'O'}s that is
+fully \textbf{surrounded} by \texttt{'X'}s -- flip every captured
+\texttt{'O'} to \texttt{'X'}. A region is \textbf{not} captured if any
+\texttt{'O'} in it touches the border of the board.}
+
+\begin{patternbox}
+\emph{``Mark everything reachable from the boundary first, then
+process by elimination''} -- rather than trying to directly test
+whether each interior region is ``surrounded'' (which would require
+checking every cell of every region against the border), it is far
+simpler to run a traversal \textbf{only from the border's
+\texttt{'O'}s}: anything that traversal reaches is, by definition,
+connected to the border and therefore \emph{safe}. Everything left
+unmarked afterward is unreachable from the border -- the surrounded
+regions -- and gets flipped.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For every \texttt{'O'} on the board's \textbf{border} (first
+        row, last row, first column, last column), run DFS (or BFS),
+        marking every $4$-directionally connected \texttt{'O'} with a
+        temporary marker (e.g.\ \texttt{'\#'}) instead of visiting a
+        separate \textit{visited} array.
+  \item Scan the entire board: any remaining \texttt{'O'} (never
+        reached from the border) is surrounded -- flip it to
+        \texttt{'X'}. Any \texttt{'\#'} (reached from the border, safe)
+        gets restored to \texttt{'O'}.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void markSafe(int r, int c, vector<vector<char>>& board) {
+    int rows = board.size(), cols = board[0].size();
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (board[r][c] != 'O') return;
+
+    board[r][c] = '#';
+    markSafe(r - 1, c, board);
+    markSafe(r + 1, c, board);
+    markSafe(r, c - 1, board);
+    markSafe(r, c + 1, board);
+}
+
+void solve(vector<vector<char>>& board) {
+    int rows = board.size(), cols = board[0].size();
+
+    for (int r = 0; r < rows; r++) {
+        markSafe(r, 0, board);
+        markSafe(r, cols - 1, board);
+    }
+    for (int c = 0; c < cols; c++) {
+        markSafe(0, c, board);
+        markSafe(rows - 1, c, board);
+    }
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (board[r][c] == 'O') board[r][c] = 'X';
+            else if (board[r][c] == '#') board[r][c] = 'O';
+        }
+    }
+}
+
+int main() {
+    vector<vector<char>> board = {
+        {'X', 'X', 'X', 'X'},
+        {'X', 'O', 'O', 'X'},
+        {'X', 'X', 'O', 'X'},
+        {'X', 'O', 'X', 'X'}
+    };
+    solve(board);
+    for (auto& row : board) {
+        for (char x : row) cout << x << " ";
+        cout << endl;
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $4\times4$ board above.}
+
+Border \texttt{'O'}s: only $(3,1)$ is on the border (last row) -- but
+checking the full border scan, none of row $0$, row $3$ (except
+$(3,1)$, which is \texttt{'O'}), column $0$, or column $3$ contain
+other \texttt{'O'}s. $\textit{markSafe}(3,1)$ marks just $(3,1)$ as
+\texttt{'\#'} (its neighbors $(2,1)=\text{X}$, $(3,0)=\text{X}$,
+$(3,2)=\text{X}$ are all \texttt{'X'}, so the safe region is just this
+one cell). The interior region $\{(1,1),(1,2),(2,2)\}$ is never
+touched by any border-seeded traversal, since it doesn't connect to
+$(3,1)$ (blocked by \texttt{'X'} on all sides). Final scan: the
+interior \texttt{'O'}s flip to \texttt{'X'}; $(3,1)$'s \texttt{'\#'}
+reverts to \texttt{'O'}.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\textit{rows} \times \textit{cols})$ --
+each cell is visited a constant number of times (once by the border
+traversal if reachable, plus the one final scan).
+\textbf{Space Complexity.} $O(\textit{rows} \times \textit{cols})$
+recursion stack in the worst case.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Process by elimination from the boundary'' is a reusable trick
+whenever a problem's condition is phrased in terms of \emph{not}
+reaching some special set of cells (the border, here) -- traverse
+\emph{from} that special set first, and treat everything unreached as
+the answer. The next section, Number of Enclaves, reuses this exact
+same boundary-first elimination on a near-identical setup.
+\end{takeawaybox}

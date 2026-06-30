@@ -1,0 +1,127 @@
+\section{Implement a Queue using a Linked List}
+\label{sec:sq-queue-linked-list}
+
+\problemstatement{Implement a queue supporting $\textit{enqueue}(x)$,
+$\textit{dequeue}()$, $\textit{front}()$, and $\textit{isEmpty}()$, backed
+by a singly linked list, each operation running in $O(1)$.}
+
+\begin{patternbox}
+A queue's FIFO discipline needs insertion at \textbf{one} end and removal
+from the \textbf{other} -- unlike a stack, a single \textit{head} pointer
+is not enough, because removing from the head and inserting at the head
+would give LIFO, not FIFO. The keyword to notice: this is the first
+structure in this chapter that genuinely requires \textbf{two} pointers
+into the list (\textit{head} and \textit{tail}) to stay $O(1)$.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If we insert new elements at the \textbf{tail} and remove from the
+\textbf{head}, the earliest-inserted, not-yet-removed element is always
+at the head, ready to be dequeued -- exactly FIFO order. Maintaining only
+a \textit{head} pointer would make tail-insertion cost $O(n)$ (we would
+have to walk the whole list to find the current last node), so we keep an
+explicit \textit{tail} pointer too, updated on every enqueue.
+
+\begin{ideabox}[Two Pointers: Head for Removal, Tail for Insertion]
+$\textit{enqueue}(x)$ creates a new node and links it after the current
+\textit{tail} (or sets it as both \textit{head} and \textit{tail} if the
+queue was empty), then updates \textit{tail} to point to this new node.
+$\textit{dequeue}()$ reads \textit{head}'s value, then advances
+$\textit{head} \gets \textit{head}.\textit{next}$ (and resets
+\textit{tail} to null if the queue becomes empty).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{head}, \textit{tail} \gets$ null initially.
+  \item $\textit{enqueue}(x)$: $\textit{node} \gets$ new node with value
+        $x$. If $\textit{tail} = $ null: $\textit{head} \gets
+        \textit{tail} \gets \textit{node}$. Else:
+        $\textit{tail}.\textit{next} \gets \textit{node}$;
+        $\textit{tail} \gets \textit{node}$.
+  \item $\textit{dequeue}()$: $\textit{val} \gets
+        \textit{head}.\textit{val}$; $\textit{head} \gets
+        \textit{head}.\textit{next}$; if $\textit{head} = $ null:
+        $\textit{tail} \gets$ null; return \textit{val}.
+  \item $\textit{front}()$: return $\textit{head}.\textit{val}$.
+  \item $\textit{isEmpty}()$: return $(\textit{head} = \text{null})$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Enqueue $1,2,3$; dequeue once.}
+
+\begin{itemize}
+  \item Enqueue $1$: $\textit{head}=\textit{tail}=1$.
+  \item Enqueue $2$: $1 \to 2$; $\textit{head}=1$, $\textit{tail}=2$.
+  \item Enqueue $3$: $1\to2\to3$; $\textit{head}=1$, $\textit{tail}=3$.
+  \item Dequeue: returns $1$; $\textit{head}=2$ now; list $2\to3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Queue {
+    struct Node {
+        int val;
+        Node* next;
+        Node(int v) : val(v), next(nullptr) {}
+    };
+    Node* head = nullptr;
+    Node* tail = nullptr;
+
+public:
+    void enqueue(int x) {
+        Node* node = new Node(x);
+        if (!tail) {
+            head = tail = node;
+        } else {
+            tail->next = node;
+            tail = node;
+        }
+    }
+
+    int dequeue() {
+        int val = head->val;
+        Node* old = head;
+        head = head->next;
+        if (!head) tail = nullptr;
+        delete old;
+        return val;
+    }
+
+    int front() {
+        return head->val;
+    }
+
+    bool isEmpty() {
+        return head == nullptr;
+    }
+};
+
+int main() {
+    Queue q;
+    q.enqueue(1); q.enqueue(2); q.enqueue(3);
+    cout << "Dequeued: " << q.dequeue() << endl;
+    cout << "Front: " << q.front() << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ for every operation, since \textit{tail}
+removes the need to traverse the list on enqueue.
+\textbf{Space Complexity.} $O(n)$ for $n$ stored elements.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The need for two pointers (\textit{head} and \textit{tail}) rather than
+one is the structural signature of FIFO order on a singly linked list.
+This same head/tail pairing reappears, in a different form, inside the
+doubly linked list used by LRU Cache (Section~\ref{sec:sq-lru-cache}).
+\end{takeawaybox}

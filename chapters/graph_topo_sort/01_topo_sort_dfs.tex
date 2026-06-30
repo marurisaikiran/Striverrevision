@@ -1,0 +1,110 @@
+\section{Topological Sort using DFS}
+\label{sec:graph-topo-sort-dfs}
+
+\problemstatement{Given a Directed Acyclic Graph (DAG) with $n$ nodes,
+return a valid topological ordering -- a linear arrangement where
+every edge $u \to v$ has $u$ appearing before $v$.}
+
+\begin{patternbox}
+\emph{``Order nodes so every prerequisite comes first''} is solved by
+DFS with one addition: push a node onto a \textbf{stack} the moment it
+\textbf{finishes} (every neighbor it can reach has already been fully
+explored). Popping the stack from top to bottom yields a valid
+topological order.
+\end{patternbox}
+
+\subsection*{Why finish-time ordering works}
+
+When DFS finishes exploring node $u$ entirely (including everything
+reachable from it) before pushing $u$ onto the stack, every node $v$
+reachable from $u$ has \emph{already} been pushed (it must finish
+before $u$ does, since $u$'s own finish waits on its recursive calls
+returning). So $v$ ends up \textbf{lower} in the stack than $u$ -- and
+popping top-to-bottom visits $u$ before $v$, exactly the required
+order for edge $u \to v$.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain a $\textit{visited}$ array and an empty stack.
+  \item DFS from every unvisited node: recurse into all unvisited
+        neighbors first, and only \textbf{after} that recursion
+        returns (the node is now fully finished), push the current
+        node onto the stack.
+  \item Pop the entire stack to produce the topological order.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void dfs(int node, vector<vector<int>>& adj, vector<bool>& visited, stack<int>& finishOrder) {
+    visited[node] = true;
+    for (int neighbor : adj[node]) {
+        if (!visited[neighbor]) {
+            dfs(neighbor, adj, visited, finishOrder);
+        }
+    }
+    finishOrder.push(node); // push only after all neighbors are done
+}
+
+vector<int> topoSortDFS(int n, vector<vector<int>>& adj) {
+    vector<bool> visited(n, false);
+    stack<int> finishOrder;
+
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) {
+            dfs(i, adj, visited, finishOrder);
+        }
+    }
+
+    vector<int> result;
+    while (!finishOrder.empty()) {
+        result.push_back(finishOrder.top());
+        finishOrder.pop();
+    }
+    return result;
+}
+
+int main() {
+    int n = 6;
+    vector<vector<int>> adj(n);
+    adj[5] = {2, 0}; adj[4] = {0, 1}; adj[2] = {3}; adj[3] = {1};
+
+    for (int x : topoSortDFS(n, adj)) cout << x << " ";
+    cout << endl; // 5 4 2 3 1 0  (one valid order)
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take edges $5{\to}2$, $5{\to}0$, $4{\to}0$, $4{\to}1$,
+$2{\to}3$, $3{\to}1$.}
+
+DFS from $0$: no outgoing edges, finishes immediately, push $0$.
+Stack: $[0]$. DFS from $1$: no outgoing edges, push $1$. Stack:
+$[0,1]$. DFS from $2$: recurse to $3$; $3$ recurses to $1$ (already
+visited, skip); $3$ finishes, push $3$. Stack: $[0,1,3]$. Back at $2$:
+finishes, push $2$. Stack: $[0,1,3,2]$. DFS from $4$: neighbors $0,1$
+both visited; finishes, push $4$. Stack: $[0,1,3,2,4]$. DFS from $5$:
+neighbors $2,0$ both visited; finishes, push $5$. Stack:
+$[0,1,3,2,4,5]$. Popping top to bottom: $5,4,2,3,1,0$ -- every edge
+($5{\to}2$, $5{\to}0$, $4{\to}0$, $4{\to}1$, $2{\to}3$, $3{\to}1$)
+indeed has its source appearing before its destination.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- standard DFS traversal cost.
+\textbf{Space Complexity.} $O(V)$ for \textit{visited}, the stack, and
+the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Push on finish, read the stack top-down'' is a clean, purely local
+rule -- no node needs any global information about the rest of the
+graph to know when to push itself, only that its own DFS call has
+returned. This locality is what makes the DFS approach to topological
+sort so simple to implement correctly.
+\end{takeawaybox}

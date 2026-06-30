@@ -1,0 +1,195 @@
+\section{N Meetings in One Room}
+\label{sec:n-meetings}
+
+\problemstatement{We are given $n$ meetings, where the $i$-th meeting has a
+start time $\textit{start}[i]$ and a finish time $\textit{end}[i]$. Only one
+meeting room is available, so a meeting occupies the room for its entire
+duration $[\textit{start}[i], \textit{end}[i]]$, and the room becomes free
+only strictly after $\textit{end}[i]$ -- so two meetings can both be held in
+the room only if one of them starts strictly after the other has ended. We
+must select the \textbf{maximum number of non-overlapping meetings} that can
+be held in this single room.}
+
+\begin{patternbox}
+\emph{``One resource (a room), many requests each with a start and an end,
+maximize the number of non-conflicting requests you can serve''} is the
+exact signature of the classical \emph{Activity Selection Problem}, the
+flagship example of interval scheduling. The keyword combination to listen
+for is \emph{``maximum number of non-overlapping intervals''} together with
+\emph{a single shared resource}. The unintuitive but crucial insight that
+makes this greedy rather than a search problem is that you should sort by
+\textbf{finish time}, not by start time and not by duration -- a fact that
+is worth memorizing because it differs from a tempting but incorrect first
+instinct.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+It is tempting to think that scheduling the \emph{shortest} meetings first,
+or the \emph{earliest-starting} meetings first, would leave the most room for
+others. Both of these intuitions are wrong, and small examples expose the
+flaw immediately. Consider two meetings, $A = [1, 100]$ and $B = [2, 3]$.
+Sorting by start time would consider $A$ first (it starts earliest); taking
+$A$ blocks $B$ entirely, leaving only $1$ meeting scheduled, whereas taking
+$B$ instead would have left room afterward for further meetings starting
+after time $3$. Sorting by duration would favor $B$ here by luck, but that
+is not a reliable rule either -- a short meeting that starts very early and
+a slightly longer meeting that finishes only one unit later can still flip
+which choice is better, depending on what comes after.
+
+What actually matters is not how long a meeting takes, nor when it starts,
+but \emph{when it frees up the room for everyone else}. A meeting that
+finishes early frees the room early, leaving the largest possible remaining
+time window for future meetings -- regardless of how late it started or how
+long it lasted.
+
+\begin{ideabox}[Greedy Choice]
+Sort all meetings by finish time, in increasing order. Always select the
+next meeting (in this sorted order) whose start time is strictly after the
+finish time of the most recently selected meeting.
+\end{ideabox}
+
+\subsection*{Why sorting by finish time is correct}
+
+This is the standard exchange-argument proof used for activity selection.
+Let $m_1$ be the meeting with the earliest finish time among all $n$
+meetings. We claim there is always an optimal solution that includes $m_1$.
+Suppose some optimal solution $O$ does not include $m_1$, but includes some
+other meeting $m'$ as its first (earliest-finishing) chosen meeting instead.
+Since $m_1$ has the globally earliest finish time of \emph{all} meetings, in
+particular $\textit{end}[m_1] \le \textit{end}[m']$. Replacing $m'$ with
+$m_1$ inside $O$ cannot create any new conflict with the meetings that come
+after $m'$ in $O$, because $m_1$ frees the room \emph{no later} than $m'$
+did. So this swap produces another solution that is still feasible and has
+exactly the same number of meetings as $O$ -- meaning some optimal solution
+does include $m_1$. Once $m_1$ is fixed as selected, the remaining problem
+is exactly the same problem, restricted to meetings that start after
+$\textit{end}[m_1]$, so the same argument applies recursively (or, in
+iterative form, repeatedly) to the next-earliest-finishing remaining
+meeting, and so on. This is what justifies scanning the finish-time-sorted
+list exactly once, greedily picking whichever next meeting is compatible
+with the last one picked.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort all $n$ meetings by $\textit{end}[i]$ in increasing order.
+  \item Initialize $\textit{count} \gets 1$ and
+        $\textit{lastEnd} \gets \textit{end}$ of the first meeting in
+        sorted order (the very first meeting is always selected, since
+        nothing has been scheduled yet to conflict with it).
+  \item For each remaining meeting $i$ in sorted order, starting from the
+        second one:
+  \begin{enumerate}
+    \item If $\textit{start}[i] > \textit{lastEnd}$: select this meeting.
+          $\textit{count} \gets \textit{count} + 1$;
+          $\textit{lastEnd} \gets \textit{end}[i]$.
+    \item Otherwise: skip this meeting (it conflicts with the last
+          selected meeting).
+  \end{enumerate}
+  \item Return \textit{count}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Maximum Meetings in One Room}
+\begin{algorithmic}[1]
+\Procedure{MaxMeetings}{$\textit{start}, \textit{end}$}
+  \State sort meetings by $\textit{end}[i]$ in increasing order
+  \State $\textit{count} \gets 1$
+  \State $\textit{lastEnd} \gets \textit{end}[0]$ \Comment{always take the first meeting}
+  \For{$i \gets 1$ to $n-1$}
+    \If{$\textit{start}[i] > \textit{lastEnd}$}
+      \State $\textit{count} \gets \textit{count} + 1$
+      \State $\textit{lastEnd} \gets \textit{end}[i]$
+    \EndIf
+  \EndFor
+  \State \Return \textit{count}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take meetings with $(\textit{start}, \textit{end})$ pairs:
+$(1,2), (3,4), (0,6), (5,7), (8,9), (5,9)$.}
+
+Sorting by finish time gives the order:
+\[
+  (1,2),\ (3,4),\ (0,6),\ (5,7),\ (8,9),\ (5,9).
+\]
+
+\begin{itemize}
+  \item Select $(1,2)$ unconditionally. $\textit{count}=1$,
+        $\textit{lastEnd}=2$.
+  \item $(3,4)$: $\textit{start}=3 > \textit{lastEnd}=2$. Select.
+        $\textit{count}=2$, $\textit{lastEnd}=4$.
+  \item $(0,6)$: $\textit{start}=0 \not> \textit{lastEnd}=4$. Skip.
+  \item $(5,7)$: $\textit{start}=5 > \textit{lastEnd}=4$. Select.
+        $\textit{count}=3$, $\textit{lastEnd}=7$.
+  \item $(8,9)$: $\textit{start}=8 > \textit{lastEnd}=7$. Select.
+        $\textit{count}=4$, $\textit{lastEnd}=9$.
+  \item $(5,9)$: $\textit{start}=5 \not> \textit{lastEnd}=9$. Skip.
+\end{itemize}
+
+The maximum number of meetings that can be held is $\boxed{4}$, namely
+$(1,2), (3,4), (5,7), (8,9)$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int maxMeetings(vector<int>& start, vector<int>& end) {
+    int n = start.size();
+    vector<pair<int,int>> meetings(n);
+    for (int i = 0; i < n; i++) {
+        meetings[i] = {end[i], start[i]};
+    }
+
+    sort(meetings.begin(), meetings.end()); // sorts by end time first
+
+    int count = 1;
+    int lastEnd = meetings[0].first;
+
+    for (int i = 1; i < n; i++) {
+        int s = meetings[i].second;
+        int e = meetings[i].first;
+        if (s > lastEnd) {
+            count++;
+            lastEnd = e;
+        }
+    }
+    return count;
+}
+
+int main() {
+    vector<int> start = {1, 3, 0, 5, 8, 5};
+    vector<int> end   = {2, 4, 6, 7, 9, 9};
+
+    cout << "Maximum meetings: " << maxMeetings(start, end) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting the $n$ meetings by finish time costs
+$O(n \log n)$. The subsequent single linear pass costs $O(n)$. So the
+overall time complexity is
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} We use an auxiliary array of $n$ pairs to sort
+by finish time, giving $O(n)$ space (this can be reduced to $O(1)$
+auxiliary space if the input is given as an array of pairs already, sorted
+in place).
+\end{complexitybox}
+
+\begin{takeawaybox}
+For interval-scheduling problems with a single shared resource, always sort
+by \textbf{finish time}, never by start time or duration. The meeting that
+frees the resource soonest is always at least as good a first choice as any
+other meeting, by a direct exchange argument -- and this single fact is the
+entire content of the activity selection problem, a pattern that reappears
+throughout the rest of this chapter under different names.
+\end{takeawaybox}

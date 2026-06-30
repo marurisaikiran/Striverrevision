@@ -1,0 +1,196 @@
+\section{Frog Jump}
+\label{sec:dp-frog-jump}
+
+\problemstatement{A frog starts at index $0$ of an array $\textit{height}$
+and wants to reach index $n-1$. From index $i$, it may jump to $i+1$ or
+$i+2$, at a cost of $|\textit{height}[i] - \textit{height}[j]|$ for a
+jump to index $j$. Find the minimum total cost to reach index $n-1$.}
+
+\begin{patternbox}
+\emph{``Minimum cost to reach position $n$, moving via a small fixed set
+of jump sizes''} is Section~\ref{sec:dp-climbing-stairs}'s recurrence
+shape with \textbf{sum replaced by minimum}: instead of \emph{counting}
+every way to combine smaller answers, we \emph{minimize} over them,
+because here we want the cheapest path, not a tally of all paths.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $\textit{minCost}(i)$ be the minimum cost to reach index $i$ from
+index $0$. The frog's last jump into index $i$ came from either $i-1$
+(cost $|\textit{height}[i]-\textit{height}[i-1]|$ added to
+$\textit{minCost}(i-1)$) or $i-2$ (cost
+$|\textit{height}[i]-\textit{height}[i-2]|$ added to
+$\textit{minCost}(i-2)$) -- and since we want the \emph{cheapest} way to
+reach $i$, we take the minimum of these two options:
+\[
+  \textit{minCost}(i) = \min\big(\textit{minCost}(i-1) +
+  |\textit{height}[i]-\textit{height}[i-1]|,\ \textit{minCost}(i-2) +
+  |\textit{height}[i]-\textit{height}[i-2]|\big).
+\]
+Base case: $\textit{minCost}(0)=0$ (no cost to start where you already
+are); for $i=1$, only the jump from $0$ is possible (there is no index
+$-1$), so $\textit{minCost}(1) = |\textit{height}[1]-\textit{height}[0]|$
+directly.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpRecursive(int i, vector<int>& height) {
+    if (i == 0) return 0;
+    if (i == 1) return abs(height[1] - height[0]);
+
+    int fromOneBack = frogJumpRecursive(i - 1, height) + abs(height[i] - height[i-1]);
+    int fromTwoBack  = frogJumpRecursive(i - 2, height) + abs(height[i] - height[i-2]);
+    return min(fromOneBack, fromTwoBack);
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50};
+    int n = height.size();
+    cout << frogJumpRecursive(n - 1, height) << endl; // 40
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$ -- the same two-branches-per-call structure as
+every recurrence in this chapter so far.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpMemo(int i, vector<int>& height, vector<int>& memo) {
+    if (i == 0) return 0;
+    if (i == 1) return abs(height[1] - height[0]);
+    if (memo[i] != -1) return memo[i];
+
+    int fromOneBack = frogJumpMemo(i - 1, height, memo) + abs(height[i] - height[i-1]);
+    int fromTwoBack  = frogJumpMemo(i - 2, height, memo) + abs(height[i] - height[i-2]);
+    memo[i] = min(fromOneBack, fromTwoBack);
+    return memo[i];
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50};
+    int n = height.size();
+    vector<int> memo(n, -1);
+    cout << frogJumpMemo(n - 1, height, memo) << endl; // 40
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpTabulation(vector<int>& height) {
+    int n = height.size();
+    vector<int> dp(n);
+    dp[0] = 0;
+    if (n > 1) dp[1] = abs(height[1] - height[0]);
+
+    for (int i = 2; i < n; i++) {
+        int fromOneBack = dp[i - 1] + abs(height[i] - height[i-1]);
+        int fromTwoBack  = dp[i - 2] + abs(height[i] - height[i-2]);
+        dp[i] = min(fromOneBack, fromTwoBack);
+    }
+    return dp[n - 1];
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50};
+    cout << frogJumpTabulation(height) << endl; // 40
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{height} = [10,30,40,50]$.}
+
+\begin{itemize}
+  \item $\textit{dp}[0] = 0$.
+  \item $\textit{dp}[1] = |30-10| = 20$.
+  \item $\textit{dp}[2] = \min(\textit{dp}[1]+|40{-}30|,\
+        \textit{dp}[0]+|40{-}10|) = \min(20{+}10,\ 0{+}30) =
+        \min(30,30) = 30$.
+  \item $\textit{dp}[3] = \min(\textit{dp}[2]+|50{-}40|,\
+        \textit{dp}[1]+|50{-}30|) = \min(30{+}10,\ 20{+}20) =
+        \min(40,40) = 40$.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+$i$ & 0 & 1 & 2 & 3 \\ \hline
+$\textit{height}[i]$ & 10 & 30 & 40 & 50 \\ \hline
+$\textit{dp}[i]$ & 0 & 20 & 30 & 40
+\end{tabular}
+\end{center}
+
+The answer is $\textit{dp}[3]=40$: one cheapest path is
+$0\to1\to2\to3$, costing $20+10+10=40$ (and the alternative
+$0\to2\to3$, costing $30+10=40$, ties exactly).
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpSpaceOptimized(vector<int>& height) {
+    int n = height.size();
+    if (n == 1) return 0;
+
+    int prev2 = 0, prev1 = abs(height[1] - height[0]);
+    for (int i = 2; i < n; i++) {
+        int fromOneBack = prev1 + abs(height[i] - height[i-1]);
+        int fromTwoBack  = prev2 + abs(height[i] - height[i-2]);
+        int current = min(fromOneBack, fromTwoBack);
+        prev2 = prev1;
+        prev1 = current;
+    }
+    return prev1;
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50};
+    cout << frogJumpSpaceOptimized(height) << endl; // 40
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Swapping a sum for a minimum (or maximum) in the combination step is
+often the \emph{only} change needed to turn a ``counting'' DP recurrence
+into a ``cost optimization'' one, with every other part of the four-stage
+derivation -- base cases, indexing, the eventual space optimization --
+carrying over in the same shape. Section~\ref{sec:dp-frog-jump-k}
+generalizes the jump set from $\{1,2\}$ to $\{1,\ldots,k\}$, widening the
+minimum from two candidates to $k$.
+\end{takeawaybox}

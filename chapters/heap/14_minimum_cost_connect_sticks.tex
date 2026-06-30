@@ -1,0 +1,150 @@
+\section{Minimum Cost to Connect Sticks}
+\label{sec:heap-connect-sticks}
+
+\problemstatement{We are given $n$ sticks with given lengths. We may
+repeatedly choose any two sticks, combining them into a single stick whose
+length is the sum of the two, at a \textbf{cost equal to that sum}. We
+repeat until only one stick remains. Find the \textbf{minimum total cost}
+to combine all sticks into one.}
+
+\begin{patternbox}
+\emph{``Repeatedly combine the two smallest remaining items, at a cost
+equal to their combination,''} is a direct heap-driven greedy: every
+combination's cost depends on the lengths being combined, and combining
+\textbf{small} sticks early keeps their (now-larger) sum from being
+re-combined and re-charged many times over as the process continues. This
+is structurally the same idea behind Huffman coding (building an optimal
+prefix-free code by always merging the two least-frequent symbols first),
+though no prior knowledge of Huffman coding is needed to derive it here.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Every stick's original length is ultimately added into the cost once for
+every combination step it participates in afterward, directly or as part
+of a larger merged stick. A stick combined \emph{early} (when it is still
+short) participates in fewer total dollars of cost across the remaining
+steps than a stick combined \emph{late} (after it has already grown large
+through earlier merges). So, to minimize total cost, we always want the
+currently smallest available sticks to be the ones combined next --
+deferring large sticks (or large merged sums) to participate in as few
+further combination steps as possible.
+
+\begin{ideabox}[Greedy Choice, Powered by a Min-Heap]
+Push every stick length into a min-heap. Repeat until only one element
+remains: pop the two smallest sticks, add their sum to the running total
+cost, and push that sum back into the heap as a new (merged) stick.
+\end{ideabox}
+
+\subsection*{Why always combining the two smallest sticks is optimal}
+
+This is an exchange argument identical in spirit to Huffman coding's
+optimality proof: suppose an optimal combination sequence does not combine
+the two globally smallest sticks $x \le y$ at some point, but instead
+combines one of them with some larger stick $z$ first. One can show that
+swapping the order -- combining $x$ and $y$ first instead -- never
+increases the total cost, because $x$ and $y$ being the smallest means
+they contribute the least possible amount per combination step they are
+involved in, and delaying them only ever increases the number of
+combination steps (each adding their value again, transitively, through
+ever-larger merged sums) that their lengths end up contributing to.
+Repeatedly applying this swap argument shows that always combining the two
+currently smallest available sticks, at every step, is never worse than
+any alternative ordering.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Push every stick length into a min-heap.
+  \item Initialize $\textit{totalCost} \gets 0$.
+  \item While the heap has more than one element:
+  \begin{enumerate}
+    \item Pop the two smallest values $a, b$.
+    \item $\textit{totalCost} \gets \textit{totalCost} + (a+b)$.
+    \item Push $a+b$ back onto the heap.
+  \end{enumerate}
+  \item Return \textit{totalCost}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Minimum Cost to Connect Sticks}
+\begin{algorithmic}[1]
+\Procedure{ConnectSticks}{\textit{sticks}}
+  \State $\textit{heap} \gets$ min-heap of all stick lengths
+  \State $\textit{totalCost} \gets 0$
+  \While{$|\textit{heap}| > 1$}
+    \State $a \gets$ pop minimum, $b \gets$ pop minimum
+    \State $\textit{totalCost} \gets \textit{totalCost} + a + b$
+    \State push $a+b$ onto \textit{heap}
+  \EndWhile
+  \State \Return \textit{totalCost}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{sticks} = [2,4,3]$.}
+
+Heap $=\{2,3,4\}$.
+
+\begin{itemize}
+  \item Pop $2,3$. Cost $+=5$. Push $5$. Heap $=\{4,5\}$.
+        $\textit{totalCost}=5$.
+  \item Pop $4,5$. Cost $+=9$. Push $9$. Heap $=\{9\}$.
+        $\textit{totalCost}=14$.
+  \item Only one element remains; stop.
+\end{itemize}
+
+The minimum total cost is $14$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int connectSticks(vector<int>& sticks) {
+    priority_queue<int, vector<int>, greater<int>> minHeap(
+        sticks.begin(), sticks.end());
+
+    int totalCost = 0;
+    while (minHeap.size() > 1) {
+        int a = minHeap.top(); minHeap.pop();
+        int b = minHeap.top(); minHeap.pop();
+
+        totalCost += (a + b);
+        minHeap.push(a + b);
+    }
+    return totalCost;
+}
+
+int main() {
+    vector<int> sticks = {2, 4, 3};
+    cout << "Minimum cost: " << connectSticks(sticks) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Building the initial heap costs $O(n)$ (using
+the bottom-up build-heap technique from
+Section~\ref{sec:heap-min-to-max}, which most standard library
+implementations, including \texttt{std::priority\_queue}'s range
+constructor, use internally). Each of the $n-1$ combination steps performs
+two pops and one push, each $O(\log n)$, giving an overall time complexity
+of
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the heap.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Repeatedly merge the two cheapest/smallest remaining items, paying a
+cost proportional to the merge'' is the Huffman-coding greedy pattern,
+recognizable on sight once you have seen it: a min-heap that always
+surfaces the two cheapest current items, merged and pushed back, builds an
+optimal merge order in $O(n \log n)$ without ever needing to consider
+merge orders explicitly.
+\end{takeawaybox}

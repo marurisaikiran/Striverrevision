@@ -1,0 +1,146 @@
+\section{Number of Distinct Substrings in a String}
+\label{sec:trie-distinct-substrings}
+
+\problemstatement{Given a string $s$ of length $n$, count the number of
+\textbf{distinct} (non-empty) substrings of $s$.}
+
+\begin{patternbox}
+\emph{``Count distinct substrings''} reframes naturally once you notice
+that every substring of $s$ is, by definition, a \textbf{prefix of some
+suffix} of $s$. Inserting \emph{every suffix} of $s$ into a trie
+therefore inserts every substring of $s$ as some path from the root --
+and because a trie physically \textbf{shares} identical prefixes as the
+same nodes, the number of \textbf{distinct} substrings is exactly the
+number of \textbf{distinct nodes} the trie ends up containing.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Consider inserting all $n$ suffixes of $s$ (the suffix starting at index
+$0$, the suffix starting at index $1$, \dots, the suffix starting at
+index $n-1$) into a trie, one character at a time, exactly as in
+Section~\ref{sec:trie-implement}. Every prefix of every suffix is some
+substring of $s$, and every substring of $s$ is the prefix of at least
+one suffix (specifically, the suffix that starts where the substring
+starts) -- so this process inserts every substring of $s$, with
+duplicates naturally \emph{not} creating new nodes, since inserting a
+character that already has a corresponding child simply reuses that
+existing node.
+
+\begin{ideabox}[Count New Nodes Created, Not Total Insertions]
+For each suffix of $s$ (there are $n$ of them, of lengths $n, n-1, \dots,
+1$), walk it through the trie character by character. Whenever a
+required child does not yet exist, create it \emph{and increment a
+running counter of distinct substrings} (since a brand-new node means
+this exact substring -- the path from root to this new node -- has never
+been encountered before). When a required child already exists, simply
+move into it without incrementing the counter (this exact substring was
+already counted during an earlier suffix's insertion).
+\end{ideabox}
+
+\subsection*{Why counting newly created nodes exactly counts distinct substrings}
+
+Each trie node corresponds to exactly one specific substring -- the
+concatenation of characters along the path from the root to that node --
+and two different nodes can never correspond to the same substring (a
+trie's structure forbids two different paths spelling out the same
+string, since shared prefixes are always merged into the same nodes).
+Conversely, every substring of $s$ does correspond to \emph{some} node,
+because it is a prefix of at least one inserted suffix. So there is a
+perfect one-to-one correspondence between distinct substrings of $s$ and
+nodes of the trie (excluding the root, which represents the empty
+string) -- counting nodes created during insertion is therefore counting
+distinct substrings directly, with no separate deduplication step needed.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty trie and $\textit{count} \gets 0$.
+  \item For each starting index $i$ from $0$ to $n-1$ (each suffix
+        $s[i..n-1]$):
+  \begin{enumerate}
+    \item Walk the suffix's characters from the trie's root. For each
+          character: if the required child does not exist, create it
+          and increment $\textit{count}$; move into the child.
+  \end{enumerate}
+  \item Return \textit{count}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"ab"}$. Suffixes: \texttt{"ab"},
+\texttt{"b"}.}
+
+\begin{itemize}
+  \item Insert \texttt{"ab"}: \texttt{a} does not exist at the root --
+        create it, $\textit{count}=1$. Move into \texttt{a}.
+        \texttt{b} does not exist there -- create it, $\textit{count}=2$.
+  \item Insert \texttt{"b"}: \texttt{b} does not exist at the root
+        (this is a different node than the \texttt{b} created above,
+        which was a child of \texttt{a}, not of the root) -- create it,
+        $\textit{count}=3$.
+\end{itemize}
+
+Total distinct substrings: $3$ -- namely \texttt{"a"}, \texttt{"ab"},
+\texttt{"b"}, matching the direct enumeration of all substrings of
+\texttt{"ab"}.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TrieNode {
+    TrieNode* children[26] = {nullptr};
+};
+
+int countDistinctSubstrings(string s) {
+    TrieNode* root = new TrieNode();
+    int n = s.size();
+    int count = 0;
+
+    for (int i = 0; i < n; i++) {
+        TrieNode* node = root;
+        for (int j = i; j < n; j++) {
+            int idx = s[j] - 'a';
+            if (!node->children[idx]) {
+                node->children[idx] = new TrieNode();
+                count++;
+            }
+            node = node->children[idx];
+        }
+    }
+    return count;
+}
+
+int main() {
+    cout << countDistinctSubstrings("ab") << endl;   // 3
+    cout << countDistinctSubstrings("aaa") << endl;  // 3 (a, aa, aaa)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Inserting all $n$ suffixes, of total length
+$n + (n-1) + \cdots + 1$, gives
+\[
+  O(n^2)
+\]
+character insertions in the worst case, each $O(1)$ amortized trie work.
+(A suffix automaton or suffix array based approach can solve the same
+problem in $O(n \log n)$ or $O(n)$, but the trie-of-all-suffixes
+approach shown here is the direct, easy-to-derive $O(n^2)$ solution,
+appropriate for moderate string lengths.)
+\textbf{Space Complexity.} $O(n^2)$ in the worst case (one trie node per
+distinct substring, and a string can have up to $O(n^2)$ distinct
+substrings).
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Count distinct substrings'' is solved by recognizing that a trie's
+node-sharing behavior \emph{is} a deduplication mechanism: insert
+everything that could possibly create a duplicate (here, every suffix,
+since every substring is a prefix of some suffix), and count only the
+genuinely new nodes created, never the total insertion attempts.
+\end{takeawaybox}

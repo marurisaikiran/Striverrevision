@@ -1,0 +1,180 @@
+\section{Sudoku Solver}
+\label{sec:rec-sudoku-solver}
+
+\problemstatement{Given a partially filled $9\times9$ Sudoku board
+(empty cells marked \texttt{'.'}), fill every empty cell with a digit
+from $1$ to $9$ so that every row, every column, and every one of the
+nine $3\times3$ boxes contains each digit exactly once. It is guaranteed
+the input has a unique solution.}
+
+\begin{patternbox}
+This closing backtracking problem combines two ideas already
+established: N-Queens's (Section~\ref{sec:rec-n-queens}) ``track
+constraint membership in auxiliary structures for fast checks''
+(generalized here to three overlapping constraints -- row, column, and
+box -- instead of just column and two diagonals), and a new control-flow
+idea needed because this problem wants \textbf{any one} valid completion,
+not \emph{every} one: the recursion must \textbf{return a boolean}
+signaling success, so that the instant a complete valid filling is found
+anywhere in the search, every enclosing call can immediately stop trying
+further alternatives and propagate that success straight back to the
+top.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Scan the board for the next empty cell (in, say, row-major order). For
+that cell, try each digit $1$ through $9$; a digit is valid if it does
+not already appear elsewhere in the same row, the same column, or the
+same $3\times3$ box. If a valid digit is found, place it and recursively
+attempt to solve the rest of the board. If that recursive attempt
+\emph{succeeds} (returns \texttt{true}, meaning a full valid solution was
+found somewhere beneath this choice), we are done -- stop trying further
+digits at this cell and propagate \texttt{true} upward immediately. If
+it \emph{fails} (returns \texttt{false}), undo this digit and try the
+next one. If no digit from $1$ to $9$ works at this cell, this entire
+branch is a dead end -- return \texttt{false}, triggering the caller to
+backtrack and try a different digit at an earlier cell.
+
+\begin{ideabox}[Boolean-Returning Backtracking: Stop on First Success]
+$\textsc{Solve}(\textit{board})$: find the next empty cell
+$(\textit{row},\textit{col})$; if none exists, the board is completely
+and validly filled -- return \texttt{true} (base case, success).
+Otherwise, for $d$ from $1$ to $9$: if placing $d$ at
+$(\textit{row},\textit{col})$ is valid: place it; if
+$\textsc{Solve}(\textit{board})$ returns \texttt{true}: return
+\texttt{true} immediately (propagate success, no undo needed -- this
+digit is part of the final solution). Otherwise: remove $d$ (undo) and
+try the next digit. If every digit from $1$ to $9$ has been tried
+without success: return \texttt{false}.
+\end{ideabox}
+
+\subsection*{Why a boolean return value, with immediate propagation, is the key new idea}
+
+Section~\ref{sec:rec-n-queens} and earlier sections collected \emph{all}
+valid solutions, so every branch had to be explored regardless of
+earlier successes. Sudoku, by contrast, only needs \emph{one} valid
+completion (and the problem guarantees exactly one exists), so the
+moment a recursive call confirms a digit choice leads all the way to a
+complete, valid board, there is no reason to keep searching -- every
+enclosing call should immediately stop and also report success,
+unwinding the entire call stack without exploring any further
+alternatives. This is exactly Section~\ref{sec:rec-check-subsequence-sum-k}'s
+short-circuit-on-success idea, now applied to a problem where the
+``success'' condition is ``the rest of the board can be completed,''
+checked recursively rather than as a simple base-case comparison.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Solve}(\textit{board})$:
+  \begin{enumerate}
+    \item Find the next empty cell $(\textit{row}, \textit{col})$; if
+          none, return \texttt{true}.
+    \item For $d$ from $1$ to $9$:
+    \begin{itemize}
+      \item If $d$ is valid at $(\textit{row}, \textit{col})$ (no
+            conflict in its row, column, or $3\times3$ box): place
+            $d$. If $\textsc{Solve}(\textit{board})$ returns
+            \texttt{true}: return \texttt{true}. Else: remove $d$
+            (undo).
+    \end{itemize}
+    \item Return \texttt{false} (no digit worked here; trigger
+          backtracking).
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{A small conceptual trace: suppose cell $(0,2)$ is empty, and
+digits $1$--$5$ are already ruled out by its row/column/box, but
+$6$ is valid. We place $6$ and recurse to the next empty cell. Several
+cells later, suppose a dead end is reached where no digit from $1$--$9$
+is valid at some cell $(4,7)$ -- this returns \texttt{false}, which
+propagates back to the most recent choice point (perhaps the placement
+at $(3,5)$), forcing it to try its \emph{next} candidate digit instead
+of the one that led to this dead end. This unwind-and-retry continues
+until either a different early choice avoids the dead end entirely (and
+the search eventually completes successfully, propagating \texttt{true}
+all the way back to the top), or -- if the puzzle is unsolvable -- every
+possibility is exhausted and the top-level call returns \texttt{false}.}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isValid(vector<vector<char>>& board, int row, int col, char d) {
+    for (int i = 0; i < 9; i++) {
+        if (board[row][i] == d) return false;
+        if (board[i][col] == d) return false;
+        if (board[3*(row/3) + i/3][3*(col/3) + i%3] == d) return false;
+    }
+    return true;
+}
+
+bool solve(vector<vector<char>>& board) {
+    for (int row = 0; row < 9; row++) {
+        for (int col = 0; col < 9; col++) {
+            if (board[row][col] != '.') continue;
+
+            for (char d = '1'; d <= '9'; d++) {
+                if (isValid(board, row, col, d)) {
+                    board[row][col] = d;
+                    if (solve(board)) return true;
+                    board[row][col] = '.';
+                }
+            }
+            return false; // no digit worked at this empty cell
+        }
+    }
+    return true; // no empty cell left: solved
+}
+
+int main() {
+    vector<vector<char>> board = {
+        {'5','3','.','.','7','.','.','.','.'},
+        {'6','.','.','1','9','5','.','.','.'},
+        {'.','9','8','.','.','.','.','6','.'},
+        {'8','.','.','.','6','.','.','.','3'},
+        {'4','.','.','8','.','3','.','.','1'},
+        {'7','.','.','.','2','.','.','.','6'},
+        {'.','6','.','.','.','.','2','8','.'},
+        {'.','.','.','4','1','9','.','.','5'},
+        {'.','.','.','.','8','.','.','7','9'}
+    };
+
+    solve(board);
+
+    for (auto& row : board) {
+        for (char c : row) cout << c << " ";
+        cout << endl;
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Exponential in the worst case, roughly
+$O(9^{m})$ where $m$ is the number of empty cells (each could in
+principle try $9$ digits), though the row/column/box validity checks
+prune the vast majority of branches in practice, making real Sudoku
+puzzles solve very quickly.
+\textbf{Space Complexity.} $O(m)$ for the recursion depth (at most one
+call per empty cell along the current path), plus $O(1)$ extra for the
+$\textit{isValid}$ check (which scans a fixed $9$ cells each for row,
+column, and box).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Boolean-returning backtracking -- where finding \emph{one} success
+anywhere in a subtree should immediately propagate \texttt{true} all the
+way up, aborting every remaining sibling branch -- is the right shape
+whenever a problem asks for any single valid solution (or asks whether
+one exists at all), as opposed to enumerating every solution
+(N-Queens) or counting them. Recognizing which of these three modes
+(generate all, exists, count) a backtracking problem needs, exactly as
+flagged back in Section~\ref{sec:rec-count-subsequence-sum-k}'s
+takeaway, remains the first and most important design decision.
+\end{takeawaybox}

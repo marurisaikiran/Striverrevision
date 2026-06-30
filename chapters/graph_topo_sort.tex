@@ -1,0 +1,72 @@
+\chapter{Graphs: Topological Sort and Directed Graph Problems}
+\chapterepigraph{A directed graph adds a constraint plain traversal
+never had to think about: order. Topological sort answers exactly one
+question -- in what sequence can these tasks be done so that every
+prerequisite comes before what depends on it -- and that single
+question, once answered, turns out to be the engine behind cycle
+detection, safe-state analysis, and even reconstructing an alien
+alphabet from sorted words.}
+
+\section{Ordering a DAG}
+\label{sec:graph-topo-intro}
+
+A \textbf{topological sort} of a Directed Acyclic Graph (DAG) is a
+linear ordering of its nodes such that for every directed edge
+$u \to v$, $u$ appears \textbf{before} $v$ in the ordering. Such an
+ordering exists if and only if the graph has \textbf{no cycle} -- a
+cycle would force some node to both precede and follow itself,
+which is impossible in a linear order.
+
+\begin{patternbox}[Recognizing a Topological Sort Problem]
+\emph{``Task scheduling with prerequisites,'' ``compilation order,''
+``course ordering,'' or any phrase implying a valid sequence must
+respect a set of directed before/after constraints} all point directly
+at topological sort.
+\end{patternbox}
+
+\begin{ideabox}[Two Ways to Compute It]
+\begin{itemize}
+  \item \textbf{DFS-based (Section~\ref{sec:graph-topo-sort-dfs})}: run
+        DFS; the moment a node has no more unvisited neighbors to
+        explore (it is fully ``finished''), push it onto a stack. The
+        stack, popped from top to bottom, is a valid topological order
+        -- a node finishes \emph{after} everything reachable from it,
+        so it naturally ends up before its dependents once the stack
+        is reversed.
+  \item \textbf{Kahn's Algorithm / BFS-based (Section~\ref{sec:graph-topo-sort-kahn}):}
+        repeatedly remove nodes with \textbf{in-degree zero} (no
+        remaining unprocessed prerequisites), decrementing the
+        in-degree of their neighbors as they're removed -- directly
+        simulating ``do everything whose prerequisites are already
+        done, then repeat.''
+\end{itemize}
+\end{ideabox}
+
+\begin{patternbox}[What This Chapter Covers]
+\begin{itemize}
+  \item \textbf{Topological Sort, both algorithms (Sections~\ref{sec:graph-topo-sort-dfs}--\ref{sec:graph-topo-sort-kahn})}.
+  \item \textbf{Detect Cycle in a Directed Graph (Section~\ref{sec:graph-cycle-directed})}:
+        a directed-graph adaptation of the parent-tracking idea from
+        the BFS/DFS chapter, plus a free cycle check baked into Kahn's
+        algorithm itself.
+  \item \textbf{Course Schedule I and II (Sections~\ref{sec:graph-course-schedule-1}--\ref{sec:graph-course-schedule-2})}:
+        direct applications of cycle detection and topological sort to
+        a course-prerequisite framing.
+  \item \textbf{Eventual Safe States (Section~\ref{sec:graph-eventual-safe-states})}:
+        a three-color DFS variant identifying nodes that can never
+        reach a cycle.
+  \item \textbf{Alien Dictionary (Section~\ref{sec:graph-alien-dictionary})}:
+        building a graph from word-comparison constraints, then
+        running topological sort to recover a letter ordering.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/graph_topo_sort/01_topo_sort_dfs.tex}
+\input{chapters/graph_topo_sort/02_topo_sort_kahn.tex}
+\input{chapters/graph_topo_sort/03_detect_cycle_directed.tex}
+\input{chapters/graph_topo_sort/04_course_schedule_1.tex}
+\input{chapters/graph_topo_sort/05_course_schedule_2.tex}
+\input{chapters/graph_topo_sort/06_eventual_safe_states.tex}
+\input{chapters/graph_topo_sort/07_alien_dictionary.tex}

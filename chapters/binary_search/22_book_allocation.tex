@@ -1,0 +1,177 @@
+\section{Book Allocation Problem}
+\label{sec:bs-book-allocation}
+
+\problemstatement{We are given $n$ books, where book $i$ has
+$\textit{pages}[i]$ pages, and $m$ students. Each student must be allocated
+a \textbf{contiguous} range of books (in the given order), every book must
+be allocated to exactly one student, and every student must receive at
+least one book. We must choose the allocation to \textbf{minimize the
+maximum} number of pages assigned to any single student.}
+
+\begin{patternbox}
+\emph{``Minimize the maximum load, items assigned in contiguous order,
+divided among a fixed number of workers/students''} is exactly the same
+shape as Capacity to Ship Packages within D Days
+(Section~\ref{sec:bs-ship-packages}): there, we fixed the number of
+``buckets'' indirectly through a day limit $D$ and a per-bucket capacity
+candidate; here, the number of buckets is fixed directly as $m$ students.
+Once you notice that ``contiguous partition into a fixed number of groups,
+minimize the maximum group sum'' is the same template regardless of
+whether it is phrased as books, packages, or paint sections (see
+Section~\ref{sec:bs-painters-partition}), you can reuse the identical
+greedy feasibility check every time.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For a fixed candidate maximum $\textit{maxPages}$, greedily simulate
+assigning books to the current student until adding the next book's pages
+would exceed $\textit{maxPages}$; at that point, move to the next student.
+This yields $\textit{studentsNeeded}(\textit{maxPages})$, the minimum
+number of students required if no student may hold more than
+$\textit{maxPages}$ total pages. As $\textit{maxPages}$ increases, each
+student can absorb more books before being forced to stop, so
+$\textit{studentsNeeded}$ is non-increasing in $\textit{maxPages}$.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is integer page totals in
+$[\max(\textit{pages}), \sum(\textit{pages})]$ (a single student must be
+able to hold at least the largest individual book, and a single student
+holding everything always works). The predicate is
+$P(\textit{maxPages}) = (\textit{studentsNeeded}(\textit{maxPages}) \le
+m)$, and we want the smallest $\textit{maxPages}$ where $P$ holds -- this
+is a ``minimize subject to feasibility'' problem, narrowing the same
+direction as Sections~\ref{sec:bs-koko}--\ref{sec:bs-ship-packages}, not
+the flipped direction of Aggressive Cows.
+\end{ideabox}
+
+\subsection*{Why this is identical in structure to ship packages}
+
+The greedy feasibility check here is justified by precisely the same
+exchange argument as Section~\ref{sec:bs-ship-packages}: greedily filling
+each student with as many books as the candidate maximum allows, before
+moving to the next student, never uses more students than any other valid
+contiguous allocation respecting that same maximum, because deferring a
+book to a later student only ever makes that later student's job harder,
+never easier, and books cannot be reordered.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets \max(\textit{pages})$,
+        $\textit{hi} \gets \sum(\textit{pages})$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Compute $\textit{studentsNeeded}(\textit{mid})$ via greedy
+          simulation.
+    \item If $\textit{studentsNeeded}(\textit{mid}) \le m$: feasible; try
+          smaller: $\textit{hi} \gets \textit{mid}-1$.
+    \item Else: infeasible; try larger: $\textit{lo} \gets \textit{mid}+1$.
+  \end{enumerate}
+  \item Return \textit{lo}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Book Allocation}
+\begin{algorithmic}[1]
+\Procedure{BookAllocation}{\textit{pages}, $m$}
+  \State $\textit{lo} \gets \max(\textit{pages})$, $\textit{hi} \gets \sum(\textit{pages})$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{students} \gets \Call{StudentsNeeded}{\textit{pages}, \textit{mid}}$
+    \If{$\textit{students} \le m$}
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{lo}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{pages} = [12, 34, 67, 90]$, $m = 2$.}
+
+$\max = 90$, $\sum = 203$.
+
+\begin{itemize}
+  \item $\textit{lo}=90,\textit{hi}=203$: $\textit{mid}=146$. Greedy:
+        student 1 takes $12{+}34{+}67=113$ (next, $90$, would make
+        $203>146$, stop); student 2 takes $90$. $\textit{studentsNeeded}=2
+        \le 2$. Feasible. $\textit{hi}=145$.
+  \item Narrowing continues; eventually the search converges to
+        $\textit{lo}=113$: with maximum $113$, student 1 takes
+        $12{+}34{+}67=113$ (next, $90$, would make $203>113$, stop);
+        student 2 takes $90$. Still $2$ students. Checking $112$: student
+        1 can only take $12{+}34=46$ (next, $67$, would make $113>112$,
+        stop); student 2 takes $67$ (next, $90$, would make $157>112$,
+        stop); student 3 takes $90$ -- that needs $3$ students, exceeding
+        $m=2$. So $113$ is indeed minimal.
+\end{itemize}
+
+The answer is $113$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int studentsNeeded(vector<int>& pages, int maxPages) {
+    int students = 1;
+    long long currentLoad = 0;
+
+    for (int p : pages) {
+        if (currentLoad + p > maxPages) {
+            students++;
+            currentLoad = 0;
+        }
+        currentLoad += p;
+    }
+    return students;
+}
+
+int bookAllocation(vector<int>& pages, int m) {
+    int lo = *max_element(pages.begin(), pages.end());
+    int hi = accumulate(pages.begin(), pages.end(), 0);
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (studentsNeeded(pages, mid) <= m) {
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> pages = {12, 34, 67, 90};
+    cout << "Minimum maximum pages: "
+         << bookAllocation(pages, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.}
+\[
+  O(n \log(\sum(\textit{pages}))),
+\]
+identical in structure to Section~\ref{sec:bs-ship-packages}.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Partition a sequence into a fixed number of contiguous groups to
+minimize the maximum group sum'' is a single template with at least three
+names on this sheet: Book Allocation, Capacity to Ship Packages, and
+Painter's Partition (Section~\ref{sec:bs-painters-partition}). Learn the
+template once -- greedy bucket-filling feasibility check nested inside a
+minimize-subject-to-feasibility binary search -- and recognize its
+disguises rather than re-deriving it from scratch each time.
+\end{takeawaybox}

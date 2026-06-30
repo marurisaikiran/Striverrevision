@@ -1,0 +1,171 @@
+\section{Replace Elements by Rank in the Array}
+\label{sec:heap-replace-by-rank}
+
+\problemstatement{Given an array $\textit{arr}$ of $n$ integers, replace
+every element with its \textbf{rank} when the array's distinct values are
+sorted in increasing order: the smallest value gets rank $1$, the next
+distinct value gets rank $2$, and so on; equal elements receive the same
+rank.}
+
+\begin{patternbox}
+\emph{``Replace each element by its rank in sorted order''} is, at its
+core, a sorting problem -- but presenting it via a min-heap makes the
+\textbf{``process elements in increasing order while remembering where
+each one came from''} pattern explicit, which is the same underlying idea
+used throughout this chapter whenever output order must differ from input
+order. Whenever you need to process values in sorted order \emph{and}
+write results back to their original positions, pair each value with its
+original index before pushing it into the heap.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Rank assignment requires processing values from smallest to largest while
+remembering, for each value, which original array position it came from
+(so the computed rank can be written back to the correct place). A
+min-heap of $(\textit{value}, \textit{originalIndex})$ pairs, ordered by
+value, gives exactly this controlled smallest-to-largest traversal.
+
+\begin{ideabox}[Greedy Choice, Powered by a Min-Heap]
+Push every $(\textit{value}, \textit{originalIndex})$ pair into a
+min-heap ordered by value. Maintain a running rank counter, starting at
+$0$, and a record of the previously popped value (initially undefined).
+Repeatedly pop the smallest remaining pair: if its value differs from the
+previously popped value (or this is the first pop), increment the rank
+counter; write the current rank counter's value into the result array at
+the popped pair's original index.
+\end{ideabox}
+
+\subsection*{Why incrementing the rank only on a value change is correct}
+
+Equal elements must receive the same rank, and the rank must strictly
+increase only when a genuinely new, larger distinct value is encountered.
+Since the heap pops values in non-decreasing order, comparing each popped
+value to the immediately previous one correctly detects exactly the
+moments where a new distinct value begins -- there is no need to
+pre-deduplicate the array, because consecutive equal pops are detected and
+handled identically (no rank increment) regardless of how many times a
+value repeats.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Push every $(\textit{arr}[i], i)$ pair onto a min-heap, ordered
+        by value.
+  \item Initialize $\textit{rank} \gets 0$, $\textit{prevValue} \gets$
+        undefined.
+  \item While the heap is not empty:
+  \begin{enumerate}
+    \item Pop $(\textit{value}, \textit{idx})$.
+    \item If $\textit{value} \ne \textit{prevValue}$ (or this is the
+          first pop): $\textit{rank} \gets \textit{rank}+1$;
+          $\textit{prevValue} \gets \textit{value}$.
+    \item $\textit{result}[\textit{idx}] \gets \textit{rank}$.
+  \end{enumerate}
+  \item Return \textit{result}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Replace Elements by Rank}
+\begin{algorithmic}[1]
+\Procedure{ReplaceByRank}{\textit{arr}}
+  \State $\textit{heap} \gets$ min-heap of $(\textit{arr}[i], i)$ for all $i$
+  \State $\textit{rank} \gets 0$, $\textit{prevValue} \gets$ undefined
+  \While{\textit{heap} is not empty}
+    \State $(\textit{value}, \textit{idx}) \gets$ pop minimum
+    \If{$\textit{value} \ne \textit{prevValue}$}
+      \State $\textit{rank} \gets \textit{rank} + 1$
+      \State $\textit{prevValue} \gets \textit{value}$
+    \EndIf
+    \State $\textit{result}[\textit{idx}] \gets \textit{rank}$
+  \EndWhile
+  \State \Return \textit{result}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [20, 15, 26, 2, 98, 6]$.}
+
+Heap pairs: $(20,0),(15,1),(26,2),(2,3),(98,4),(6,5)$.
+
+\begin{itemize}
+  \item Pop $(2,3)$: new value. $\textit{rank}=1$.
+        $\textit{result}[3]=1$.
+  \item Pop $(6,5)$: new value. $\textit{rank}=2$.
+        $\textit{result}[5]=2$.
+  \item Pop $(15,1)$: new value. $\textit{rank}=3$.
+        $\textit{result}[1]=3$.
+  \item Pop $(20,0)$: new value. $\textit{rank}=4$.
+        $\textit{result}[0]=4$.
+  \item Pop $(26,2)$: new value. $\textit{rank}=5$.
+        $\textit{result}[2]=5$.
+  \item Pop $(98,4)$: new value. $\textit{rank}=6$.
+        $\textit{result}[4]=6$.
+\end{itemize}
+
+Final result: $[4,3,5,1,6,2]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> replaceByRank(vector<int>& arr) {
+    int n = arr.size();
+    priority_queue<pair<int,int>, vector<pair<int,int>>,
+                   greater<pair<int,int>>> minHeap;
+
+    for (int i = 0; i < n; i++) {
+        minHeap.push({arr[i], i});
+    }
+
+    vector<int> result(n);
+    int rank = 0;
+    bool first = true;
+    int prevValue = -1;
+
+    while (!minHeap.empty()) {
+        auto [value, idx] = minHeap.top();
+        minHeap.pop();
+
+        if (first || value != prevValue) {
+            rank++;
+            prevValue = value;
+            first = false;
+        }
+        result[idx] = rank;
+    }
+    return result;
+}
+
+int main() {
+    vector<int> arr = {20, 15, 26, 2, 98, 6};
+    vector<int> result = replaceByRank(arr);
+
+    for (int x : result) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Pushing $n$ pairs costs $O(n \log n)$, and
+popping all $n$ pairs costs another $O(n \log n)$, giving an overall time
+complexity of
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the heap and the result array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a problem needs values processed in sorted order while results
+must land back at their \emph{original} positions, push
+$(\textit{value}, \textit{originalIndex})$ pairs together, rather than
+sorting the values alone and losing track of where each one belongs. This
+small habit -- carry the index along with the value -- recurs constantly
+whenever sorting (or heap order) and output position diverge.
+\end{takeawaybox}

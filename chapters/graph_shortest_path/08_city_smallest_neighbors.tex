@@ -1,0 +1,111 @@
+\section{City With the Smallest Number of Neighbors at a Threshold Distance}
+\label{sec:graph-city-smallest-neighbors}
+
+\problemstatement{Given $n$ cities connected by weighted edges and a
+$\textit{distanceThreshold}$, find the city from which the
+\textbf{fewest} other cities are reachable within
+$\textit{distanceThreshold}$. If multiple cities tie for fewest,
+return the one with the \textbf{largest} index.}
+
+\begin{patternbox}
+This closing problem of the chapter is a direct application of
+Section~\ref{sec:graph-floyd-warshall}: once \textbf{all-pairs}
+shortest distances are known, answering ``how many cities are within
+threshold $T$ of city $i$'' for every $i$ is a simple linear scan over
+each row of the distance matrix -- no further graph algorithm is
+needed.
+\end{patternbox}
+
+\subsection*{Reduction}
+
+\begin{enumerate}
+  \item Build the $n \times n$ distance matrix and run Floyd-Warshall
+        to fill in all-pairs shortest distances.
+  \item For each city $i$, count how many cities $j \neq i$ satisfy
+        $\textit{dist}[i][j] \le \textit{distanceThreshold}$.
+  \item Track the city with the smallest count, breaking ties by
+        preferring the \textbf{larger} index (scan $i$ from $0$ to
+        $n{-}1$, and use $\le$ rather than $<$ when comparing counts,
+        so a later equal-or-better city always overwrites an earlier
+        one).
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int INF = 1e9;
+
+int findTheCity(int n, vector<vector<int>>& edges, int distanceThreshold) {
+    vector<vector<int>> dist(n, vector<int>(n, INF));
+    for (int i = 0; i < n; i++) dist[i][i] = 0;
+    for (auto& e : edges) {
+        dist[e[0]][e[1]] = e[2];
+        dist[e[1]][e[0]] = e[2];
+    }
+
+    for (int k = 0; k < n; k++) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (dist[i][k] < INF && dist[k][j] < INF) {
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+
+    int bestCity = -1, minCount = n;
+    for (int i = 0; i < n; i++) {
+        int count = 0;
+        for (int j = 0; j < n; j++) {
+            if (i != j && dist[i][j] <= distanceThreshold) count++;
+        }
+        if (count <= minCount) { // <= prefers the larger index on ties
+            minCount = count;
+            bestCity = i;
+        }
+    }
+    return bestCity;
+}
+
+int main() {
+    vector<vector<int>> edges = {{0,1,3},{1,2,1},{1,3,4},{2,3,1}};
+    cout << findTheCity(4, edges, 4) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=4$, edges $0{-}1(3),1{-}2(1),1{-}3(4),2{-}3(1)$,
+$\textit{distanceThreshold}=4$.}
+
+All-pairs distances after Floyd-Warshall: from $0$: $[0,3,4,5]$ (to
+$2$: $3+1=4$ via $1$; to $3$: $3+1+1=5$ via $1,2$, shorter than the
+direct $1{-}3$ edge route $3+4=7$). From $1$: $[3,0,1,2]$. From $2$:
+$[4,1,0,1]$. From $3$: $[5,2,1,0]$ (to $1$: $1+1=2$ via $2$, shorter
+than the direct edge $4$). Counts within threshold $4$ (excluding
+self): city $0$ sees $1$ (dist $3$) and $2$ (dist $4$) -- $2$ cities
+($3$ at distance $5$ is excluded). City $1$ sees all three others --
+$3$ cities. City $2$ sees all three others -- $3$ cities. City $3$
+sees $1$ (dist $2$) and $2$ (dist $1$) -- $2$ cities ($0$ at distance
+$5$ is excluded). Cities $0$ and $3$ tie at $2$ neighbors each; the
+tie-break (larger index) selects city $3$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V^3)$ for Floyd-Warshall, plus $O(V^2)$
+for the counting scan: $O(V^3)$ overall.
+\textbf{Space Complexity.} $O(V^2)$ for the distance matrix.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This chapter closes by demonstrating exactly why Floyd-Warshall earns
+its $O(V^3)$ cost despite being asymptotically worse than running
+Dijkstra from every node ($O(V(V+E)\log V)$ for sparse graphs): once
+\emph{every} pairwise distance is available at once, follow-up
+questions like this one (counting neighbors within a threshold, for
+every city) become trivial linear scans -- exactly the same trade-off
+this book has made repeatedly between an upfront, fuller computation
+and cheap, flexible queries afterward.
+\end{takeawaybox}

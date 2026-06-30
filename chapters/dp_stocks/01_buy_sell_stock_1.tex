@@ -1,0 +1,187 @@
+\section{Best Time to Buy and Sell Stock I}
+\label{sec:dp-stock-1}
+
+\problemstatement{Given an array $\textit{price}$ where
+$\textit{price}[i]$ is a stock's price on day $i$, find the maximum
+profit from \textbf{at most one} buy followed by one sell (the buy must
+happen before the sell).}
+
+\begin{patternbox}
+\emph{``At most one transaction''} is the simplest member of
+Section~\ref{sec:dp-stocks-intro}'s holding-state family: selling is a
+\textbf{terminal} action here, since no second buy is ever allowed
+afterward.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Using the base template, the only change is the \textbf{sell} clause:
+selling on day $i$ ends all activity for good, contributing exactly
+$\textit{price}[i]$ and nothing more (not $f(i{+}1,0)$, which would
+incorrectly allow a second buy):
+\[
+  f(i, \textit{holding}) =
+  \begin{cases}
+    \max\big(-\textit{price}[i] + f(i{+}1, 1),\ f(i{+}1, 0)\big) &
+    \text{not holding}, \\
+    \max\big(\textit{price}[i],\ f(i{+}1, 1)\big) & \text{holding.}
+  \end{cases}
+\]
+Base case: $f(n, \cdot) = 0$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock1Recursive(int i, int holding, vector<int>& price) {
+    int n = price.size();
+    if (i == n) return 0;
+
+    if (holding) {
+        return max(price[i], stock1Recursive(i + 1, 1, price));
+    }
+    return max(-price[i] + stock1Recursive(i + 1, 1, price),
+               stock1Recursive(i + 1, 0, price));
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    cout << stock1Recursive(0, 0, price) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock1Memo(int i, int holding, vector<int>& price, vector<vector<int>>& memo) {
+    int n = price.size();
+    if (i == n) return 0;
+    if (memo[i][holding] != -1) return memo[i][holding];
+
+    int result;
+    if (holding) {
+        result = max(price[i], stock1Memo(i + 1, 1, price, memo));
+    } else {
+        result = max(-price[i] + stock1Memo(i + 1, 1, price, memo),
+                      stock1Memo(i + 1, 0, price, memo));
+    }
+    return memo[i][holding] = result;
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    int n = price.size();
+    vector<vector<int>> memo(n, vector<int>(2, -1));
+    cout << stock1Memo(0, 0, price, memo) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n)$ (only $2$ values of \textit{holding}).
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock1Tabulation(vector<int>& price) {
+    int n = price.size();
+    vector<vector<int>> dp(n + 1, vector<int>(2, 0));
+
+    for (int i = n - 1; i >= 0; i--) {
+        dp[i][1] = max(price[i], dp[i + 1][1]);
+        dp[i][0] = max(-price[i] + dp[i + 1][1], dp[i + 1][0]);
+    }
+    return dp[0][0];
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    cout << stock1Tabulation(price) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{price} = [7,1,5,3,6,4]$.}
+
+Filling backward from day $5$: $\textit{dp}[5][1]=\max(4,0)=4$,
+$\textit{dp}[5][0]=\max(-4+0,0)=0$ (buying on the last day with no
+chance to sell is never better than doing nothing, so this clause
+$-4+\textit{dp}[6][1]=-4+0=-4$ loses to $0$). Continuing backward, by
+day $1$: $\textit{dp}[1][1]=\max(1,\ldots)$ tracks the best sell-from-here
+value, and $\textit{dp}[1][0]=\max(-1+\textit{dp}[2][1], \ldots)$
+captures buying at price $1$ then later selling at the best subsequent
+holding value, $6$, giving profit $5$. The final answer
+$\textit{dp}[0][0]=5$ matches buying at price $1$ (day $1$) and selling
+at price $6$ (day $4$).
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock1SpaceOptimized(vector<int>& price) {
+    int n = price.size();
+    int nextHold = 0, nextNotHold = 0;
+
+    for (int i = n - 1; i >= 0; i--) {
+        int curHold = max(price[i], nextHold);
+        int curNotHold = max(-price[i] + nextHold, nextNotHold);
+        nextHold = curHold;
+        nextNotHold = curNotHold;
+    }
+    return nextNotHold;
+}
+
+int main() {
+    vector<int> price = {7, 1, 5, 3, 6, 4};
+    cout << stock1SpaceOptimized(price) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$ -- just two scalars per day, since the
+\textit{holding} dimension already has only $2$ values.
+\end{complexitybox}
+
+\begin{ideabox}[The Even Simpler Greedy Alternative]
+Because only one transaction is allowed, this specific variant also
+admits an $O(n)$, $O(1)$ greedy one-pass solution: track the minimum
+price seen so far while scanning left to right, and at each day compute
+$\textit{price}[i] - \textit{minSoFar}$, keeping the running maximum.
+This works only because there is no transaction-count or cooldown
+complexity to track -- the DP formulation above is what generalizes to
+every other variant in this chapter, which is why it is presented first.
+\end{ideabox}
+
+\begin{takeawaybox}
+The holding-state DP template, even when a simpler greedy alternative
+exists for this specific variant (as it does here), is worth learning
+first specifically because it is the version that survives every
+additional constraint the rest of this chapter introduces.
+\end{takeawaybox}

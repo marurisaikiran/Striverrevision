@@ -1,0 +1,103 @@
+\section{Number of Islands}
+\label{sec:graph-number-of-islands}
+
+\problemstatement{Given a 2D grid of \texttt{'1'} (land) and
+\texttt{'0'} (water), count the number of \textbf{islands} -- maximal
+groups of land cells connected $4$-directionally.}
+
+\begin{patternbox}
+This closing problem of the chapter is
+Section~\ref{sec:graph-number-of-provinces}'s connected-component
+counting loop, applied to an \textbf{implicit} grid graph instead of an
+explicit adjacency matrix -- a land cell's neighbors are simply its
+(up to) $4$ adjacent grid cells, with no adjacency list ever
+constructed.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain a $\textit{visited}$ grid (or mutate the input grid
+        directly, marking visited land as \texttt{'0'}) and an
+        $\textit{islands}$ counter.
+  \item For every cell: if it is land and unvisited, increment
+        $\textit{islands}$, then DFS (or BFS) from it, marking every
+        $4$-directionally connected land cell visited.
+  \item Return $\textit{islands}$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void dfs(int r, int c, vector<vector<char>>& grid, vector<vector<bool>>& visited) {
+    int rows = grid.size(), cols = grid[0].size();
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (visited[r][c] || grid[r][c] == '0') return;
+
+    visited[r][c] = true;
+    dfs(r - 1, c, grid, visited);
+    dfs(r + 1, c, grid, visited);
+    dfs(r, c - 1, grid, visited);
+    dfs(r, c + 1, grid, visited);
+}
+
+int numIslands(vector<vector<char>>& grid) {
+    int rows = grid.size(), cols = grid[0].size();
+    vector<vector<bool>> visited(rows, vector<bool>(cols, false));
+    int islands = 0;
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (grid[r][c] == '1' && !visited[r][c]) {
+                islands++;
+                dfs(r, c, grid, visited);
+            }
+        }
+    }
+    return islands;
+}
+
+int main() {
+    vector<vector<char>> grid = {
+        {'1', '1', '0', '0'},
+        {'1', '1', '0', '0'},
+        {'0', '0', '1', '0'},
+        {'0', '0', '0', '1'}
+    };
+    cout << numIslands(grid) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $4\times4$ grid above.}
+
+$(0,0)$: land, unvisited, $\textit{islands}=1$; DFS visits the
+top-left $2\times2$ block of land. $(0,1),(1,0),(1,1)$: already
+visited, skip. $(2,2)$: land, unvisited, $\textit{islands}=2$; DFS
+visits just itself (no land neighbors). $(3,3)$: land, unvisited,
+$\textit{islands}=3$; DFS visits just itself. Final answer: $3$
+islands.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\textit{rows} \times \textit{cols})$ --
+every cell is visited at most once across all DFS calls combined.
+\textbf{Space Complexity.} $O(\textit{rows} \times \textit{cols})$ for
+the \textit{visited} grid and, in the worst case, the recursion stack
+(an entirely land-filled grid).
+\end{complexitybox}
+
+\begin{takeawaybox}
+This chapter's eight problems form a complete toolkit built from just
+two primitives -- DFS and BFS -- applied to three settings (an explicit
+adjacency list, an explicit adjacency matrix, and an implicit grid):
+plain traversal, traversal with a hash map for building a copy,
+component-counting via repeated traversal from unvisited starts, and
+multi-source BFS for simultaneous spreading. Every later chapter in
+this book's graph coverage layers a new constraint (direction, weight,
+ordering) on top of exactly these same two traversal primitives.
+\end{takeawaybox}

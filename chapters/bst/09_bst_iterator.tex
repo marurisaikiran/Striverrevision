@@ -1,0 +1,154 @@
+\section{BST Iterator}
+\label{sec:bst-iterator}
+
+\problemstatement{Design an iterator over a BST that supports
+$\textit{next}()$ (returns the next smallest value in the tree, in
+sorted order) and $\textit{hasNext}()$ (whether any values remain),
+initialized with the tree's root. Across the iterator's whole lifetime,
+$\textit{next}$ should average $O(1)$ time and the iterator should use
+$O(h)$ space, not $O(n)$.}
+
+\begin{patternbox}
+\emph{``Iterator returning sorted values one at a time''} is exactly
+Section~\ref{sec:bst-kth-smallest}'s iterative inorder traversal,
+\textbf{paused and resumed} across separate method calls instead of run
+to completion inside a single function. The keyword shift from
+``compute the $k$-th value'' to ``design an iterator'' is a signal that
+the same stack-based traversal state needs to persist as object state
+between calls, rather than living entirely within one function's local
+variables.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If we simply ran a full inorder traversal up front and stored all $n$
+values in a list, $\textit{next}()$ would be trivially $O(1)$, but
+construction would cost $O(n)$ time \emph{and} space -- failing the
+$O(h)$ space requirement. The fix is to keep \emph{only} the explicit
+stack from Section~\ref{sec:bst-kth-smallest}'s iterative traversal alive
+as the iterator's state, advancing it by exactly one step per
+$\textit{next}()$ call instead of running it to completion all at once.
+
+\begin{ideabox}[Persist the Traversal Stack as Iterator State]
+On construction: push the entire leftward chain from the root onto the
+stack (exactly as in Section~\ref{sec:bst-kth-smallest}'s setup).
+$\textit{hasNext}()$: simply check whether the stack is non-empty.
+$\textit{next}()$: pop the top of the stack (this is the next value in
+sorted order); then push the leftward chain starting from the popped
+node's right child (preparing the stack so that the \emph{following}
+call to \textit{next} will correctly find the next value after this
+one); return the popped value.
+\end{ideabox}
+
+\subsection*{Why pushing only the new leftward chain after each pop keeps amortized cost low}
+
+Each node in the tree is pushed onto the stack exactly once during the
+iterator's entire lifetime (either during construction, for nodes on the
+initial leftward chain, or during some later $\textit{next}()$ call,
+when it becomes the leftward-chain push triggered by its parent being
+popped), and each node is popped exactly once. So the \emph{total} work
+across all calls to $\textit{next}()$ over the iterator's lifetime is
+$O(n)$ (each node contributes $O(1)$ amortized push/pop work) -- which,
+spread over the $n$ calls needed to exhaust the tree, gives $O(1)$
+\emph{average} time per call, even though any single call might cost up
+to $O(h)$ if it happens to push a long leftward chain.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Constructor}(\textit{root}): push the leftward chain
+        from \textit{root} onto the stack.
+  \item \textsc{HasNext}(): return whether the stack is non-empty.
+  \item \textsc{Next}(): pop $\textit{node}$ from the stack; push the
+        leftward chain starting from $\textit{node}.\textit{right}$;
+        return $\textit{node}.\textit{val}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the BST with root $7$, left child $3$, right child $15$
+(left child $9$, right child $20$). Call \textit{next} three times.}
+
+\begin{itemize}
+  \item Construct: push leftward chain from $7$: push $7$, push $3$ (no
+        left child). Stack (top to bottom) $=[3,7]$.
+  \item \textit{next}(): pop $3$. Push leftward chain from $3$'s right
+        (null) -- nothing to push. Stack $=[7]$. Return $3$.
+  \item \textit{next}(): pop $7$. Push leftward chain from $7$'s right,
+        $15$: push $15$, then push $15$'s left, $9$ (no left child).
+        Stack $=[9,15]$. Return $7$.
+  \item \textit{next}(): pop $9$. Push leftward chain from $9$'s right
+        (null) -- nothing. Stack $=[15]$. Return $9$.
+\end{itemize}
+
+Output sequence so far: $3,7,9$ -- correctly sorted order.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+class BSTIterator {
+    stack<TreeNode*> st;
+
+    void pushLeftChain(TreeNode* node) {
+        while (node) {
+            st.push(node);
+            node = node->left;
+        }
+    }
+
+public:
+    BSTIterator(TreeNode* root) {
+        pushLeftChain(root);
+    }
+
+    bool hasNext() {
+        return !st.empty();
+    }
+
+    int next() {
+        TreeNode* node = st.top();
+        st.pop();
+        pushLeftChain(node->right);
+        return node->val;
+    }
+};
+
+int main() {
+    TreeNode* root = new TreeNode(7);
+    root->left = new TreeNode(3);
+    root->right = new TreeNode(15);
+    root->right->left = new TreeNode(9);
+    root->right->right = new TreeNode(20);
+
+    BSTIterator it(root);
+    while (it.hasNext()) cout << it.next() << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ average per $\textit{next}()$ call
+(amortized over the iterator's lifetime), $O(h)$ worst case for any
+single call; $\textit{hasNext}()$ is always $O(1)$.
+\textbf{Space Complexity.} $O(h)$ for the stack, never $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Converting a one-shot traversal into a resumable iterator is purely a
+matter of moving the traversal's local state (here, the explicit stack)
+into object-level state that persists between calls. The traversal logic
+itself -- push the leftward chain, pop, push the popped node's right
+subtree's leftward chain -- is completely unchanged from
+Section~\ref{sec:bst-kth-smallest}.
+\end{takeawaybox}

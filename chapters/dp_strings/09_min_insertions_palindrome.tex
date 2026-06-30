@@ -1,0 +1,91 @@
+\section{Minimum Insertions to Make a String Palindrome}
+\label{sec:dp-min-insertions-palindrome}
+
+\problemstatement{Given a string $s$ of length $n$, find the minimum
+number of characters that must be \textbf{inserted} (anywhere in the
+string) to make it a palindrome.}
+
+\begin{patternbox}
+A second reduction layered directly on top of
+Section~\ref{sec:dp-longest-palindromic-subsequence}: the characters
+\emph{not} part of the longest palindromic subsequence are exactly the
+ones that need a ``partner'' inserted to balance them into a palindrome,
+so the answer is simply $n$ minus the LPS length.
+\end{patternbox}
+
+\subsection*{Understanding the reduction}
+
+Any palindromic subsequence of $s$, of length $k$, can be extended to a
+full palindrome covering all of $s$ by inserting, for every character of
+$s$ \emph{not} part of that subsequence, a matching mirrored character
+on the opposite side. The longest palindromic subsequence minimizes the
+number of characters left over needing such a partner, so:
+\[
+  \textit{minInsertions} = n - |\textit{LPS}(s)|.
+\]
+
+\subsection*{All Four Approaches}
+
+Every stage reuses Section~\ref{sec:dp-longest-palindromic-subsequence}'s
+implementation (itself a reduction to LCS) unchanged.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lcsSpaceOptimized(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<int> prev(m + 1, 0), current(m + 1, 0);
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                current[j] = 1 + prev[j - 1];
+            } else {
+                current[j] = max(prev[j], current[j - 1]);
+            }
+        }
+        prev = current;
+    }
+    return prev[m];
+}
+
+int minInsertionsForPalindrome(string s) {
+    string r = s;
+    reverse(r.begin(), r.end());
+    int lpsLen = lcsSpaceOptimized(s, r);
+    return (int)s.size() - lpsLen;
+}
+
+int main() {
+    cout << minInsertionsForPalindrome("zzazz") << endl;  // 0 (already a palindrome)
+    cout << minInsertionsForPalindrome("mbadm") << endl;  // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"mbadm"}$ ($n=5$).}
+
+The longest palindromic subsequence of \texttt{"mbadm"} is
+\texttt{"mam"} (length $3$): the characters \texttt{m}, \texttt{a},
+\texttt{m} appear in this order at indices $0,2,4$, and no length-$4$
+palindromic subsequence exists (no other character repeats).
+$\textit{minInsertions} = 5-3=2$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$, inherited from the LCS-based LPS
+computation.
+\textbf{Space Complexity.} $O(n)$ for the rolling-row LCS.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This problem closes a three-link reduction chain that is worth seeing
+as a whole: Minimum Insertions for Palindrome reduces to Longest
+Palindromic Subsequence, which reduces to Longest Common Subsequence.
+Recognizing chains of reductions like this -- rather than treating each
+problem as requiring its own fresh derivation -- is the single most
+efficient way to work through a sheet of dozens of nominally distinct DP
+problems.
+\end{takeawaybox}

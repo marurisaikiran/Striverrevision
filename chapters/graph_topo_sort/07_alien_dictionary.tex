@@ -1,0 +1,146 @@
+\section{Alien Dictionary}
+\label{sec:graph-alien-dictionary}
+
+\problemstatement{Given a list of words sorted lexicographically
+according to the rules of an unknown alien language with $k$
+distinct lowercase letters, determine a valid ordering of the
+alphabet. Return an empty string if no valid ordering exists.}
+
+\begin{patternbox}
+This closing problem of the chapter is a two-step composition:
+\textbf{build} a directed graph of letter-ordering constraints by
+comparing each pair of \textbf{adjacent} words in the list, then
+\textbf{run topological sort} (Sections~\ref{sec:graph-topo-sort-dfs}--\ref{sec:graph-topo-sort-kahn})
+on that graph to recover the alphabet order. The graph-building step is
+the only new idea; the ordering step is unchanged from earlier in this
+chapter.
+\end{patternbox}
+
+\subsection*{Extracting constraints from adjacent word pairs}
+
+For two adjacent words $w_1, w_2$ in the sorted list, scan character by
+character until the \textbf{first} position where they differ. If
+$w_1[i] \neq w_2[i]$, that single comparison reveals exactly one
+constraint: $w_1[i]$ comes before $w_2[i]$ in the alien alphabet
+(edge $w_1[i] \to w_2[i]$) -- and nothing more can be concluded from
+this pair, since the relative order of any later characters is
+unconstrained by this comparison. If no differing position is found
+within the shorter word's length, the ordering is \textbf{invalid}
+exactly when $w_1$ is \emph{longer} than $w_2$ (a longer word cannot
+correctly precede its own prefix in sorted order).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty adjacency structure over the (at most
+        $26$) distinct letters appearing in the words.
+  \item For every adjacent pair of words, find the first differing
+        character and add the corresponding edge; if no differing
+        character exists and the first word is longer, return
+        \texttt{""} immediately (invalid).
+  \item Run topological sort (Kahn's algorithm is convenient here,
+        since it naturally detects a cycle -- contradictory
+        constraints -- by an incomplete processed count) over the
+        graph of letters.
+  \item If a cycle is detected, return \texttt{""}; otherwise return
+        the topological order as a string.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string alienOrder(vector<string>& words) {
+    unordered_set<char> letters;
+    for (string& w : words) for (char c : w) letters.insert(c);
+
+    unordered_map<char, unordered_set<char>> adj;
+    unordered_map<char, int> inDegree;
+    for (char c : letters) inDegree[c] = 0;
+
+    for (int i = 0; i + 1 < (int)words.size(); i++) {
+        string& w1 = words[i];
+        string& w2 = words[i + 1];
+        int minLen = min(w1.size(), w2.size());
+        bool foundDiff = false;
+
+        for (int j = 0; j < minLen; j++) {
+            if (w1[j] != w2[j]) {
+                if (adj[w1[j]].find(w2[j]) == adj[w1[j]].end()) {
+                    adj[w1[j]].insert(w2[j]);
+                    inDegree[w2[j]]++;
+                }
+                foundDiff = true;
+                break;
+            }
+        }
+        if (!foundDiff && w1.size() > w2.size()) return "";
+    }
+
+    queue<char> q;
+    for (char c : letters) {
+        if (inDegree[c] == 0) q.push(c);
+    }
+
+    string order;
+    while (!q.empty()) {
+        char c = q.front();
+        q.pop();
+        order += c;
+
+        for (char neighbor : adj[c]) {
+            inDegree[neighbor]--;
+            if (inDegree[neighbor] == 0) q.push(neighbor);
+        }
+    }
+
+    return (int)order.size() == (int)letters.size() ? order : "";
+}
+
+int main() {
+    vector<string> words = {"wrt", "wrf", "er", "ett", "rftt"};
+    cout << alienOrder(words) << endl; // wertf
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{words}=[\texttt{wrt},\texttt{wrf},\texttt{er},
+\texttt{ett},\texttt{rftt}]$.}
+
+Pair (\texttt{wrt},\texttt{wrf}): differ at index $2$ ($\texttt{t}$
+vs $\texttt{f}$) -- edge $t \to f$. Pair (\texttt{wrf},\texttt{er}):
+differ at index $0$ ($\texttt{w}$ vs $\texttt{e}$) -- edge $w \to e$.
+Pair (\texttt{er},\texttt{ett}): differ at index $1$ ($\texttt{r}$ vs
+$\texttt{t}$) -- edge $r \to t$. Pair (\texttt{ett},\texttt{rftt}):
+differ at index $0$ ($\texttt{e}$ vs $\texttt{r}$) -- edge $e \to r$.
+Graph: $t\to f$, $w\to e$, $r\to t$, $e\to r$. In-degrees: $w$:$0$,
+$e$:$1$, $r$:$1$, $t$:$1$, $f$:$1$. Kahn's: start $[w]$. Pop $w$:
+order $\texttt{w}$; $e\to0$, push. Pop $e$: order $\texttt{we}$;
+$r\to0$, push. Pop $r$: order $\texttt{wer}$; $t\to0$, push. Pop $t$:
+order $\texttt{wert}$; $f\to0$, push. Pop $f$: order
+$\texttt{wertf}$. All $5$ letters processed: valid order
+$\texttt{"wertf"}$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\sum |w_i| + V + E)$ -- comparing each
+adjacent word pair costs time proportional to the shorter word's
+length, and the topological sort afterward costs $O(V+E)$ over the
+(at most $26$) letters and their constraints.
+\textbf{Space Complexity.} $O(V+E)$ for the letter graph, bounded by
+$O(26^2)$ in the worst case.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This chapter closes by demonstrating topological sort's full
+generality: the ``nodes'' and ``edges'' don't need to be given
+explicitly at all -- here they are \emph{derived} from a completely
+different kind of input (a sorted word list) via a simple
+pairwise-comparison rule, and once that translation step is done, every
+algorithm from earlier in this chapter (cycle detection bundled into
+Kahn's algorithm, the topological order itself) applies completely
+unchanged.
+\end{takeawaybox}

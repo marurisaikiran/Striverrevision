@@ -1,0 +1,212 @@
+\section{Rod Cutting}
+\label{sec:dp-rod-cutting}
+
+\problemstatement{Given a rod of length $n$ and an array $\textit{price}$
+where $\textit{price}[i]$ is the price of a piece of length $i+1$
+(1-indexed), cut the rod into pieces (each possible length usable
+\textbf{any number of times}, since multiple pieces of the same length
+can come from different parts of the rod) to \textbf{maximize} total
+price.}
+
+\begin{patternbox}
+This closing problem of the chapter is a deliberate capstone connecting
+its two halves: Rod Cutting is \textbf{0/1 Knapsack's value-maximization
+recurrence} (Section~\ref{sec:dp-01-knapsack}), but in the
+\textbf{unbounded}-reuse setting (Section~\ref{sec:dp-coin-change}'s
+pick-stays-at-the-same-index rule) -- the ``items'' are piece lengths
+$1, \ldots, n$, their ``weights'' are their own lengths, their
+``values'' are their prices, and the ``capacity'' is the rod's total
+length $n$.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(\textit{index}, \textit{length})$ be the maximum price obtainable
+from a rod of $\textit{length}$, using piece lengths $1..\textit{index}+1$
+(0-indexed $\textit{index}$ corresponds to piece length
+$\textit{index}+1$). Either exclude this piece length entirely
+($f(\textit{index}-1, \textit{length})$), or cut off one piece of this
+length (gaining $\textit{price}[\textit{index}]$, then recursing on the
+\emph{same} index since the same length remains available to cut again
+from what's left):
+\begin{gather*}
+  f(\textit{index}, \textit{length}) = \max\Big(
+  f(\textit{index}{-}1, \textit{length}),\ \textit{take} \Big), \\
+  \textit{take} = (\textit{index}{+}1) \le \textit{length}\ ?\
+  \textit{price}[\textit{index}] + f(\textit{index}, \textit{length}-(\textit{index}{+}1))
+  : -\infty.
+\end{gather*}
+Base case: $f(0, \textit{length}) = \textit{length} \times
+\textit{price}[0]$ (using only length-$1$ pieces, cut exactly
+$\textit{length}$ of them).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int rodCuttingRecursive(int index, int length, vector<int>& price) {
+    if (index == 0) return length * price[0];
+
+    int notTake = rodCuttingRecursive(index - 1, length, price);
+    int take = INT_MIN;
+    int pieceLen = index + 1;
+    if (pieceLen <= length) {
+        take = price[index] + rodCuttingRecursive(index, length - pieceLen, price);
+    }
+    return max(notTake, take);
+}
+
+int main() {
+    vector<int> price = {2, 5, 7, 8, 10};
+    int n = price.size();
+    cout << rodCuttingRecursive(n - 1, n, price) << endl; // 12
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} Exponential -- the same unbounded-reuse blowup as Coin
+Change.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int rodCuttingMemo(int index, int length, vector<int>& price,
+                    vector<vector<int>>& memo) {
+    if (index == 0) return length * price[0];
+    if (memo[index][length] != -1) return memo[index][length];
+
+    int notTake = rodCuttingMemo(index - 1, length, price, memo);
+    int take = INT_MIN;
+    int pieceLen = index + 1;
+    if (pieceLen <= length) {
+        take = price[index] + rodCuttingMemo(index, length - pieceLen, price, memo);
+    }
+    return memo[index][length] = max(notTake, take);
+}
+
+int main() {
+    vector<int> price = {2, 5, 7, 8, 10};
+    int n = price.size();
+    vector<vector<int>> memo(n, vector<int>(n + 1, -1));
+    cout << rodCuttingMemo(n - 1, n, price, memo) << endl; // 12
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n^2)$.
+\textbf{Space.} $O(n^2)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int rodCuttingTabulation(vector<int>& price) {
+    int n = price.size();
+    vector<vector<int>> dp(n, vector<int>(n + 1, 0));
+
+    for (int len = 0; len <= n; len++) dp[0][len] = len * price[0];
+
+    for (int index = 1; index < n; index++) {
+        for (int len = 0; len <= n; len++) {
+            int notTake = dp[index - 1][len];
+            int take = INT_MIN;
+            int pieceLen = index + 1;
+            if (pieceLen <= len) {
+                take = price[index] + dp[index][len - pieceLen];
+            }
+            dp[index][len] = max(notTake, take);
+        }
+    }
+    return dp[n - 1][n];
+}
+
+int main() {
+    vector<int> price = {2, 5, 7, 8, 10};
+    cout << rodCuttingTabulation(price) << endl; // 12
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{price} = [2,5,7,8,10]$ (rod length $n=5$).}
+
+The optimal cut for a rod of length $5$ with these prices is two pieces
+of length $2$ (price $5$ each) and one of length $1$ (price $2$):
+$5+5+2=12$. Tracing the table: row $0$ (only length-$1$ pieces) gives
+$\textit{dp}[0][5]=5\times2=10$. Row $1$ (lengths $1,2$) considers
+mixing in length-$2$ pieces: $\textit{dp}[1][5] =
+\max(\textit{dp}[0][5],\ \textit{price}[1]+\textit{dp}[1][3]) =
+\max(10,\ 5+\textit{dp}[1][3])$; unrolling $\textit{dp}[1][3] =
+\max(\textit{dp}[0][3],\ 5+\textit{dp}[1][1]) = \max(6, 5+2)=7$, giving
+$\textit{dp}[1][5] = \max(10, 5+7)=12$. Later rows (introducing longer,
+less efficient-per-length pieces) do not improve on this, so
+$\textit{dp}[4][5]=12$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n^2)$.
+\textbf{Space.} $O(n^2)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int rodCuttingSpaceOptimized(vector<int>& price) {
+    int n = price.size();
+    vector<int> prev(n + 1, 0);
+
+    for (int len = 0; len <= n; len++) prev[len] = len * price[0];
+
+    for (int index = 1; index < n; index++) {
+        vector<int> current(n + 1, 0);
+        for (int len = 0; len <= n; len++) {
+            int notTake = prev[len];
+            int take = INT_MIN;
+            int pieceLen = index + 1;
+            if (pieceLen <= len) {
+                take = price[index] + current[len - pieceLen]; // same row
+            }
+            current[len] = max(notTake, take);
+        }
+        prev = current;
+    }
+    return prev[n];
+}
+
+int main() {
+    vector<int> price = {2, 5, 7, 8, 10};
+    cout << rodCuttingSpaceOptimized(price) << endl; // 12
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n^2)$.
+\textbf{Space.} $O(n)$ for the rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Rod Cutting closes this chapter by making its organizing idea explicit
+one final time: every problem here is the same $(\textit{index},
+\textit{target})$ table, varying along exactly two independent axes --
+\emph{what the combination operator is} (OR, sum, or max/min) and
+\emph{whether the pick branch reuses the current index or advances past
+it}. Four operators (OR, sum, min, max) times two reuse rules (0/1,
+unbounded) accounts for essentially every problem in this chapter, Rod
+Cutting included.
+\end{takeawaybox}

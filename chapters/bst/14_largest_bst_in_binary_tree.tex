@@ -1,0 +1,200 @@
+\section{Largest BST in a Binary Tree}
+\label{sec:bst-largest-bst}
+
+\problemstatement{Given the root of a (general, not necessarily search)
+binary tree, find the size (number of nodes) of the \textbf{largest
+subtree} that is a valid BST.}
+
+\begin{patternbox}
+This closing problem of the chapter is a deliberate capstone: it combines
+Validate BST's (Section~\ref{sec:bst-validate}) range-checking idea with
+a \textbf{bottom-up, tree-DP} style of recursion -- each subtree must
+report enough information upward (is it a valid BST? how big? what are
+its min and max values?) for its \emph{parent} to decide, in $O(1)$
+additional work, whether combining it with its sibling and itself forms
+an even larger valid BST. The keyword combination \emph{``largest
+substructure satisfying a property''} within a \emph{general} tree (not
+already known to be a BST) is the signal for this bottom-up,
+information-passing recursion style, much like dynamic programming on
+trees.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Section~\ref{sec:bst-validate} validated a BST top-down, passing a valid
+range \emph{downward}. Here, we do not know in advance which subtrees are
+valid BSTs, so we instead compute, for \emph{every} subtree, bottom-up:
+whether it is itself a valid BST, its size if so, and its minimum and
+maximum values (needed by its parent to check the BST invariant one
+level up). A node's own subtree is a valid BST exactly when both children
+report ``yes, I am a valid BST,'' \emph{and} the node's value is strictly
+greater than its left child's reported maximum, \emph{and} strictly less
+than its right child's reported minimum.
+
+\begin{ideabox}[Bottom-Up: Each Subtree Reports (isBST, size, min, max)]
+Recurse postorder (process both children before combining at the current
+node). For a null node, return $(\textit{isBST}=\text{true},
+\textit{size}=0, \textit{min}=+\infty, \textit{max}=-\infty)$ (a
+neutral, vacuously-true base case that combines safely with any actual
+node). At a real node: if both children report $\textit{isBST}=\text{true}$,
+and $\textit{node.val} > \textit{leftInfo.max}$, and
+$\textit{node.val} < \textit{rightInfo.min}$: this subtree is a valid
+BST of size $\textit{leftInfo.size} + \textit{rightInfo.size} + 1$; update
+a running global answer with this size, and return
+$(\text{true}, \textit{size}, \min(\textit{leftInfo.min},
+\textit{node.val}), \max(\textit{rightInfo.max}, \textit{node.val}))$.
+Otherwise, this subtree is not a valid BST: return
+$\textit{isBST}=\text{false}$ (its size/min/max no longer matter to any
+ancestor, since no ancestor can validly combine across an already-invalid
+subtree).
+\end{ideabox}
+
+\subsection*{Why the global answer must be tracked throughout, not just at the root}
+
+The largest valid BST is not necessarily the \emph{whole} tree, nor even
+necessarily a subtree rooted near the root -- it could be a valid BST
+entirely contained within one branch, while everything above that branch
+fails the BST invariant. Because the recursion already computes,
+\emph{at every single node}, whether that node's subtree is a valid BST
+and how large it is, the correct overall answer is simply the
+\textbf{maximum} of this size over every node visited during the entire
+traversal -- which is why a running global maximum, updated every time a
+valid BST subtree is found (regardless of whether its ancestors turn out
+to be valid), is necessary, rather than only inspecting the final result
+returned at the root.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize a global $\textit{maxBSTSize} \gets 0$.
+  \item $\textsc{Solve}(\textit{node})$:
+  \begin{enumerate}
+    \item If $\textit{node} = $ null: return $(\text{true}, 0, +\infty,
+          -\infty)$.
+    \item $\textit{L} \gets \textsc{Solve}(\textit{node}.\textit{left})$,
+          $\textit{R} \gets
+          \textsc{Solve}(\textit{node}.\textit{right})$.
+    \item If $\textit{L}.\textit{isBST}$ and $\textit{R}.\textit{isBST}$
+          and $\textit{node}.\textit{val} > \textit{L}.\textit{max}$ and
+          $\textit{node}.\textit{val} < \textit{R}.\textit{min}$:
+    \begin{itemize}
+      \item $\textit{size} \gets \textit{L}.\textit{size} +
+            \textit{R}.\textit{size} + 1$.
+      \item $\textit{maxBSTSize} \gets \max(\textit{maxBSTSize},
+            \textit{size})$.
+      \item Return $(\text{true}, \textit{size},
+            \min(\textit{L}.\textit{min}, \textit{node}.\textit{val}),
+            \max(\textit{R}.\textit{max}, \textit{node}.\textit{val}))$.
+    \end{itemize}
+    \item Else: return $(\text{false}, 0, -, -)$.
+  \end{enumerate}
+  \item Call $\textsc{Solve}(\textit{root})$; return
+        $\textit{maxBSTSize}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the tree with root $5$, left child $2$ (left child $1$,
+right child $3$, a valid BST of size $3$), right child $7$ (left child
+$6$, right child $4$ -- note $4$ on the right side violates BST order).}
+
+\begin{itemize}
+  \item $\textsc{Solve}(1)$: leaf. Returns $(\text{true},1,1,1)$.
+  \item $\textsc{Solve}(3)$: leaf. Returns $(\text{true},1,3,3)$.
+  \item $\textsc{Solve}(2)$: $L=(\text{true},1,1,1)$,
+        $R=(\text{true},1,3,3)$. Check: $2>1$ and $2<3$: valid. Size
+        $=1+1+1=3$. $\textit{maxBSTSize}=3$. Return
+        $(\text{true},3,1,3)$.
+  \item $\textsc{Solve}(6)$: leaf. Returns $(\text{true},1,6,6)$.
+  \item $\textsc{Solve}(4)$: leaf. Returns $(\text{true},1,4,4)$.
+  \item $\textsc{Solve}(7)$: $L=(\text{true},1,6,6)$ (left child $6$),
+        $R=(\text{true},1,4,4)$ (right child $4$). Check: $7>6$? Yes.
+        $7<4$? No -- invalid (right child's minimum $4$ is not greater
+        than $7$). Return $(\text{false}, -, -, -)$.
+  \item $\textsc{Solve}(5)$: $L=(\text{true},3,1,3)$ (from node $2$),
+        $R=(\text{false}, \ldots)$ (from node $7$). $R.\textit{isBST}$
+        is false, so node $5$'s subtree is not a valid BST. Return
+        $(\text{false}, -, -, -)$.
+\end{itemize}
+
+The largest valid BST found during the traversal has size $3$ (the
+subtree rooted at node $2$), even though the overall tree (rooted at $5$)
+is not a valid BST.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+struct Info {
+    bool isBST;
+    int size;
+    int minVal, maxVal;
+};
+
+int maxBSTSize = 0;
+
+Info solve(TreeNode* node) {
+    if (!node) return {true, 0, INT_MAX, INT_MIN};
+
+    Info L = solve(node->left);
+    Info R = solve(node->right);
+
+    if (L.isBST && R.isBST && node->val > L.maxVal && node->val < R.minVal) {
+        int size = L.size + R.size + 1;
+        maxBSTSize = max(maxBSTSize, size);
+        return {true, size, min(L.minVal, node->val), max(R.maxVal, node->val)};
+    }
+    return {false, 0, 0, 0};
+}
+
+int largestBSTSubtree(TreeNode* root) {
+    maxBSTSize = 0;
+    solve(root);
+    return maxBSTSize;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(5);
+    root->left = new TreeNode(2);
+    root->left->left = new TreeNode(1);
+    root->left->right = new TreeNode(3);
+    root->right = new TreeNode(7);
+    root->right->left = new TreeNode(6);
+    root->right->right = new TreeNode(4);
+
+    cout << "Largest BST size: " << largestBSTSubtree(root) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each node is visited exactly once, doing
+$O(1)$ work combining its children's reported info, giving
+\[
+  O(n).
+\]
+This is a substantial improvement over the naive approach of running
+Validate BST (Section~\ref{sec:bst-validate}) independently on every
+single subtree, which would cost $O(n^2)$.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a problem asks for the largest/best substructure satisfying some
+recursively-checkable property within a general tree, look for a
+bottom-up recursion where each subtree reports exactly the information
+its parent needs to make an $O(1)$ decision -- validity, size, and
+boundary values, in this case. This ``return a small summary struct
+upward, combine in $O(1)$ at each parent'' technique is the tree
+analogue of dynamic programming, and it is the most general and reusable
+idea in this entire chapter.
+\end{takeawaybox}

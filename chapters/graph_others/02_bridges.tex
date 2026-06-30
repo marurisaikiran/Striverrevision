@@ -1,0 +1,131 @@
+\section{Bridges in a Graph}
+\label{sec:graph-bridges}
+
+\problemstatement{Given an undirected, connected graph, find every
+\textbf{bridge} -- an edge whose removal would increase the number of
+connected components (disconnect the graph).}
+
+\begin{patternbox}
+\emph{``Find edges whose removal disconnects the graph''} is solved by
+a single DFS tracking $\textit{tin}$ and $\textit{low}$
+(Section~\ref{sec:graph-others-intro}): a tree edge $u \to v$ (where
+$v$ is $u$'s child in the DFS tree) is a bridge exactly when
+$\textit{low}[v] > \textit{tin}[u]$ -- meaning $v$'s entire subtree
+has \textbf{no} back edge reaching $u$ or any of $u$'s ancestors, so
+the only way to reach $v$'s subtree from the rest of the graph is
+through this one edge.
+\end{patternbox}
+
+\subsection*{Deriving the \textit{low}-value update rule}
+
+While DFS explores from node $u$, for each neighbor $v$:
+\begin{itemize}
+  \item If $v$ is $u$'s \textbf{parent} (the edge just arrived
+        through), skip it entirely -- this is not a genuine
+        alternative path.
+  \item If $v$ is \textbf{unvisited}, it becomes a tree-edge child:
+        recurse, then update $\textit{low}[u] \gets
+        \min(\textit{low}[u], \textit{low}[v])$ (whatever $v$'s
+        subtree can reach back to, $u$ can also reach back to, through
+        $v$). Check the bridge condition here:
+        $\textit{low}[v] > \textit{tin}[u]$.
+  \item If $v$ is \textbf{already visited} (and not the parent), this
+        is a back edge: update $\textit{low}[u] \gets
+        \min(\textit{low}[u], \textit{tin}[v])$ -- using $v$'s
+        \textbf{discovery time} directly (not $\textit{low}[v]$, since
+        crossing a back edge to $v$ only guarantees reaching $v$
+        itself, not necessarily anything $v$'s own low value might
+        represent through edges not yet explored from $u$'s
+        perspective).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int timer = 0;
+
+void dfs(int node, int parent, vector<vector<int>>& adj, vector<bool>& visited,
+         vector<int>& tin, vector<int>& low, vector<vector<int>>& bridges) {
+    visited[node] = true;
+    tin[node] = low[node] = timer++;
+
+    for (int neighbor : adj[node]) {
+        if (neighbor == parent) continue;
+
+        if (visited[neighbor]) {
+            low[node] = min(low[node], tin[neighbor]); // back edge
+        } else {
+            dfs(neighbor, node, adj, visited, tin, low, bridges);
+            low[node] = min(low[node], low[neighbor]);
+            if (low[neighbor] > tin[node]) {
+                bridges.push_back({node, neighbor});
+            }
+        }
+    }
+}
+
+vector<vector<int>> findBridges(int n, vector<vector<int>>& adj) {
+    vector<bool> visited(n, false);
+    vector<int> tin(n), low(n);
+    vector<vector<int>> bridges;
+    timer = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) dfs(i, -1, adj, visited, tin, low, bridges);
+    }
+    return bridges;
+}
+
+int main() {
+    int n = 4;
+    vector<vector<int>> adj(n);
+    auto addEdge = [&](int u, int v) { adj[u].push_back(v); adj[v].push_back(u); };
+    addEdge(0, 1); addEdge(1, 2); addEdge(2, 0); addEdge(1, 3);
+
+    for (auto& b : findBridges(n, adj)) cout << b[0] << "-" << b[1] << " ";
+    cout << endl; // 1-3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take edges $0{-}1,1{-}2,2{-}0,1{-}3$ (a triangle $0,1,2$ with
+a pendant edge to $3$), DFS from $0$.}
+
+$\textit{dfs}(0,-1)$: $\textit{tin}[0]=\textit{low}[0]=0$. Neighbor
+$1$: unvisited, recurse. $\textit{dfs}(1,0)$:
+$\textit{tin}[1]=\textit{low}[1]=1$. Neighbor $0$: is parent, skip.
+Neighbor $2$: unvisited, recurse. $\textit{dfs}(2,1)$:
+$\textit{tin}[2]=\textit{low}[2]=2$. Neighbor $1$: is parent, skip.
+Neighbor $0$: already visited, not parent -- back edge,
+$\textit{low}[2]=\min(2,\textit{tin}[0]{=}0)=0$. Return to $1$:
+$\textit{low}[1]=\min(1,\textit{low}[2]{=}0)=0$; check bridge:
+$\textit{low}[2]{=}0 > \textit{tin}[1]{=}1$? No -- not a bridge
+(correct: edge $1{-}2$ sits on the triangle's cycle). Back at $1$,
+next neighbor $3$: unvisited, recurse. $\textit{dfs}(3,1)$:
+$\textit{tin}[3]=\textit{low}[3]=3$; no unvisited or back-edge
+neighbors. Return to $1$: $\textit{low}[1]=\min(0,\textit{low}[3]{=}3)=0$;
+check bridge: $\textit{low}[3]{=}3 > \textit{tin}[1]{=}1$? \textbf{Yes}
+-- edge $1{-}3$ is a bridge (correct: it's the only connection to the
+otherwise-isolated node $3$). Return to $0$: $\textit{low}[0]=
+\min(0,\textit{low}[1]{=}0)=0$; check bridge:
+$\textit{low}[1]{=}0 > \textit{tin}[0]{=}0$? No -- not a bridge.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- a single DFS pass.
+\textbf{Space Complexity.} $O(V)$ for \textit{tin}, \textit{low},
+\textit{visited}, and the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The distinction between updating $\textit{low}$ with a child's
+$\textit{low}$ value (tree edges) versus a neighbor's $\textit{tin}$
+value (back edges) is the single most important detail to get right in
+this algorithm -- using $\textit{low}$ for a back edge would
+incorrectly let information ``leak'' through a node that hasn't
+finished exploring its own subtree yet.
+\end{takeawaybox}

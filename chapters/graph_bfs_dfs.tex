@@ -1,0 +1,45 @@
+\chapter{Graphs: BFS and DFS Problems}
+\chapterepigraph{Every problem in this chapter is still, underneath, a
+single traversal -- but each one asks the traversal to carry one extra
+piece of bookkeeping along for the ride: a parent to avoid false
+positives, a color to split the graph in two, a boundary flag, or a
+neighbor relation defined by edit distance rather than an explicit
+edge list.}
+
+\section{One Traversal, Several Extra Questions}
+\label{sec:graph-bfs-dfs-intro}
+
+The Graph Basics chapter established DFS and BFS as the two ways to
+walk a graph. This chapter keeps that same walk and asks it to answer
+one additional question \emph{while} walking:
+
+\begin{patternbox}[What Each Problem Adds to the Base Traversal]
+\begin{itemize}
+  \item \textbf{Detect Cycle in an Undirected Graph (Section~\ref{sec:graph-cycle-undirected})}:
+        carry the \textbf{parent} node along; reaching an already-visited
+        node that is \emph{not} the parent means a cycle exists.
+  \item \textbf{Bipartite Check (Section~\ref{sec:graph-bipartite})}:
+        carry a \textbf{color} (alternating $0/1$) along; a neighbor
+        already colored the \emph{same} color as the current node means
+        the graph cannot be $2$-colored.
+  \item \textbf{Surrounded Regions (Section~\ref{sec:graph-surrounded-regions})}
+        and \textbf{Number of Enclaves (Section~\ref{sec:graph-number-of-enclaves})}:
+        run the traversal \textbf{only from the grid's boundary} first,
+        to mark every region that escapes the edge -- everything left
+        unmarked is, by elimination, fully enclosed.
+  \item \textbf{Word Ladder I and II (Sections~\ref{sec:graph-word-ladder-1}--\ref{sec:graph-word-ladder-2})}:
+        the graph is entirely \textbf{implicit} -- two words are
+        ``neighbors'' if they differ by exactly one character -- so BFS
+        explores generated candidate words instead of a stored
+        adjacency list.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/graph_bfs_dfs/01_detect_cycle_undirected.tex}
+\input{chapters/graph_bfs_dfs/02_bipartite_check.tex}
+\input{chapters/graph_bfs_dfs/03_surrounded_regions.tex}
+\input{chapters/graph_bfs_dfs/04_number_of_enclaves.tex}
+\input{chapters/graph_bfs_dfs/05_word_ladder_1.tex}
+\input{chapters/graph_bfs_dfs/06_word_ladder_2.tex}

@@ -1,0 +1,131 @@
+\section{Count Subsequences with Sum K}
+\label{sec:rec-count-subsequence-sum-k}
+
+\problemstatement{Given an array $\textit{arr}$ and an integer $k$, count
+\textbf{how many} subsequences of $\textit{arr}$ sum to exactly $k$.}
+
+\begin{patternbox}
+The third variation on Section~\ref{sec:rec-power-set}'s pick/not-pick
+tree: from \emph{``generate all''} (Section~\ref{sec:rec-power-set}) to
+\emph{``does one exist''} (Section~\ref{sec:rec-check-subsequence-sum-k})
+to, now, \emph{``count how many.''} Counting needs neither full
+generation nor early short-circuiting -- it needs both branches'
+\textbf{counts} added together.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Every complete pick/not-pick decision sequence produces exactly one
+subsequence, and the base case can directly check whether \emph{that}
+subsequence's sum equals $k$, contributing $1$ to the count if so, $0$
+otherwise. Since the pick and not-pick branches partition all
+subsequences into two disjoint groups (those that include
+$\textit{arr}[\textit{index}]$ and those that don't), the total count is
+simply the \textbf{sum} of the counts returned by both branches -- no
+branch can be skipped, since both might contain qualifying subsequences.
+
+\begin{ideabox}[Sum the Counts from Both Branches]
+$\textsc{CountSum}(\textit{index}, \textit{sum})$: if
+$\textit{index} = n$: return $1$ if $\textit{sum} = k$, else $0$.
+Otherwise: return $\textsc{CountSum}(\textit{index}+1, \textit{sum} +
+\textit{arr}[\textit{index}]) + \textsc{CountSum}(\textit{index}+1,
+\textit{sum})$.
+\end{ideabox}
+
+\subsection*{Why summing (not short-circuiting) is required here}
+
+Unlike Section~\ref{sec:rec-check-subsequence-sum-k}, where finding one
+success already fully answers the yes/no question, here a successful
+pick branch tells us nothing about how many \emph{additional} successes
+might be hiding in the not-pick branch -- both must be fully explored and
+their individual counts combined, since the two branches' qualifying
+subsequences are entirely different (disjoint) subsequences, both of
+which need to be counted toward the final total.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{CountSum}(\textit{index}, \textit{sum})$:
+  \begin{enumerate}
+    \item If $\textit{index} = n$: return $1$ if $\textit{sum}=k$, else
+          $0$.
+    \item Return $\textsc{CountSum}(\textit{index}+1, \textit{sum} +
+          \textit{arr}[\textit{index}]) +
+          \textsc{CountSum}(\textit{index}+1, \textit{sum})$.
+  \end{enumerate}
+  \item Call $\textsc{CountSum}(0,0)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,2,1]$, $k=2$.}
+
+\begin{itemize}
+  \item $\textsc{CountSum}(0,0)$: pick $1$:
+        $\textsc{CountSum}(1,1)$; not-pick: $\textsc{CountSum}(1,0)$.
+  \item $\textsc{CountSum}(1,1)$ (came from picking index $0$): pick
+        $2$: $\textsc{CountSum}(2,3)$; not-pick:
+        $\textsc{CountSum}(2,1)$.
+  \begin{itemize}
+    \item $\textsc{CountSum}(2,3)$: pick $1$: base, sum$=4\ne2$,
+          return $0$. Not-pick: base, sum$=3\ne2$, return $0$. Total
+          $0$.
+    \item $\textsc{CountSum}(2,1)$: pick $1$: base, sum$=2=2$! return
+          $1$. Not-pick: base, sum$=1\ne2$, return $0$. Total $1$.
+  \end{itemize}
+  \item $\textsc{CountSum}(1,1)=0+1=1$.
+  \item $\textsc{CountSum}(1,0)$ (came from not-picking index $0$):
+        pick $2$: $\textsc{CountSum}(2,2)$; not-pick:
+        $\textsc{CountSum}(2,0)$.
+  \begin{itemize}
+    \item $\textsc{CountSum}(2,2)$: pick $1$: base, sum$=3\ne2$,
+          return $0$. Not-pick: base, sum$=2=2$! return $1$. Total $1$.
+    \item $\textsc{CountSum}(2,0)$: pick $1$: base, sum$=1\ne2$,
+          return $0$. Not-pick: base, sum$=0\ne2$, return $0$. Total
+          $0$.
+  \end{itemize}
+  \item $\textsc{CountSum}(1,0)=1+0=1$.
+  \item $\textsc{CountSum}(0,0)=1+1=2$.
+\end{itemize}
+
+The answer is $2$: the qualifying subsequences are $\{1,1\}$ (indices
+$0,2$) and $\{2\}$ (index $1$ alone).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSum(int index, int sum, vector<int>& arr, int k) {
+    if (index == (int)arr.size()) return sum == k ? 1 : 0;
+
+    int pick = countSum(index + 1, sum + arr[index], arr, k);
+    int notPick = countSum(index + 1, sum, arr, k);
+    return pick + notPick;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 1};
+    cout << "Count: " << countSum(0, 0, arr, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n)$ -- every one of the $2^n$
+subsequences must be considered, since any of them might contribute to
+the count.
+\textbf{Space Complexity.} $O(n)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The three variations seen so far on the same pick/not-pick tree --
+generate everything (Section~\ref{sec:rec-power-set}), short-circuit on
+the first success (Section~\ref{sec:rec-check-subsequence-sum-k}), and
+sum counts from both branches (this section) -- are worth holding side by
+side as a single mental checklist: \emph{generate, exists, or count} is
+usually the very first distinction to make about any new backtracking
+problem, since it determines how the two branches' results should be
+combined at every level.
+\end{takeawaybox}

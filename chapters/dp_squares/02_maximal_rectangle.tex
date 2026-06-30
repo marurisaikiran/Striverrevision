@@ -1,0 +1,123 @@
+\section{Maximal Rectangle}
+\label{sec:dp-maximal-rectangle}
+
+\problemstatement{Given a binary matrix $\textit{mat}$, find the area
+of the largest rectangle (not necessarily square) containing only
+$1$s.}
+
+\begin{patternbox}
+This closing problem of the entire book splits cleanly into two
+independent techniques: a simple per-column \textbf{height DP} (how
+many consecutive $1$s sit directly above and including this cell),
+followed by treating each row's height array as a \textbf{histogram}
+and finding its largest rectangle -- exactly the monotonic-stack
+technique already developed for Largest Rectangle in Histogram in the
+Stack and Queue chapter.
+\end{patternbox}
+
+\subsection*{Deriving the height DP}
+
+Let $\textit{height}[i][j]$ be the number of consecutive $1$s ending at
+row $i$, looking upward, in column $j$:
+\[
+  \textit{height}[i][j] = \begin{cases}
+  0 & \textit{mat}[i][j]=0, \\
+  \textit{height}[i{-}1][j] + 1 & \textit{mat}[i][j]=1.
+  \end{cases}
+\]
+This is the same ``reset to $0$ on failure, otherwise extend by $1$''
+shape seen throughout this book (Longest Common Substring's mismatch
+reset, House Robber's running totals) -- here applied independently to
+every column.
+
+\subsection*{Reframing each row as a histogram}
+
+After computing $\textit{height}[i][\cdot]$ for a fixed row $i$, that
+row \emph{is} a histogram: $\textit{height}[i][j]$ is the bar height at
+position $j$. The largest all-ones rectangle with its \textbf{bottom
+edge on row $i$} is exactly the largest rectangle in that histogram --
+solved in $O(m)$ using the monotonic-stack technique from the Stack and
+Queue chapter's Largest Rectangle in Histogram problem. Running this
+once per row and tracking the global maximum solves the full problem.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int largestRectangleInHistogram(vector<int>& heights) {
+    int n = heights.size();
+    stack<int> st;
+    int maxArea = 0;
+
+    for (int i = 0; i <= n; i++) {
+        int currentHeight = (i == n) ? 0 : heights[i];
+        while (!st.empty() && heights[st.top()] >= currentHeight) {
+            int height = heights[st.top()];
+            st.pop();
+            int width = st.empty() ? i : i - st.top() - 1;
+            maxArea = max(maxArea, height * width);
+        }
+        st.push(i);
+    }
+    return maxArea;
+}
+
+int maximalRectangle(vector<vector<int>>& mat) {
+    int n = mat.size(), m = mat[0].size();
+    vector<int> height(m, 0);
+    int best = 0;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            height[j] = (mat[i][j] == 1) ? height[j] + 1 : 0;
+        }
+        best = max(best, largestRectangleInHistogram(height));
+    }
+    return best;
+}
+
+int main() {
+    vector<vector<int>> mat = {
+        {1, 0, 1, 0, 0},
+        {1, 0, 1, 1, 1},
+        {1, 1, 1, 1, 1},
+        {1, 0, 0, 1, 0}
+    };
+    cout << maximalRectangle(mat) << endl; // 6
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $4\times5$ matrix above.}
+
+Row-by-row height arrays: row $0$: $[1,0,1,0,0]$. row $1$:
+$[2,0,2,1,1]$. row $2$: $[3,1,3,2,2]$. row $3$: $[4,0,0,3,0]$.
+
+At row $2$, the histogram $[3,1,3,2,2]$ has its largest rectangle as
+columns $2$--$4$ at height $2$ (area $6$): bars of height $3,2,2$, the
+minimum height $2$ spanning width $3$, giving area $6$. This is the overall maximum: at row $0$ the best is area $1$; at row
+$1$, best is $3\times1=3$ (columns $2$--$4$, heights $2,1,1$, limited
+by the minimum height $1$); at row $3$, best is $4$ (column $0$ alone,
+height $4$). The global maximum across all rows is $6$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot m)$ -- $n$ rows, each requiring an
+$O(m)$ height update and an $O(m)$ histogram pass (the monotonic stack
+visits each bar a bounded number of times).
+\textbf{Space Complexity.} $O(m)$ for the \textit{height} array and the
+stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This book closes on a problem that is itself a closing argument for
+everything in it: recognizing that a 2D problem decomposes into ``a
+simple DP recurrence run independently per column'' \emph{composed
+with} ``a classical 1D technique from an earlier chapter, run once per
+row'' is, in the end, the same skill exercised throughout this entire
+book -- noticing which already-solved shape a new problem's structure
+matches, rather than deriving a solution from nothing.
+\end{takeawaybox}

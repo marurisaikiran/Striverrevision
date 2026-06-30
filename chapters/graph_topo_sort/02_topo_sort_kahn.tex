@@ -1,0 +1,111 @@
+\section{Topological Sort using Kahn's Algorithm (BFS)}
+\label{sec:graph-topo-sort-kahn}
+
+\problemstatement{Same as Section~\ref{sec:graph-topo-sort-dfs}: return
+a valid topological ordering of a DAG -- this time using an
+in-degree-based BFS instead of DFS finish times.}
+
+\begin{patternbox}
+\emph{``Repeatedly do whatever has no remaining prerequisites''} is
+solved directly: track each node's \textbf{in-degree} (number of
+unprocessed incoming edges); start with every in-degree-$0$ node in a
+queue; each time a node is processed, decrement its neighbors'
+in-degrees, and any neighbor that drops to $0$ joins the queue.
+\end{patternbox}
+
+\subsection*{Why this directly produces a valid order}
+
+A node can only be safely placed in the output once \textbf{every}
+prerequisite pointing into it has already been placed -- which is
+exactly what in-degree $0$ means at the moment a node is dequeued (all
+of its incoming edges have already been ``consumed'' by their source
+nodes being processed earlier). This makes Kahn's algorithm a direct
+simulation of the real-world process the topological sort is modeling:
+do everything that's ready, which unlocks more things to become ready,
+repeat.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute the in-degree of every node by scanning all edges.
+  \item Push every node with in-degree $0$ into a queue.
+  \item While the queue is non-empty: pop a node, append it to the
+        result; for each of its neighbors, decrement their in-degree,
+        and push any neighbor whose in-degree reaches $0$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> topoSortKahn(int n, vector<vector<int>>& adj) {
+    vector<int> inDegree(n, 0);
+    for (int u = 0; u < n; u++) {
+        for (int v : adj[u]) inDegree[v]++;
+    }
+
+    queue<int> q;
+    for (int i = 0; i < n; i++) {
+        if (inDegree[i] == 0) q.push(i);
+    }
+
+    vector<int> result;
+    while (!q.empty()) {
+        int node = q.front();
+        q.pop();
+        result.push_back(node);
+
+        for (int neighbor : adj[node]) {
+            inDegree[neighbor]--;
+            if (inDegree[neighbor] == 0) q.push(neighbor);
+        }
+    }
+    return result;
+}
+
+int main() {
+    int n = 6;
+    vector<vector<int>> adj(n);
+    adj[5] = {2, 0}; adj[4] = {0, 1}; adj[2] = {3}; adj[3] = {1};
+
+    for (int x : topoSortKahn(n, adj)) cout << x << " ";
+    cout << endl; // 4 5 2 0 3 1  (one valid order)
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Same graph as Section~\ref{sec:graph-topo-sort-dfs}: edges
+$5{\to}2,5{\to}0,4{\to}0,4{\to}1,2{\to}3,3{\to}1$.}
+
+In-degrees: $0$ has in-degree $2$ (from $5,4$); $1$ has in-degree $2$
+(from $4,3$); $2$ has in-degree $1$ (from $5$); $3$ has in-degree $1$
+(from $2$); $4,5$ have in-degree $0$. Initial queue: $[4,5]$. Pop $4$:
+result $[4]$; decrement $0\to1$, $1\to1$ (neither reaches $0$ yet).
+Pop $5$: result $[4,5]$; decrement $2\to0$ (push $2$), $0\to0$ (push
+$0$). Queue: $[2,0]$. Pop $2$: result $[4,5,2]$; decrement $3\to0$
+(push $3$). Pop $0$: result $[4,5,2,0]$; no outgoing edges. Pop $3$:
+result $[4,5,2,0,3]$; decrement $1\to0$ (push $1$). Pop $1$: result
+$[4,5,2,0,3,1]$. Final order: $4,5,2,0,3,1$ -- a different but equally
+valid ordering from the DFS approach's $5,4,2,3,1,0$ (topological
+order is rarely unique).
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- computing in-degrees scans every
+edge once; the BFS itself also visits every node and edge once.
+\textbf{Space Complexity.} $O(V)$ for the in-degree array and the
+queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Kahn's algorithm has one advantage DFS's approach doesn't offer for
+free: if the queue empties before every node has been processed, the
+remaining unprocessed nodes are necessarily stuck in a cycle (nothing
+in a cycle can ever reach in-degree $0$, since each node in the cycle
+is always waiting on another node in the same cycle). This makes Kahn's
+algorithm double as a \textbf{cycle detector} in directed graphs, used
+directly in the next section.
+\end{takeawaybox}

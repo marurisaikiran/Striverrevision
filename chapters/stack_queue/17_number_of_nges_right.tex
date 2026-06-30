@@ -1,0 +1,171 @@
+\section{Number of NGEs to the Right}
+\label{sec:sq-num-nges}
+
+\problemstatement{Given an array $\textit{arr}$ of $n$ elements and a list
+of query indices, for each query index $i$, count \textbf{how many}
+elements to the right of $i$ (not just the nearest one) are strictly
+greater than $\textit{arr}[i]$.}
+
+\begin{patternbox}
+This problem is grouped alongside the monotonic-stack problems because it
+shares their right-to-left scanning direction, but the keyword
+\emph{``count how many,''} rather than \emph{``find the nearest,''} is a
+signal that a plain monotonic stack is not quite the right tool: a stack
+only ever keeps a thin, decreasing/increasing \emph{skyline} of values, not
+the full multiset of everything seen so far, so it cannot directly answer
+``how many are greater than $X$.'' This calls for a different right-to-left
+technique -- a \textbf{Fenwick tree (Binary Indexed Tree) over compressed
+ranks} -- that still processes the array in the same right-to-left order
+as the rest of this section, but tracks counts rather than a skyline.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Scanning right to left, by the time we reach index $i$, we want to know
+how many of the values already seen (i.e.\ to $i$'s right) exceed
+$\textit{arr}[i]$. This is a classic ``count of elements greater than $X$
+among those inserted so far'' query, repeated $n$ times with the
+collection growing by one element after each query -- exactly what a
+Fenwick tree, indexed by the \emph{rank} of each value (after coordinate
+compression, since values may be arbitrary integers), is built for: it
+supports both ``insert a value'' and ``count how many inserted values are
+$\le$ some threshold'' in $O(\log n)$ each.
+
+\begin{ideabox}[Fenwick Tree over Compressed Ranks, Scanned Right to Left]
+Compress all values in $\textit{arr}$ to ranks $1, \dots, n$ (sorted
+order). Scan $\textit{arr}$ from right to left. For each $\textit{arr}[i]$:
+query the Fenwick tree for the count of already-inserted values with rank
+\emph{greater than} $\textit{arr}[i]$'s rank (equivalently, $n$ minus the
+count of values with rank $\le \textit{arr}[i]$'s rank) -- this is exactly
+the number of elements to $i$'s right that exceed $\textit{arr}[i]$.
+Record this count for index $i$. Then insert $\textit{arr}[i]$'s rank into
+the Fenwick tree, so it is correctly counted for any index further to the
+left.
+\end{ideabox}
+
+\subsection*{Why scanning right to left and inserting afterward is correct}
+
+At the moment we query for index $i$, the Fenwick tree contains exactly
+the ranks of elements at indices $i+1, \dots, n-1$ -- because we always
+insert $\textit{arr}[i]$ \emph{after} querying for it, and we process
+indices in strictly decreasing order, so every index to $i$'s right has
+already been inserted, and no index at or to $i$'s left has been inserted
+yet. This invariant is what makes the Fenwick tree's count query, at the
+moment we use it for index $i$, exactly answer ``how many elements to the
+right of $i$ exceed $\textit{arr}[i]$,'' with no extra bookkeeping needed.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute ranks of all values in $\textit{arr}$ via sorting
+        (coordinate compression).
+  \item Initialize an empty Fenwick tree of size $n$.
+  \item For $i$ from $n-1$ down to $0$:
+  \begin{enumerate}
+    \item $\textit{countGreater}[i] \gets n - \Call{Query}{\textit{rank}[i]}$
+          (count of inserted values with rank $\le \textit{rank}[i]$,
+          subtracted from the total inserted so far).
+    \item $\Call{Update}{\textit{rank}[i], +1}$ (insert this rank).
+  \end{enumerate}
+  \item Answer each query index by direct lookup into
+        $\textit{countGreater}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [3,4,2,7,5]$, query index $i=2$ (value
+$2$).}
+
+Ranks (1-indexed, smallest $=1$): $3\to2, 4\to3, 2\to1, 7\to5, 5\to4$.
+
+Scanning right to left and inserting:
+
+\begin{itemize}
+  \item $i=4$ (value $5$, rank $4$): tree empty, query returns $0$
+        inserted so far, so $\textit{countGreater}[4]=0-0=0$. Insert
+        rank $4$.
+  \item $i=3$ (value $7$, rank $5$): inserted so far $=1$ (rank $4$),
+        count with rank $\le5$ is $1$. $\textit{countGreater}[3]=1-1=0$.
+        Insert rank $5$.
+  \item $i=2$ (value $2$, rank $1$): inserted so far $=2$ (ranks
+        $4,5$), count with rank $\le1$ is $0$.
+        $\textit{countGreater}[2]=2-0=2$. Insert rank $1$.
+\end{itemize}
+
+$\textit{countGreater}[2]=2$: indeed, to the right of index $2$ (value
+$2$), the elements are $7$ and $5$, both greater -- $2$ elements,
+matching.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class FenwickTree {
+    vector<int> tree;
+    int n;
+public:
+    FenwickTree(int n) : n(n), tree(n + 1, 0) {}
+
+    void update(int i, int delta) {
+        for (; i <= n; i += i & (-i)) tree[i] += delta;
+    }
+
+    int query(int i) { // count of inserted values with rank <= i
+        int sum = 0;
+        for (; i > 0; i -= i & (-i)) sum += tree[i];
+        return sum;
+    }
+};
+
+vector<int> countGreaterToRight(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> sorted = arr;
+    sort(sorted.begin(), sorted.end());
+
+    auto rankOf = [&](int val) {
+        return lower_bound(sorted.begin(), sorted.end(), val) - sorted.begin() + 1;
+    };
+
+    FenwickTree ft(n);
+    vector<int> countGreater(n);
+    int insertedSoFar = 0;
+
+    for (int i = n - 1; i >= 0; i--) {
+        int r = rankOf(arr[i]);
+        countGreater[i] = insertedSoFar - ft.query(r);
+        ft.update(r, 1);
+        insertedSoFar++;
+    }
+    return countGreater;
+}
+
+int main() {
+    vector<int> arr = {3, 4, 2, 7, 5};
+    auto result = countGreaterToRight(arr);
+    for (int x : result) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Coordinate compression costs $O(n \log n)$. The
+main scan performs $n$ Fenwick tree updates and queries, each
+$O(\log n)$, giving an overall time complexity of
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the Fenwick tree and rank arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Count how many'' is a structurally different question from ``find the
+nearest,'' even when both scan in the same direction -- a monotonic stack
+answers the latter in $O(n)$ total but cannot answer the former at all,
+since it discards the very elements a counting query would need. Whenever
+a problem asks for a \emph{count} of qualifying elements rather than the
+nearest one, reach for a Fenwick tree, segment tree, or balanced
+order-statistics structure instead of a plain stack.
+\end{takeawaybox}

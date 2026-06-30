@@ -1,0 +1,112 @@
+\section{Disjoint Set (Union-Find)}
+\label{sec:graph-disjoint-set-impl}
+
+\problemstatement{Implement a data structure supporting: $\textit{find}(x)$
+-- determine which group $x$ currently belongs to -- and
+$\textit{union}(x,y)$ -- merge $x$'s and $y$'s groups into one, both
+as efficiently as possible.}
+
+\begin{patternbox}
+\emph{``Efficiently track and merge groups of connected elements''} is
+the textbook use case for Disjoint Set: each element points to a
+\textbf{parent}, with a group's identity determined by walking parent
+pointers up to a \textbf{root} (a node that is its own parent).
+Path compression and union by size, described in
+Section~\ref{sec:graph-disjoint-set}, keep both operations nearly
+constant time.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize: every node is its own parent (its own group), and
+        every group has size $1$.
+  \item $\textit{find}(x)$: if $x$ is its own parent, return $x$.
+        Otherwise, recursively find $x$'s ultimate root, and
+        \textbf{set $x$'s parent directly to that root} before
+        returning (path compression).
+  \item $\textit{union}(x,y)$: find both roots; if equal, they are
+        already in the same group, do nothing. Otherwise, attach the
+        \textbf{smaller}-size root under the \textbf{larger}-size
+        root's parent pointer, and add the smaller group's size into
+        the larger's.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent, size;
+public:
+    DisjointSet(int n) : parent(n), size(n, 1) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]); // path compression
+    }
+
+    void unite(int x, int y) {
+        int rootX = find(x), rootY = find(y);
+        if (rootX == rootY) return;
+
+        if (size[rootX] < size[rootY]) swap(rootX, rootY);
+        parent[rootY] = rootX;       // smaller under larger
+        size[rootX] += size[rootY];
+    }
+
+    bool connected(int x, int y) {
+        return find(x) == find(y);
+    }
+};
+
+int main() {
+    DisjointSet ds(6);
+    ds.unite(0, 1);
+    ds.unite(1, 2);
+    ds.unite(3, 4);
+
+    cout << (ds.connected(0, 2) ? "true" : "false") << endl;  // true
+    cout << (ds.connected(0, 3) ? "true" : "false") << endl;  // false
+    ds.unite(2, 3);
+    cout << (ds.connected(0, 4) ? "true" : "false") << endl;  // true
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $6$ elements, performing $\textit{unite}(0,1)$,
+$\textit{unite}(1,2)$, $\textit{unite}(3,4)$, then
+$\textit{unite}(2,3)$.}
+
+Initially each node is its own root, size $1$ each.
+$\textit{unite}(0,1)$: both size $1$, $\textit{rootX}=0$ stays (tie,
+no swap needed in this implementation since $1<1$ is false), parent$[1]=0$,
+size$[0]=2$. $\textit{unite}(1,2)$: $\textit{find}(1)=0$ (size $2$),
+$\textit{find}(2)=2$ (size $1$); $2$'s group is smaller, parent$[2]=0$,
+size$[0]=3$. $\textit{unite}(3,4)$: similarly, parent$[4]=3$,
+size$[3]=2$. $\textit{unite}(2,3)$: $\textit{find}(2)=0$ (size $3$,
+via path compression directly), $\textit{find}(3)=3$ (size $2$); $3$'s
+group is smaller, parent$[3]=0$, size$[0]=5$. Now $0,1,2,3,4$ are all
+connected (root $0$); $5$ remains its own separate group.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\alpha(n))$ amortized per
+$\textit{find}$/$\textit{union}$ call, where $\alpha$ is the inverse
+Ackermann function -- effectively constant for any realistic input
+size.
+\textbf{Space Complexity.} $O(n)$ for the parent and size arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Disjoint Set answers ``are these two things in the same group, and can
+I merge their groups'' far faster than re-running a DFS/BFS traversal
+from scratch after every update -- making it the tool of choice
+whenever a problem involves \textbf{repeated} connectivity queries or
+incremental merging, rather than a single one-shot traversal.
+\end{takeawaybox}

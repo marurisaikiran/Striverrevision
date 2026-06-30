@@ -1,0 +1,90 @@
+\section{Delete Operations for Two Strings}
+\label{sec:dp-delete-operations}
+
+\problemstatement{Given two strings $s_1$ (length $n$) and $s_2$ (length
+$m$), find the minimum number of character \textbf{deletions} (from
+either string) needed to make the two strings \textbf{equal}.}
+
+\begin{patternbox}
+This is Section~\ref{sec:dp-edit-distance}'s Edit Distance restricted to
+\textbf{only the delete operation} -- and that restriction collapses it
+into a direct reduction to Section~\ref{sec:dp-lcs}'s LCS, rather than
+needing its own three-way recurrence at all.
+\end{patternbox}
+
+\subsection*{Understanding the reduction}
+
+If the only allowed operation is deletion, the two strings can only ever
+become equal by each reducing down to some common subsequence of both --
+deleting everything that isn't part of that shared subsequence. To
+minimize total deletions, we want to keep as much as possible, which
+means keeping the \textbf{longest} common subsequence and deleting
+everything else:
+\[
+  \textit{minDeletions} = (n - |\textit{LCS}(s_1,s_2)|) + (m -
+  |\textit{LCS}(s_1,s_2)|).
+\]
+The first term is how many characters of $s_1$ are deleted (everything
+not part of the kept LCS); the second is the same for $s_2$.
+
+\subsection*{All Four Approaches}
+
+Every stage reuses Section~\ref{sec:dp-lcs}'s LCS implementation
+unchanged; only this final arithmetic combination is new.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lcsSpaceOptimized(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<int> prev(m + 1, 0), current(m + 1, 0);
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                current[j] = 1 + prev[j - 1];
+            } else {
+                current[j] = max(prev[j], current[j - 1]);
+            }
+        }
+        prev = current;
+    }
+    return prev[m];
+}
+
+int minDeletions(string& s1, string& s2) {
+    int lcsLen = lcsSpaceOptimized(s1, s2);
+    return (s1.size() - lcsLen) + (s2.size() - lcsLen);
+}
+
+int main() {
+    string s1 = "sea", s2 = "eat";
+    cout << minDeletions(s1, s2) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s_1=\texttt{"sea"}$, $s_2=\texttt{"eat"}$.}
+
+LCS of \texttt{"sea"} and \texttt{"eat"} is \texttt{"ea"} (length $2$).
+$\textit{minDeletions} = (3-2)+(3-2) = 1+1 = 2$: delete \texttt{'s'}
+from $s_1$ (leaving \texttt{"ea"}) and delete \texttt{'t'} from $s_2$
+(leaving \texttt{"ea"}) -- both strings become \texttt{"ea"} with $2$
+total deletions.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot m)$, inherited directly from LCS.
+\textbf{Space Complexity.} $O(m)$ for the rolling-row LCS.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever an edit-distance-style problem restricts the allowed operations
+to a strict subset (here, deletions only), check whether the restricted
+version reduces to a simpler, already-solved problem rather than
+re-deriving a new three-way (or however-many-way) recurrence. ``Delete
+only, from both strings, to reach equality'' is exactly ``maximize the
+shared kept subsequence,'' i.e.\ LCS, in disguise.
+\end{takeawaybox}

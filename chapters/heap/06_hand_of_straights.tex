@@ -1,0 +1,183 @@
+\section{Hand of Straights}
+\label{sec:heap-hand-of-straights}
+
+\problemstatement{We are given a hand of $n$ cards, $\textit{hand}[0..n-1]$
+(integers, possibly with repeats), and an integer $\textit{groupSize}$.
+Determine whether the hand can be rearranged into groups, each of exactly
+$\textit{groupSize}$ cards with \textbf{consecutive} values (e.g.\
+$[3,4,5]$ is a valid group of size $3$; $[3,4,6]$ is not). Return
+\texttt{true} or \texttt{false}.}
+
+\begin{patternbox}
+\emph{``Always form the next group starting from the smallest remaining
+card''} is the greedy insight, and \emph{``repeatedly find the current
+smallest remaining distinct value''} is exactly what a min-heap (over
+distinct values) is built for. Whenever a problem requires repeatedly
+peeling off the globally smallest (or largest) remaining item from a
+\emph{changing} collection -- not just once, but again and again as the
+collection shrinks -- that repeated ``smallest of what's left'' query is
+the heap keyword to watch for, distinguishing this from a single-pass
+greedy that only needs one sorted scan.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+First, if $n$ is not divisible by $\textit{groupSize}$, the answer is
+immediately \texttt{false} -- the cards cannot be partitioned evenly.
+Otherwise, count the occurrences of each distinct card value (a hash map),
+and observe a key greedy fact: whichever card value is currently the
+\textbf{smallest} among all cards not yet placed into a group \emph{must}
+be the starting card of some group -- it cannot be the second or later
+card of any group, since no smaller card remains to precede it. So we are
+forced to start a new group at the current minimum, every time.
+
+\begin{ideabox}[Greedy Choice, Powered by a Min-Heap]
+Maintain a min-heap of the \emph{distinct} card values currently present
+in the hand (with their counts tracked separately in a hash map). Repeatedly: peek
+the smallest remaining value $v$; this must start a new group. Check that
+$v, v+1, \dots, v+\textit{groupSize}-1$ are all available (count $>0$ in
+the hash map); if any is missing, return \texttt{false}. Otherwise,
+decrement the count of each of these $\textit{groupSize}$ values; whenever
+a value's count reaches $0$, remove it from consideration (pop it from the
+heap, or simply leave it and skip over exhausted values when they resurface
+at the top). Repeat until all cards are consumed.
+\end{ideabox}
+
+\subsection*{Why always starting at the current minimum is correct}
+
+This is another exchange-argument greedy: suppose, for contradiction, that
+some valid grouping does \emph{not} use the smallest remaining card $v$ as
+the start of a group, but instead places it later in some group starting
+at $v' < v$ -- but $v$ \emph{is} the minimum remaining, so no $v' < v$ can
+exist among the remaining cards. Therefore $v$ cannot appear anywhere
+except as the start of a group (it cannot be the second card of a group
+starting at $v-1$, because $v-1$ is not present among the remaining
+cards by assumption that $v$ is the minimum). So every valid grouping is
+forced to start a group at $v$, and the greedy choice has no alternative
+to consider in the first place -- it is not just \emph{a} good choice, it
+is the \emph{only} choice consistent with feasibility.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If $n \bmod \textit{groupSize} \ne 0$: return \texttt{false}.
+  \item Build a frequency map \textit{count} of card values; build a
+        min-heap of the distinct values present.
+  \item While the heap is not empty:
+  \begin{enumerate}
+    \item Pop values from the top of the heap whose count has reached
+          $0$ (already fully used) and discard them.
+    \item Peek the new minimum $v$ (if the heap is now empty, stop --
+          all cards are used).
+    \item For $j \gets 0$ to $\textit{groupSize}-1$: if
+          $\textit{count}[v+j] = 0$, return \texttt{false}; otherwise
+          decrement $\textit{count}[v+j]$.
+  \end{enumerate}
+  \item Return \texttt{true}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Hand of Straights}
+\begin{algorithmic}[1]
+\Procedure{IsNStraightHand}{\textit{hand}, \textit{groupSize}}
+  \If{$n \bmod \textit{groupSize} \ne 0$} \Return \textbf{false} \EndIf
+  \State build frequency map \textit{count}; build min-heap of distinct values
+  \While{\textit{heap} is not empty}
+    \While{\textit{heap} not empty \textbf{and} $\textit{count}[\text{top}] = 0$}
+      \State pop \textit{heap}
+    \EndWhile
+    \If{\textit{heap} is empty} \textbf{break} \EndIf
+    \State $v \gets$ top of \textit{heap}
+    \For{$j \gets 0$ to $\textit{groupSize}-1$}
+      \If{$\textit{count}[v+j] = 0$} \Return \textbf{false} \EndIf
+      \State $\textit{count}[v+j] \gets \textit{count}[v+j] - 1$
+    \EndFor
+  \EndWhile
+  \State \Return \textbf{true}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{hand} = [1,2,3,6,2,3,4,7,8]$,
+$\textit{groupSize} = 3$.}
+
+$n=9$, $9 \bmod 3 = 0$. Counts: $1{:}1, 2{:}2, 3{:}2, 4{:}1, 6{:}1, 7{:}1,
+8{:}1$. Min-heap of distinct values: $\{1,2,3,4,6,7,8\}$.
+
+\begin{itemize}
+  \item Min is $1$. Group $[1,2,3]$: all counts $>0$. Decrement:
+        $1{:}0, 2{:}1, 3{:}1$.
+  \item Top of heap is $1$, but $\textit{count}[1]=0$ now; pop it. New
+        min is $2$. Group $[2,3,4]$: all counts $>0$. Decrement:
+        $2{:}0, 3{:}0, 4{:}0$.
+  \item Pop $2,3,4$ as their counts reach $0$ at the top. New min is $6$.
+        Group $[6,7,8]$: all counts $>0$ ($1$ each). Decrement to $0$
+        each.
+  \item Heap empties out as exhausted values are popped.
+\end{itemize}
+
+All cards consumed without failure, so the answer is \texttt{true}: the
+hand splits into $[1,2,3]$, $[2,3,4]$, $[6,7,8]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isNStraightHand(vector<int>& hand, int groupSize) {
+    int n = hand.size();
+    if (n % groupSize != 0) return false;
+
+    unordered_map<int,int> count;
+    for (int x : hand) count[x]++;
+
+    priority_queue<int, vector<int>, greater<int>> minHeap;
+    for (auto& [val, c] : count) minHeap.push(val);
+
+    while (!minHeap.empty()) {
+        while (!minHeap.empty() && count[minHeap.top()] == 0) {
+            minHeap.pop();
+        }
+        if (minHeap.empty()) break;
+
+        int v = minHeap.top();
+        for (int j = 0; j < groupSize; j++) {
+            if (count[v + j] == 0) return false;
+            count[v + j]--;
+        }
+    }
+    return true;
+}
+
+int main() {
+    vector<int> hand = {1, 2, 3, 6, 2, 3, 4, 7, 8};
+    cout << (isNStraightHand(hand, 3) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Building the frequency map and heap costs
+$O(n \log n)$ in the worst case (up to $n$ distinct values, each pushed
+once). The main loop performs at most $n/\textit{groupSize}$ group
+formations, each doing $O(\textit{groupSize})$ work plus
+$O(\log n)$ amortized heap-popping of exhausted values, giving an overall
+time complexity of
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the frequency map and heap in the
+worst case (all distinct values).
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a greedy choice is not just \emph{good} but \emph{forced} (the
+smallest remaining element has no alternative role to play), a min-heap
+is the natural data structure to repeatedly surface that forced choice
+efficiently, especially when -- unlike a single sorted pass -- elements
+get consumed and removed from consideration in a pattern that does not
+simply move left to right.
+\end{takeawaybox}

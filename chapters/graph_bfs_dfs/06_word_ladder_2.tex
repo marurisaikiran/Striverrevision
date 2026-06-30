@@ -1,0 +1,167 @@
+\section{Word Ladder II}
+\label{sec:graph-word-ladder-2}
+
+\problemstatement{Given $\textit{beginWord}$, $\textit{endWord}$, and
+$\textit{wordList}$, return \textbf{every} shortest transformation
+sequence from $\textit{beginWord}$ to $\textit{endWord}$ (not just the
+length, as in Section~\ref{sec:graph-word-ladder-1}).}
+
+\begin{patternbox}
+\emph{``Return every shortest path, not just its length''} needs the
+same BFS as Word Ladder I, but with one critical addition: a
+\textbf{parent map} recording, for every word, every word at the
+\emph{previous level} that could reach it -- the same ``print the
+path'' machinery used by reconstruction problems throughout this book
+series (e.g.\ the DP on LIS chapter's Print LIS): \emph{measuring} an
+optimum and \emph{reconstructing} every optimal path are different
+problems, and the second always needs extra bookkeeping kept during
+the first.
+\end{patternbox}
+
+\subsection*{The same-level subtlety}
+
+A naive BFS removes a word from the ``available'' set the instant it
+is reached, to avoid revisiting it. But for \textbf{counting all
+shortest paths}, two different words at the \emph{same} level might
+both be able to reach the same word at the \emph{next} level -- both
+of those connections are valid parts of some shortest path and must be
+recorded. So word removal must be \textbf{deferred until an entire
+level finishes processing}: only after every word at the current level
+has tried every substitution should the newly-discovered next-level
+words be removed from the available set.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item BFS level by level. For each word in the \textbf{current}
+        level, generate every single-character substitution; for each
+        one found in the available word set, record the current word
+        as one of its parents, and collect it into the \textbf{next}
+        level's word set (without removing it from the global
+        available set yet).
+  \item After the whole current level is processed, remove every
+        newly-collected next-level word from the global available set
+        (the deferred removal), then advance to the next level.
+  \item Stop as soon as $\textit{endWord}$ is found among the
+        newly-collected words for some level (the shortest distance is
+        confirmed, and no longer-path could still be shortest).
+  \item Backtrack from $\textit{endWord}$ via the parent map, using
+        DFS, collecting every path back to $\textit{beginWord}$, then
+        reverse each collected path.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void backtrack(string word, string& beginWord,
+               unordered_map<string, vector<string>>& parents,
+               vector<string>& path, vector<vector<string>>& result) {
+    path.push_back(word);
+    if (word == beginWord) {
+        vector<string> reversed(path.rbegin(), path.rend());
+        result.push_back(reversed);
+    } else {
+        for (string& parent : parents[word]) {
+            backtrack(parent, beginWord, parents, path, result);
+        }
+    }
+    path.pop_back();
+}
+
+vector<vector<string>> findLadders(string beginWord, string endWord,
+                                    vector<string>& wordList) {
+    unordered_set<string> available(wordList.begin(), wordList.end());
+    if (available.find(endWord) == available.end()) return {};
+
+    unordered_map<string, vector<string>> parents;
+    unordered_set<string> currentLevel = {beginWord};
+    available.erase(beginWord);
+    bool found = false;
+
+    while (!currentLevel.empty() && !found) {
+        unordered_set<string> nextLevel;
+
+        for (const string& word : currentLevel) {
+            string candidate = word;
+            for (int i = 0; i < (int)candidate.size(); i++) {
+                char original = candidate[i];
+                for (char c = 'a'; c <= 'z'; c++) {
+                    if (c == original) continue;
+                    candidate[i] = c;
+                    if (available.find(candidate) != available.end()) {
+                        nextLevel.insert(candidate);
+                        parents[candidate].push_back(word);
+                        if (candidate == endWord) found = true;
+                    }
+                }
+                candidate[i] = original;
+            }
+        }
+        for (const string& word : nextLevel) available.erase(word);
+        currentLevel = nextLevel;
+    }
+
+    vector<vector<string>> result;
+    if (found) {
+        vector<string> path;
+        backtrack(endWord, beginWord, parents, path, result);
+    }
+    return result;
+}
+
+int main() {
+    string beginWord = "hit", endWord = "cog";
+    vector<string> wordList = {"hot", "dot", "dog", "lot", "log", "cog"};
+    vector<vector<string>> ladders = findLadders(beginWord, endWord, wordList);
+    for (auto& path : ladders) {
+        for (string& w : path) cout << w << " ";
+        cout << endl;
+    }
+    // hit hot dot dog cog
+    // hit hot lot log cog
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Same input as Section~\ref{sec:graph-word-ladder-1}'s example.}
+
+Level $0$: $\{\texttt{hit}\}$. Level $1$: $\{\texttt{hot}\}$
+(\texttt{hit}'s only valid substitution), $\textit{parents}[\texttt{hot}]=[\texttt{hit}]$.
+Level $2$: from \texttt{hot}, both \texttt{dot} and \texttt{lot} match
+-- collected together as $\{\texttt{dot},\texttt{lot}\}$,
+$\textit{parents}[\texttt{dot}]=[\texttt{hot}]$,
+$\textit{parents}[\texttt{lot}]=[\texttt{hot}]$ (neither is removed
+from \textit{available} until \emph{both} are found, which is exactly
+the deferred-removal rule). Level $3$: from \texttt{dot}, \texttt{dog}
+matches; from \texttt{lot}, \texttt{log} matches --
+$\{\texttt{dog},\texttt{log}\}$. Level $4$: from \texttt{dog},
+\texttt{cog} matches ($\textit{found}=\texttt{true}$); from
+\texttt{log}, \texttt{cog} \emph{also} matches (still available, since
+removal happens only at the end of the level) --
+$\textit{parents}[\texttt{cog}]=[\texttt{dog},\texttt{log}]$.
+Backtracking from \texttt{cog}: two branches, through \texttt{dog} and
+through \texttt{log}, both leading back to \texttt{hit} -- exactly the
+two shortest ladders the code prints.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(N \cdot 26L^2)$ for the level-by-level BFS
+(same bound as Word Ladder I), plus time proportional to the total
+length of all reconstructed paths for the backtracking step.
+\textbf{Space Complexity.} $O(N \cdot L)$ for the parent map and word
+sets, plus the space needed to store every returned path.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This chapter closes on the same lesson Print LIS and Print LCS taught
+earlier in this book, now applied to an implicit graph: finding a
+shortest distance and enumerating \emph{every} path that achieves it
+are different problems, and the second one is solved by recording
+parent relationships \emph{during} the same traversal that finds the
+distance -- with one added wrinkle here, that ties at the same BFS
+level require deferring when those parent relationships are finalized.
+\end{takeawaybox}

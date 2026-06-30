@@ -1,0 +1,189 @@
+\section{Find Median from a Data Stream}
+\label{sec:heap-median-stream}
+
+\problemstatement{Design a structure supporting $\textit{addNum}(x)$,
+which adds an integer to a growing stream, and $\textit{findMedian}()$,
+which returns the median of all numbers added so far, at any point,
+efficiently after every insertion.}
+
+\begin{patternbox}
+\emph{``Running median, computed after every new element of a stream''}
+is the canonical trigger for the \textbf{two-heap} pattern flagged in
+Section~\ref{sec:heap-intro}: a median needs access to both ``the largest
+of the lower half'' and ``the smallest of the upper half'' of the data
+seen so far, and no single heap can offer both -- so we keep two heaps of
+opposite polarity, each covering one half, and keep them balanced.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If we maintain the invariant that all elements in a \textbf{max-heap}
+called \textit{lower} are $\le$ all elements in a \textbf{min-heap} called
+\textit{upper}, and that the two heaps' sizes differ by at most $1$, then:
+
+\begin{itemize}
+  \item If the total count is odd, the median is the top of whichever
+        heap has one more element than the other.
+  \item If the total count is even, the median is the average of
+        $\textit{lower}$'s top (the largest of the lower half) and
+        $\textit{upper}$'s top (the smallest of the upper half).
+\end{itemize}
+
+The entire problem reduces to maintaining this ``balanced split into a
+max-heap lower half and a min-heap upper half'' invariant after every
+insertion.
+
+\begin{ideabox}[Insertion Rule]
+On $\textit{addNum}(x)$: push $x$ into $\textit{lower}$ (the max-heap).
+Then, to preserve the ``everything in \textit{lower} is $\le$ everything in
+\textit{upper}'' invariant, pop $\textit{lower}$'s maximum and push it into
+$\textit{upper}$ (this guarantees the largest element currently in
+\textit{lower} is never larger than anything already confirmed to belong
+in the upper half). Finally, to preserve the size-balance invariant: if
+$\textit{upper}$ now has more elements than $\textit{lower}$, pop
+$\textit{upper}$'s minimum and push it back into $\textit{lower}$.
+\end{ideabox}
+
+\subsection*{Why pushing into \textit{lower} first, then shuffling, is correct}
+
+Always inserting $x$ into $\textit{lower}$ first (regardless of whether
+$x$ is actually a ``low'' or ``high'' value) and then immediately moving
+$\textit{lower}$'s current maximum into $\textit{upper}$ is a clean way to
+guarantee correctness without an explicit case split on where $x$ belongs:
+after this shuffle, $\textit{upper}$'s new minimum is exactly
+$\min(x, \text{old } \textit{upper}\text{'s minimum})$, and one can verify
+that whichever of these is smaller is correctly placed at the boundary,
+while $\textit{lower}$'s new maximum is whatever was second-largest among
+$\{x\} \cup \textit{lower}\text{'s old elements}$, preserving
+$\textit{lower} \le \textit{upper}$ throughout. The subsequent
+size-rebalancing step (moving one element back if \textit{upper} becomes
+too large) maintains the size-difference-at-most-$1$ invariant, which is
+exactly what makes the parity-based median formula above always correct.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{AddNum}($x$):
+  \begin{enumerate}
+    \item Push $x$ onto $\textit{lower}$ (max-heap).
+    \item Pop $\textit{lower}$'s max; push it onto $\textit{upper}$
+          (min-heap).
+    \item If $|\textit{upper}| > |\textit{lower}|$: pop $\textit{upper}$'s
+          min; push it back onto $\textit{lower}$.
+  \end{enumerate}
+  \item \textsc{FindMedian}():
+  \begin{enumerate}
+    \item If $|\textit{lower}| > |\textit{upper}|$: return
+          $\textit{lower}$'s top.
+    \item Else: return $(\textit{lower}\text{'s top} +
+          \textit{upper}\text{'s top}) / 2$.
+  \end{enumerate}
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Median Maintainer (Two Heaps)}
+\begin{algorithmic}[1]
+\Procedure{AddNum}{$x$}
+  \State push $x$ onto \textit{lower} (max-heap)
+  \State push (pop \textit{lower}) onto \textit{upper} (min-heap)
+  \If{$|\textit{upper}| > |\textit{lower}|$}
+    \State push (pop \textit{upper}) onto \textit{lower}
+  \EndIf
+\EndProcedure
+\Procedure{FindMedian}{}
+  \If{$|\textit{lower}| > |\textit{upper}|$} \Return top of \textit{lower}
+  \Else \Return $(\text{top of } \textit{lower} + \text{top of } \textit{upper}) / 2$ \EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Add $5, 15, 1, 3$ in order, checking the median after each.}
+
+\begin{itemize}
+  \item Add $5$: push to \textit{lower} $=\{5\}$. Pop max ($5$), push to
+        \textit{upper} $=\{5\}$. Now $|\textit{upper}|=1 >
+        |\textit{lower}|=0$: pop \textit{upper}'s min ($5$), push to
+        \textit{lower}. \textit{lower}$=\{5\}$, \textit{upper}$=\{\}$.
+        Median: $|\textit{lower}|>|\textit{upper}|$, so median $=5$.
+  \item Add $15$: push to \textit{lower}$=\{5,15\}$ (max-heap top $15$).
+        Pop max ($15$), push to \textit{upper}$=\{15\}$.
+        $|\textit{upper}|=1=|\textit{lower}|=1$, no rebalance needed.
+        Median: equal sizes, $(5+15)/2=10$.
+  \item Add $1$: push to \textit{lower}$=\{1,5\}$ (top $5$). Pop max
+        ($5$), push to \textit{upper}$=\{5,15\}$ (top $5$).
+        $|\textit{upper}|=2>|\textit{lower}|=1$: pop \textit{upper}'s min
+        ($5$), push to \textit{lower}$=\{1,5\}$ (top $5$).
+        \textit{upper}$=\{15\}$. Median: $|\textit{lower}|=2>
+        |\textit{upper}|=1$, median $=5$.
+  \item Add $3$: push to \textit{lower}$=\{1,3,5\}$ (top $5$). Pop max
+        ($5$), push to \textit{upper}$=\{5,15\}$ (top $5$).
+        $|\textit{upper}|=2=|\textit{lower}|=2$, no rebalance. Median:
+        equal sizes, $(\text{top of lower}=3 + \text{top of upper}=5)/2
+        =4$.
+\end{itemize}
+
+Checking by hand: after $[5,15,1,3]$, sorted is $[1,3,5,15]$, median
+$=(3+5)/2=4$. Correct.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class MedianFinder {
+    priority_queue<int> lower; // max-heap: lower half
+    priority_queue<int, vector<int>, greater<int>> upper; // min-heap: upper half
+
+public:
+    void addNum(int x) {
+        lower.push(x);
+        upper.push(lower.top());
+        lower.pop();
+
+        if (upper.size() > lower.size()) {
+            lower.push(upper.top());
+            upper.pop();
+        }
+    }
+
+    double findMedian() {
+        if (lower.size() > upper.size()) {
+            return lower.top();
+        }
+        return (lower.top() + upper.top()) / 2.0;
+    }
+};
+
+int main() {
+    MedianFinder mf;
+    for (int x : {5, 15, 1, 3}) {
+        mf.addNum(x);
+        cout << "Median after adding " << x << ": "
+             << mf.findMedian() << endl;
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each $\textit{addNum}$ performs a constant
+number of heap pushes and pops, each $O(\log n)$, giving
+\[
+  O(\log n) \text{ per insertion}, \qquad O(1) \text{ per median query}.
+\]
+\textbf{Space Complexity.} $O(n)$ to store all elements seen so far,
+split between the two heaps.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The two-heap pattern -- a max-heap for ``everything below the median'' and
+a min-heap for ``everything above,'' kept balanced in size -- is the
+standard way to maintain order statistics (median, or more generally any
+fixed percentile with a fixed split ratio) over a stream that only grows.
+Whenever a running statistic needs comparison to \emph{both} a lower and
+an upper neighborhood simultaneously, suspect this pattern before reaching
+for a single heap.
+\end{takeawaybox}

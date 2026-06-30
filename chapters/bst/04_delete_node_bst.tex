@@ -1,0 +1,170 @@
+\section{Delete a Node in a BST}
+\label{sec:bst-delete}
+
+\problemstatement{Given the root of a BST and a value $X$, delete the
+node with value $X$ (if present) and return the root of the resulting
+BST, which must still satisfy the BST invariant.}
+
+\begin{patternbox}
+\emph{``Delete from a BST''} is the hardest of the three basic operations
+because, unlike search or insert, the node being removed might be in the
+\textbf{middle} of the tree with two children that both need to stay
+connected to the rest of the tree somehow. The keyword to notice: deletion
+needs a \textbf{replacement value} that preserves the BST invariant, and
+Section~\ref{sec:bst-min-max}'s ``walk to the edge'' primitive is exactly
+what finds one.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+First, locate the node with value $X$ using the same walk as
+Section~\ref{sec:bst-search}. Once found, there are three structurally
+different cases:
+
+\begin{itemize}
+  \item \textbf{Leaf node (no children).} Simply remove it -- nothing
+        else needs to change.
+  \item \textbf{One child.} Replace the node with its single child --
+        the parent's pointer to this node is redirected to point at the
+        child instead, and the BST invariant is automatically preserved,
+        since that child's entire subtree already sat correctly on one
+        side of the now-removed node.
+  \item \textbf{Two children.} This is the hard case: we cannot just
+        remove the node, since that would disconnect two subtrees from
+        each other. Instead, find a \textbf{replacement value} that can
+        legally take this node's place -- the smallest value in the
+        right subtree (its inorder successor) or, symmetrically, the
+        largest value in the left subtree (its inorder predecessor) both
+        work. Copy that replacement value into the current node, then
+        recursively delete the replacement's \emph{original} location
+        from whichever subtree it came from (which, being an edge value
+        of that subtree, will only ever fall into the leaf or one-child
+        case, never back into the two-children case).
+\end{itemize}
+
+\begin{ideabox}[Two-Children Case: Borrow the Successor, Then Delete It Recursively]
+When deleting a node with two children, find its inorder successor (the
+minimum of its right subtree, found via Section~\ref{sec:bst-min-max}'s
+walk), copy that successor's value into the current node, and then
+recursively delete that same value from the right subtree -- which now
+contains a duplicate, but only temporarily, and the recursive delete call
+removes the original occurrence cleanly.
+\end{ideabox}
+
+\subsection*{Why borrowing the successor's value, then deleting it, is always correct}
+
+The inorder successor of a two-children node is, by definition, the
+smallest value strictly greater than the node's current value -- which
+means it is simultaneously larger than everything in the node's left
+subtree (since it's larger than the node itself) and smaller than or
+equal to everything else remaining in the right subtree (since it's the
+minimum of that subtree). So placing it directly into the current node's
+position preserves the BST invariant relative to both subtrees perfectly.
+And because the successor is the minimum of the right subtree, it has no
+left child (a node with a left child cannot be a subtree's minimum), so
+deleting its original location is guaranteed to fall into the simple
+leaf-or-one-child case, never recursing into another two-children
+scenario at that step.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the current node is null: return null ($X$ was not found;
+        nothing to delete).
+  \item If $X <$ current node's value: recurse left, reattach the
+        result.
+  \item If $X >$ current node's value: recurse right, reattach the
+        result.
+  \item Else (found the node to delete):
+  \begin{enumerate}
+    \item If it has no left child: return its right child (handles both
+          the leaf case and the one-right-child case).
+    \item If it has no right child: return its left child.
+    \item Otherwise (two children): find $\textit{successor} \gets$ the
+          minimum value in the right subtree. Set the current node's
+          value to $\textit{successor}$. Recursively delete
+          $\textit{successor}$ from the right subtree, and reattach the
+          result as the new right child.
+  \end{enumerate}
+  \item Return the (possibly updated) current node.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Delete $X=5$ from the BST with root $5$, left child $3$, right
+child $8$ (with left child $7$ and right child $9$).}
+
+At the root ($5=X$): two children present. Find successor: minimum of
+right subtree (rooted at $8$) is reached by walking left: $8 \to 7$ (no
+left child) -- successor is $7$. Set root's value to $7$. Recursively
+delete $7$ from the right subtree (rooted at $8$): at $8$, $7<8$, go
+left to $7$; at $7$ ($7=X$ for this recursive call), no children --
+return null, attach as $8$'s new left child.
+
+Resulting tree: root $7$, left child $3$, right child $8$ (now with no
+left child, right child $9$).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int findMin(TreeNode* root) {
+    while (root->left) root = root->left;
+    return root->val;
+}
+
+TreeNode* deleteNode(TreeNode* root, int X) {
+    if (root == nullptr) return nullptr;
+
+    if (X < root->val) {
+        root->left = deleteNode(root->left, X);
+    } else if (X > root->val) {
+        root->right = deleteNode(root->right, X);
+    } else {
+        if (root->left == nullptr) return root->right;
+        if (root->right == nullptr) return root->left;
+
+        int successor = findMin(root->right);
+        root->val = successor;
+        root->right = deleteNode(root->right, successor);
+    }
+    return root;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(5);
+    root->left = new TreeNode(3);
+    root->right = new TreeNode(8);
+    root->right->left = new TreeNode(7);
+    root->right->right = new TreeNode(9);
+
+    root = deleteNode(root, 5);
+    cout << "New root: " << root->val << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(h)$: at most one $O(h)$ walk to find the
+node, plus at most one more $O(h)$ walk to find and delete the successor
+in the two-children case.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The hard case of BST deletion is always solved the same way: borrow a
+boundary value (successor or predecessor) from the subtree that must stay
+connected, copy it up, then delete the boundary value's original location
+-- which is guaranteed to be an easy case by construction. This
+``borrow an edge value, then recursively clean up'' pattern is worth
+remembering as its own primitive, independent of the BST context.
+\end{takeawaybox}

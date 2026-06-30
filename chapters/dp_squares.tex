@@ -1,0 +1,34 @@
+\chapter{Dynamic Programming: DP on Squares in a Matrix}
+\chapterepigraph{This closing chapter asks one last question about a
+binary matrix: how large a square (or rectangle) of all ones can be
+found, anchored at each cell? Once a cell knows the best answer for
+its neighbors above, left, and diagonally above-left, it can answer for
+itself in one comparison -- no search over a range required.}
+
+\section{The Three-Neighbor Square DP}
+\label{sec:dp-squares-intro}
+
+The defining recurrence of this chapter looks at exactly three already-computed
+neighbors -- directly above, directly left, and diagonally above-left --
+and takes their minimum: a square of all ones can only be extended by
+one row and one column simultaneously if \emph{all three} of those
+smaller squares already existed.
+
+\begin{patternbox}[The Two Problems in This Chapter]
+\begin{itemize}
+  \item \textbf{Count Square Submatrices with All Ones (Section~\ref{sec:dp-count-square-submatrices})}:
+        the three-neighbor-minimum recurrence directly, summed over
+        every cell.
+  \item \textbf{Maximal Rectangle (Section~\ref{sec:dp-maximal-rectangle})}:
+        a related but distinct DP -- computing, for each cell, the
+        height of consecutive ones \emph{above} it (a simple 1D
+        recurrence per column), which then feeds into the largest-
+        rectangle-in-a-histogram technique already developed in the
+        Stack and Queue chapter.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/dp_squares/01_count_square_submatrices.tex}
+\input{chapters/dp_squares/02_maximal_rectangle.tex}

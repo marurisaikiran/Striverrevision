@@ -1,0 +1,161 @@
+\section{Implement Trie (Insert, Search, StartsWith)}
+\label{sec:trie-implement}
+
+\problemstatement{Implement a trie supporting $\textit{insert}(word)$,
+$\textit{search}(word)$ (returns true only if $word$ was previously
+inserted as a \emph{complete} word), and $\textit{startsWith}(prefix)$
+(returns true if any inserted word begins with $prefix$).}
+
+\begin{patternbox}
+This is the foundational trie, with no special twist -- the rest of this
+chapter builds directly on the node structure and walk logic derived
+here. The one subtlety worth flagging immediately: $\textit{search}$ and
+$\textit{startsWith}$ use the \emph{same} walk, differing only in what
+they check once the walk finishes.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Each trie node represents one character position along some prefix, and
+holds up to $26$ child pointers (one per lowercase letter, say), plus a
+boolean flag marking whether a complete inserted word \emph{ends} exactly
+at this node. Walking a string through the trie, one character at a
+time, either follows existing child pointers (if a previous word shares
+this prefix) or creates new nodes (during insertion, for the first word
+to diverge here).
+
+\begin{ideabox}[One Walk, Three Different Endings]
+$\textit{insert}(word)$: starting at the root, for each character,
+create the corresponding child if it does not yet exist, then move into
+it; after the last character, mark the final node's end-of-word flag.
+$\textit{search}(word)$: walk the same way, but if any required child is
+missing, return false immediately; after the last character, return
+whether the final node's end-of-word flag is set (not just whether the
+path exists -- $word$ might only be a \emph{prefix} of something
+inserted, not itself a complete inserted word). $\textit{startsWith}
+(prefix)$: identical walk, but return true as soon as the path exists in
+full, regardless of the end-of-word flag.
+\end{ideabox}
+
+\subsection*{Why search must check the end-of-word flag but startsWith must not}
+
+This is the one place a careless implementation typically goes wrong: if
+only ``apple'' has been inserted, then $\textit{search}(\text{"app"})$
+must return \texttt{false} (``app'' was never inserted as a complete
+word, even though it is a valid path in the trie), while
+$\textit{startsWith}(\text{"app"})$ must return \texttt{true} (something
+inserted does begin with ``app''). The trie's path existing is necessary
+but not sufficient for $\textit{search}$ -- it additionally needs the
+explicit end-of-word marker, which is exactly the piece of information
+$\textit{startsWith}$ does not need to check at all.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Insert}($word$): $\textit{node} \gets \textit{root}$.
+        For each character $c$ in $word$: if $\textit{node}$ has no
+        child $c$, create one; move $\textit{node}$ into child $c$.
+        Mark $\textit{node}.\textit{isEnd} \gets \text{true}$.
+  \item \textsc{Search}($word$): walk as above; if any required child
+        is missing, return false; otherwise return
+        $\textit{node}.\textit{isEnd}$.
+  \item \textsc{StartsWith}($prefix$): walk as above; return true if the
+        full walk succeeds (regardless of $\textit{isEnd}$), false if any
+        child is missing.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Insert \texttt{"apple"}. Query \textit{search}(\texttt{"app"}),
+\textit{startsWith}(\texttt{"app"}), \textit{search}(\texttt{"apple"}).}
+
+\begin{itemize}
+  \item Insert \texttt{"apple"}: creates a path of $5$ nodes,
+        $a\to p\to p\to l\to e$, marking only the final ($e$) node's
+        $\textit{isEnd}$ flag.
+  \item $\textit{search}(\texttt{"app"})$: path $a\to p\to p$ exists,
+        but that node's $\textit{isEnd}$ is false (only the $e$ node at
+        the end of ``apple'' has it set). Returns \texttt{false}.
+  \item $\textit{startsWith}(\texttt{"app"})$: path exists, so returns
+        \texttt{true}, regardless of the flag.
+  \item $\textit{search}(\texttt{"apple"})$: path exists and the final
+        node's $\textit{isEnd}$ is true. Returns \texttt{true}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TrieNode {
+    TrieNode* children[26] = {nullptr};
+    bool isEnd = false;
+};
+
+class Trie {
+    TrieNode* root;
+
+public:
+    Trie() { root = new TrieNode(); }
+
+    void insert(string word) {
+        TrieNode* node = root;
+        for (char c : word) {
+            int idx = c - 'a';
+            if (!node->children[idx]) node->children[idx] = new TrieNode();
+            node = node->children[idx];
+        }
+        node->isEnd = true;
+    }
+
+    bool search(string word) {
+        TrieNode* node = root;
+        for (char c : word) {
+            int idx = c - 'a';
+            if (!node->children[idx]) return false;
+            node = node->children[idx];
+        }
+        return node->isEnd;
+    }
+
+    bool startsWith(string prefix) {
+        TrieNode* node = root;
+        for (char c : prefix) {
+            int idx = c - 'a';
+            if (!node->children[idx]) return false;
+            node = node->children[idx];
+        }
+        return true;
+    }
+};
+
+int main() {
+    Trie trie;
+    trie.insert("apple");
+    cout << trie.search("app") << endl;       // 0 (false)
+    cout << trie.startsWith("app") << endl;   // 1 (true)
+    cout << trie.search("apple") << endl;     // 1 (true)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(L)$ for each operation, where $L$ is the
+length of the word/prefix involved -- independent of how many other
+words are stored in the trie.
+\textbf{Space Complexity.} $O(\Sigma \cdot N)$ in the worst case, where
+$N$ is the total number of characters inserted across all words and
+$\Sigma$ is the alphabet size (each node reserves space for all $26$
+possible children, whether used or not); shared prefixes reduce this in
+practice.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The entire chapter's machinery is this one node structure (a fixed-size
+child array plus an end marker) and this one walk (follow or create
+children, one character at a time). Every later section either adds more
+annotations to each node (counts, in
+Section~\ref{sec:trie-implement-2}) or changes what ``character'' means
+(bits, in Sections~\ref{sec:trie-max-xor}--\ref{sec:trie-max-xor-query}).
+\end{takeawaybox}

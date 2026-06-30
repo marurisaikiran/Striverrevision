@@ -1,0 +1,241 @@
+\section{Wildcard Matching}
+\label{sec:dp-wildcard-matching}
+
+\problemstatement{Given a string $s$ and a pattern $p$ containing
+literal characters, \texttt{'?'} (matches any \textbf{single}
+character), and \texttt{'*'} (matches any sequence of characters,
+\textbf{including the empty sequence}), determine whether $p$ matches
+$s$ \textbf{entirely}.}
+
+\begin{patternbox}
+This closing problem of the chapter is a deliberate capstone: it returns
+to Section~\ref{sec:dp-lcs}'s match/mismatch two-pointer table, but the
+``match'' condition is now governed by \textbf{pattern syntax}
+(literal, \texttt{?}, or \texttt{*}) rather than simple character
+equality, and \texttt{*} specifically introduces a branching choice
+(match zero characters, or match one more) reminiscent of the unbounded
+knapsack family's ``stay at the same index'' rule from earlier in this
+book.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(i,j)$ be \texttt{true} if $s[0..i-1]$ (length $i$) matches
+$p[0..j-1]$ (length $j$). Branch on $p[j-1]$:
+
+\begin{itemize}
+  \item If $p[j-1]$ is a literal character: it must equal $s[i-1]$
+        exactly (so $i>0$ is required), and the rest must match:
+        $f(i,j) = (i>0) \land (s[i{-}1]=p[j{-}1]) \land f(i{-}1,j{-}1)$.
+  \item If $p[j-1] = \texttt{'?'}$: it matches any single character of
+        $s$ (so $i>0$ is required, but no equality check):
+        $f(i,j) = (i>0) \land f(i{-}1,j{-}1)$.
+  \item If $p[j-1] = \texttt{'*'}$: it may match \textbf{zero}
+        characters of $s$ (so the rest of $p$ must match all of $s$ so
+        far: $f(i,j{-}1)$), \textbf{or} it may match \textbf{one more}
+        character of $s$ while remaining available to match further
+        characters too (so $i>0$ is required: $f(i{-}1,j)$). Either
+        possibility is acceptable:
+        $f(i,j) = f(i,j{-}1) \lor \big((i>0) \land f(i{-}1,j)\big)$.
+\end{itemize}
+
+Base cases: $f(0,0) = \texttt{true}$ (empty pattern matches empty
+string). $f(0,j)$ for $j>0$: \texttt{true} only if $p[0..j-1]$ consists
+\emph{entirely} of \texttt{'*'} characters (each can independently match
+zero characters, collapsing the whole prefix to nothing).
+$f(i,0)$ for $i>0$: always \texttt{false} (a non-empty string cannot be
+matched by an empty pattern).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool wildcardRecursive(int i, int j, string& s, string& p) {
+    if (i == 0 && j == 0) return true;
+    if (j == 0) return false; // i > 0 here
+    if (i == 0) {
+        // s is empty: only matches if remaining pattern is all '*'
+        for (int k = 0; k < j; k++) if (p[k] != '*') return false;
+        return true;
+    }
+
+    if (p[j - 1] == '*') {
+        return wildcardRecursive(i, j - 1, s, p) ||
+               wildcardRecursive(i - 1, j, s, p);
+    }
+    if (p[j - 1] == '?' || p[j - 1] == s[i - 1]) {
+        return wildcardRecursive(i - 1, j - 1, s, p);
+    }
+    return false;
+}
+
+int main() {
+    string s = "aa", p = "*";
+    cout << (wildcardRecursive(s.size(), p.size(), s, p) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^{n+m})$ in the worst case -- two branches per
+\texttt{'*'} encountered.
+\textbf{Space.} $O(n+m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int wildcardMemo(int i, int j, string& s, string& p,
+                  vector<vector<int>>& memo) {
+    if (i == 0 && j == 0) return 1;
+    if (j == 0) return 0;
+    if (i == 0) {
+        for (int k = 0; k < j; k++) if (p[k] != '*') return 0;
+        return 1;
+    }
+    if (memo[i][j] != -1) return memo[i][j];
+
+    bool result;
+    if (p[j - 1] == '*') {
+        result = wildcardMemo(i, j - 1, s, p, memo) ||
+                  wildcardMemo(i - 1, j, s, p, memo);
+    } else if (p[j - 1] == '?' || p[j - 1] == s[i - 1]) {
+        result = wildcardMemo(i - 1, j - 1, s, p, memo);
+    } else {
+        result = false;
+    }
+    return memo[i][j] = result;
+}
+
+int main() {
+    string s = "adceb", p = "*a*b";
+    int n = s.size(), m = p.size();
+    vector<vector<int>> memo(n + 1, vector<int>(m + 1, -1));
+    cout << (wildcardMemo(n, m, s, p, memo) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ memo $+$ $O(n+m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool wildcardTabulation(string& s, string& p) {
+    int n = s.size(), m = p.size();
+    vector<vector<bool>> dp(n + 1, vector<bool>(m + 1, false));
+    dp[0][0] = true;
+
+    for (int j = 1; j <= m; j++) {
+        bool allStars = true;
+        for (int k = 0; k < j; k++) if (p[k] != '*') { allStars = false; break; }
+        dp[0][j] = allStars;
+    }
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (p[j - 1] == '*') {
+                dp[i][j] = dp[i][j - 1] || dp[i - 1][j];
+            } else if (p[j - 1] == '?' || p[j - 1] == s[i - 1]) {
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = false;
+            }
+        }
+    }
+    return dp[n][m];
+}
+
+int main() {
+    string s = "adceb", p = "*a*b";
+    cout << (wildcardTabulation(s, p) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $s = \texttt{"adceb"}$, $p = \texttt{"*a*b"}$.}
+
+Row $0$ ($s$ empty): $\textit{dp}[0][0]=\text{T}$;
+$\textit{dp}[0][1]=\text{T}$ (\texttt{"*"} matches empty);
+$\textit{dp}[0][2..4]=\text{F}$ (prefix \texttt{"*a"} etc.\ contain a
+non-\texttt{*} character, so cannot match the empty string). Filling
+forward: the first \texttt{*} absorbs \texttt{"adc"}, matching the
+literal \texttt{a} against the \texttt{a} in \texttt{"adceb"}, the
+second \texttt{*} absorbs nothing further, and the literal \texttt{b}
+matches the trailing \texttt{b}. The final cell
+$\textit{dp}[5][4]=\text{T}$, confirming the match.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool wildcardSpaceOptimized(string& s, string& p) {
+    int n = s.size(), m = p.size();
+    vector<bool> prev(m + 1, false), current(m + 1, false);
+    prev[0] = true;
+
+    for (int j = 1; j <= m; j++) {
+        bool allStars = true;
+        for (int k = 0; k < j; k++) if (p[k] != '*') { allStars = false; break; }
+        prev[j] = allStars;
+    }
+
+    for (int i = 1; i <= n; i++) {
+        current[0] = false;
+        for (int j = 1; j <= m; j++) {
+            if (p[j - 1] == '*') {
+                current[j] = current[j - 1] || prev[j];
+            } else if (p[j - 1] == '?' || p[j - 1] == s[i - 1]) {
+                current[j] = prev[j - 1];
+            } else {
+                current[j] = false;
+            }
+        }
+        prev = current;
+    }
+    return prev[m];
+}
+
+int main() {
+    string s = "adceb", p = "*a*b";
+    cout << (wildcardSpaceOptimized(s, p) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(m)$ for two rolling rows.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This chapter closes by combining two of its biggest ideas: the
+match/mismatch two-pointer table from Section~\ref{sec:dp-lcs}, and a
+branching ``match zero or match one more'' choice for \texttt{*}
+strongly reminiscent of the unbounded-knapsack reuse rule from the DP on
+Subsequences chapter. Recognizing that a special pattern character
+introduces exactly this same kind of ``stay and try again'' branch is
+the key insight that unlocks Wildcard Matching (and its sibling,
+Regular Expression Matching, solved by an almost identical table) without
+needing an entirely new derivation strategy.
+\end{takeawaybox}

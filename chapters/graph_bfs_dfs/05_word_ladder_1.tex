@@ -1,0 +1,124 @@
+\section{Word Ladder I}
+\label{sec:graph-word-ladder-1}
+
+\problemstatement{Given a $\textit{beginWord}$, an $\textit{endWord}$,
+and a $\textit{wordList}$, find the length of the \textbf{shortest}
+transformation sequence from $\textit{beginWord}$ to
+$\textit{endWord}$, changing exactly one letter at a time, where every
+intermediate word must exist in $\textit{wordList}$. Return $0$ if no
+such sequence exists.}
+
+\begin{patternbox}
+\emph{``Shortest sequence of single-character transformations''} is
+shortest-path-in-an-unweighted-graph -- exactly what BFS computes --
+but the graph is entirely \textbf{implicit}: there is no adjacency
+list. A word's neighbors are generated on the fly by trying every
+possible single-character substitution at every position and checking
+whether the result is a valid word in the list.
+\end{patternbox}
+
+\subsection*{Generating neighbors on the fly}
+
+For a word of length $L$ using a 26-letter alphabet, there are
+$26L$ candidate single-character substitutions to try at each step.
+Each candidate is checked against a hash set of valid words (built
+from $\textit{wordList}$) in $O(L)$ (for the hash and string
+comparison) -- so generating all neighbors of one word costs
+$O(26L^2)$, in place of looking up a precomputed adjacency list.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build a hash set from $\textit{wordList}$ for $O(1)$-ish
+        membership checks (and remove words from the set as they are
+        used, which serves as the \textit{visited} marker).
+  \item BFS from $\textit{beginWord}$, tracking the transformation
+        count alongside each word in the queue.
+  \item For each word popped, try every single-character substitution
+        at every position; if the result is in the set, it's a valid
+        next step -- remove it from the set (mark visited) and push it
+        with count $+1$. If the result equals $\textit{endWord}$,
+        return the count $+1$ immediately.
+  \item If the queue empties without reaching $\textit{endWord}$,
+        return $0$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int ladderLength(string beginWord, string endWord, vector<string>& wordList) {
+    unordered_set<string> words(wordList.begin(), wordList.end());
+    if (words.find(endWord) == words.end()) return 0;
+
+    queue<pair<string,int>> q;
+    q.push({beginWord, 1});
+    words.erase(beginWord);
+
+    while (!q.empty()) {
+        auto [word, steps] = q.front();
+        q.pop();
+
+        if (word == endWord) return steps;
+
+        for (int i = 0; i < (int)word.size(); i++) {
+            char original = word[i];
+            for (char c = 'a'; c <= 'z'; c++) {
+                if (c == original) continue;
+                word[i] = c;
+                if (words.find(word) != words.end()) {
+                    words.erase(word);
+                    q.push({word, steps + 1});
+                }
+            }
+            word[i] = original;
+        }
+    }
+    return 0;
+}
+
+int main() {
+    string beginWord = "hit", endWord = "cog";
+    vector<string> wordList = {"hot", "dot", "dog", "lot", "log", "cog"};
+    cout << ladderLength(beginWord, endWord, wordList) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{beginWord}=\texttt{"hit"}$,
+$\textit{endWord}=\texttt{"cog"}$,
+$\textit{wordList}=\{\texttt{hot,dot,dog,lot,log,cog}\}$.}
+
+Queue: $[(\texttt{hit},1)]$. Pop \texttt{hit}: trying all
+substitutions, \texttt{hot} matches (set has it); push
+$(\texttt{hot},2)$, erase \texttt{hot}. Pop \texttt{hot}: substitutions
+\texttt{dot} and \texttt{lot} both match; push
+$(\texttt{dot},3),(\texttt{lot},3)$. Pop \texttt{dot}: \texttt{dog}
+matches; push $(\texttt{dog},4)$. Pop \texttt{lot}: \texttt{log}
+matches; push $(\texttt{log},4)$. Pop \texttt{dog}: \texttt{cog}
+matches; push $(\texttt{cog},5)$. Pop \texttt{log}: \texttt{cog}
+already erased from the set (claimed by \texttt{dog}'s expansion),
+nothing new. Pop \texttt{cog}: $\texttt{word}=\textit{endWord}$,
+return $5$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(N \cdot 26L^2)$, where $N$ is the number
+of words and $L$ is word length -- each of up to $N$ words is popped
+once, and generating + checking its $26L$ candidate substitutions costs
+$O(26L^2)$ (the $L$ factor from string copying/hashing each candidate).
+\textbf{Space Complexity.} $O(N \cdot L)$ for the word set and the
+queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem's ``graph'' has no explicit edge list and instead
+defines adjacency through some transformation rule (here, single-character
+substitution), generate neighbors on demand inside the BFS loop rather
+than trying to materialize the whole graph up front -- the BFS
+structure itself is completely unchanged from the explicit-adjacency-list
+case.
+\end{takeawaybox}

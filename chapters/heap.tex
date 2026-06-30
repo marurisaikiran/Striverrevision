@@ -1,0 +1,95 @@
+\chapter{Heaps}
+\chapterepigraph{A heap does not know the full order of its elements, and
+it does not need to. It only ever promises one thing: the element at the
+root is the best (smallest, or largest) of everything currently inside --
+and that single promise, maintained cheaply after every insertion and
+removal, is enough to power an entire family of ``best/kth/top'' problems.}
+
+\section{What Is a Heap, Really?}
+\label{sec:heap-intro}
+
+A \textbf{heap} (also called a \textbf{priority queue} when discussed in
+terms of its interface rather than its array-based implementation) is a
+tree-shaped data structure, almost always stored compactly in a plain
+array, that maintains one structural invariant: in a \textbf{min-heap},
+every node's value is $\le$ the values of its children; in a
+\textbf{max-heap}, every node's value is $\ge$ the values of its children.
+This invariant is weaker than full sortedness -- a heap does not know the
+relative order of two sibling subtrees -- but it is exactly strong enough
+to guarantee that the root is always the minimum (or maximum) of the whole
+structure, and that this root can be removed and the invariant restored in
+$O(\log n)$ time.
+
+\begin{ideabox}[The Three Operations That Power Everything in This Chapter]
+\begin{itemize}
+  \item $\textit{push}(x)$: insert $x$ at the next free array slot, then
+        \emph{sift up} -- repeatedly swap it with its parent while it
+        violates the heap invariant relative to that parent. Cost:
+        $O(\log n)$.
+  \item $\textit{pop}()$: read the root (the answer), move the last
+        element into the root's slot, shrink the array by one, then
+        \emph{sift down} -- repeatedly swap the new root with whichever
+        child violates the invariant most, until the invariant holds
+        again. Cost: $O(\log n)$.
+  \item $\textit{top}()$: read the root without removing it. Cost: $O(1)$.
+\end{itemize}
+Every problem in this chapter is, underneath, a creative use of just these
+three operations.
+\end{ideabox}
+
+\subsection*{How to Recognise a Heap Problem from Its Wording}
+
+\begin{patternbox}[Recurring Heap Keywords]
+\begin{itemize}
+  \item \textbf{``Kth largest/smallest''} -- maintain a heap of size $k$
+        of the opposite polarity (a min-heap of size $k$ for ``$k$th
+        largest,'' so the root is the worst of your current top-$k$, ready
+        to be evicted the instant something better arrives).
+  \item \textbf{``Top $k$ frequent/most/best''} -- the same size-$k$ heap
+        trick, ranked by a derived key (frequency, sum, distance) rather
+        than the raw value.
+  \item \textbf{``Merge $k$ sorted ...''} -- a heap holding one
+        ``current head'' candidate from each of the $k$ sources at a time,
+        repeatedly popping the smallest and pushing that source's next
+        element.
+  \item \textbf{``Running/streaming median, or any other running
+        statistic that needs both a top half and a bottom half''} -- two
+        heaps, one min-heap and one max-heap, used together as a
+        self-balancing pair.
+  \item \textbf{``Schedule/group/connect with a cost or cooldown that
+        always prefers the largest (or smallest) remaining item first''}
+        -- a single heap used as a perpetually-resorted greedy priority
+        queue, replacing what would otherwise require re-sorting after
+        every step.
+\end{itemize}
+Whenever brute force would require repeatedly finding ``the current
+best/worst remaining element'' after the underlying collection keeps
+changing, a heap is almost always the efficient replacement for ``sort
+again from scratch every time.''
+\end{patternbox}
+
+Each section in this chapter follows the same structure as the rest of
+this book: the problem statement and its keywords; the reasoning that
+identifies which heap (or pair of heaps) to use and why; the algorithm in
+words and in formal pseudocode; a hand-traced dry run; complete compilable
+C++ code (using \texttt{std::priority\_queue} throughout, since that is
+what production C++ code -- and nearly every interview answer -- actually
+uses); and a time/space complexity analysis.
+
+\newpage
+
+\input{chapters/heap/01_implement_min_heap.tex}
+\input{chapters/heap/02_check_array_is_heap.tex}
+\input{chapters/heap/03_min_heap_to_max_heap.tex}
+\input{chapters/heap/04_kth_largest_element.tex}
+\input{chapters/heap/05_kth_smallest_element.tex}
+\input{chapters/heap/06_hand_of_straights.tex}
+\input{chapters/heap/07_merge_k_sorted_lists.tex}
+\input{chapters/heap/08_replace_elements_by_rank.tex}
+\input{chapters/heap/09_task_scheduler.tex}
+\input{chapters/heap/10_design_twitter.tex}
+\input{chapters/heap/11_find_median_data_stream.tex}
+\input{chapters/heap/12_kth_largest_stream.tex}
+\input{chapters/heap/13_maximum_sum_combination.tex}
+\input{chapters/heap/14_minimum_cost_connect_sticks.tex}
+\input{chapters/heap/15_top_k_frequent.tex}

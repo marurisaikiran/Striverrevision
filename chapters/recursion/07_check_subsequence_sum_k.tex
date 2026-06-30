@@ -1,0 +1,130 @@
+\section{Check if There Exists a Subsequence with Sum K}
+\label{sec:rec-check-subsequence-sum-k}
+
+\problemstatement{Given an array $\textit{arr}$ and an integer $k$,
+determine whether \textbf{any} subsequence of $\textit{arr}$ sums to
+exactly $k$.}
+
+\begin{patternbox}
+This is Section~\ref{sec:rec-power-set}'s pick/not-pick tree, but the
+question changes from \emph{``generate every subsequence''} to
+\emph{``does at least one satisfy a condition.''} Whenever a backtracking
+problem only needs a yes/no answer (rather than every solution), the
+recursion should \textbf{stop exploring the instant an answer is found}
+-- there is no need to generate the other $2^n-1$ subsequences once one
+of them has already confirmed the answer is ``yes.''
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Instead of building and recording a list at every leaf, track a running
+sum as the pick/not-pick decisions are made, and check it only once
+every element has been decided (at the base case). The function should
+return a boolean, and -- critically -- the moment either branch reports
+\texttt{true}, the calling level should return \texttt{true} immediately
+without bothering to explore the other branch at all.
+
+\begin{ideabox}[Same Tree, but Short-Circuit on Success]
+$\textsc{Exists}(\textit{index}, \textit{sum})$: if
+$\textit{index} = n$: return $(\textit{sum} = k)$. Otherwise: if
+$\textsc{Exists}(\textit{index}+1, \textit{sum} +
+\textit{arr}[\textit{index}])$ (the pick branch) is \texttt{true}, return
+\texttt{true} immediately without checking the not-pick branch at all.
+Otherwise, return $\textsc{Exists}(\textit{index}+1, \textit{sum})$ (the
+not-pick branch) directly as this call's result.
+\end{ideabox}
+
+\subsection*{Why short-circuiting never misses a valid answer}
+
+We only need to know whether \emph{some} subsequence achieves sum $k$ --
+not which one, nor how many do. The moment the pick branch reports
+success, we already have a definitive ``yes'' for the overall question,
+and continuing to explore the not-pick branch (or any other untried
+branch) could only ever confirm the same ``yes'' again, never change it
+to a ``no.'' Skipping that redundant exploration is therefore always
+safe, and in the best case it can save an enormous amount of work,
+since a successful subsequence might be found very early in the
+traversal while the vast majority of the $2^n$ possibilities are never
+even visited.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Exists}(\textit{index}, \textit{sum})$:
+  \begin{enumerate}
+    \item If $\textit{index} = n$: return $(\textit{sum} = k)$.
+    \item If $\textsc{Exists}(\textit{index}+1, \textit{sum} +
+          \textit{arr}[\textit{index}])$: return \texttt{true}.
+    \item Return $\textsc{Exists}(\textit{index}+1, \textit{sum})$.
+  \end{enumerate}
+  \item Call $\textsc{Exists}(0, 0)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,2,3]$, $k=5$.}
+
+\begin{itemize}
+  \item $\textsc{Exists}(0,0)$: pick $1$: $\textsc{Exists}(1,1)$.
+  \item $\textsc{Exists}(1,1)$: pick $2$: $\textsc{Exists}(2,3)$.
+  \item $\textsc{Exists}(2,3)$: pick $3$: $\textsc{Exists}(3,6)$: base
+        case, $6 \ne 5$, return \texttt{false}. Not-pick $3$:
+        $\textsc{Exists}(3,3)$: base case, $3 \ne 5$, return
+        \texttt{false}. So $\textsc{Exists}(2,3)$ returns
+        \texttt{false}.
+  \item Back in $\textsc{Exists}(1,1)$: pick branch was \texttt{false},
+        try not-pick $2$: $\textsc{Exists}(2,1)$: pick $3$:
+        $\textsc{Exists}(3,4)$: base, $4 \ne 5$, false. Not-pick $3$:
+        $\textsc{Exists}(3,1)$: base, $1\ne5$, false. So
+        $\textsc{Exists}(2,1)$ is false, and $\textsc{Exists}(1,1)$ is
+        false.
+  \item Back in $\textsc{Exists}(0,0)$: pick branch was \texttt{false},
+        try not-pick $1$: $\textsc{Exists}(1,0)$: pick $2$:
+        $\textsc{Exists}(2,2)$: pick $3$: $\textsc{Exists}(3,5)$: base,
+        $5=5$! Return \texttt{true}. This propagates straight back up:
+        $\textsc{Exists}(2,2)$ returns \texttt{true} immediately (no
+        need to check not-pick $3$); $\textsc{Exists}(1,0)$ returns
+        \texttt{true} immediately; $\textsc{Exists}(0,0)$ returns
+        \texttt{true}.
+\end{itemize}
+
+The answer is \texttt{true}: the subsequence $\{2,3\}$ sums to $5$, and
+the recursion stopped exploring further branches the instant it was
+found.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool exists(int index, int sum, vector<int>& arr, int k) {
+    if (index == (int)arr.size()) return sum == k;
+
+    if (exists(index + 1, sum + arr[index], arr, k)) return true;
+    return exists(index + 1, sum, arr, k);
+}
+
+int main() {
+    vector<int> arr = {1, 2, 3};
+    cout << (exists(0, 0, arr, 5) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n)$ in the worst case (no qualifying
+subsequence exists, so every branch must be explored), but often much
+faster in practice due to short-circuiting on the first success.
+\textbf{Space Complexity.} $O(n)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Does there exist'' questions should always short-circuit the moment a
+valid answer is found -- propagate a \texttt{true} result immediately up
+through every level of the recursion, skipping any sibling branch that
+has not yet been explored. This is a small but important variation on
+the pick/not-pick template: the same tree shape, but with an early-exit
+discipline that the ``generate everything'' version of
+Section~\ref{sec:rec-power-set} does not need.
+\end{takeawaybox}

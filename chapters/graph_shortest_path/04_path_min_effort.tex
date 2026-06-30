@@ -1,0 +1,121 @@
+\section{Path With Minimum Effort}
+\label{sec:graph-path-min-effort}
+
+\problemstatement{Given a 2D grid of heights, find a path from the
+top-left cell to the bottom-right cell (moving $4$-directionally)
+that minimizes the \textbf{effort} of the path, where a path's effort
+is defined as the \textbf{maximum} absolute height difference between
+any two consecutive cells along it.}
+
+\begin{patternbox}
+\emph{``Minimize the maximum edge weight along a path''} (a
+\textbf{minimax path}) is solved with the exact same frontier-expansion
+machinery as Section~\ref{sec:graph-dijkstra}'s Dijkstra, with one
+change: the quantity tracked and relaxed is no longer a
+\textbf{sum} of edge weights, but the \textbf{running maximum} edge
+weight seen so far along the path.
+\end{patternbox}
+
+\subsection*{Adapting the relaxation rule}
+
+Let $\textit{effort}[\textit{cell}]$ be the minimum possible
+``maximum height difference'' achievable on some path from the start
+to $\textit{cell}$. Moving from $u$ to a neighbor $v$, the effort of
+extending that path is $\max(\textit{effort}[u],
+|\textit{height}[v]-\textit{height}[u]|)$ -- not
+$\textit{effort}[u] + |\textit{height}[v]-\textit{height}[u]|$, since a
+path's effort is its single worst step, not an accumulated total. The
+relaxation check becomes: if this candidate effort is
+\textbf{smaller} than the currently known $\textit{effort}[v]$, update
+and push.
+
+\subsection*{Why Dijkstra's greedy-frontier property still applies}
+
+The same correctness argument from Section~\ref{sec:graph-dijkstra}
+carries over unchanged: popping the cell with the smallest known
+effort from the priority queue guarantees that effort is final,
+because every alternative path to it would have to pass through a
+cell with effort $\ge$ the popped value, and taking the
+$\max$ with any additional step can only keep the running effort the
+same or increase it -- never decrease it. This ``can only stay the
+same or grow'' property is the minimax analogue of Dijkstra's
+``non-negative weights only add'' requirement.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int minimumEffortPath(vector<vector<int>>& heights) {
+    int rows = heights.size(), cols = heights[0].size();
+    vector<vector<int>> effort(rows, vector<int>(cols, INT_MAX));
+    effort[0][0] = 0;
+
+    priority_queue<tuple<int,int,int>, vector<tuple<int,int,int>>, greater<>> pq;
+    pq.push({0, 0, 0}); // {effort, row, col}
+
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    while (!pq.empty()) {
+        auto [e, r, c] = pq.top();
+        pq.pop();
+        if (e > effort[r][c]) continue;
+        if (r == rows - 1 && c == cols - 1) return e;
+
+        for (int dir = 0; dir < 4; dir++) {
+            int nr = r + dr[dir], nc = c + dc[dir];
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                int candidate = max(e, abs(heights[nr][nc] - heights[r][c]));
+                if (candidate < effort[nr][nc]) {
+                    effort[nr][nc] = candidate;
+                    pq.push({candidate, nr, nc});
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+int main() {
+    vector<vector<int>> heights = {
+        {1, 2, 2},
+        {3, 8, 2},
+        {5, 3, 5}
+    };
+    cout << minimumEffortPath(heights) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $3\times3$ heights grid above.}
+
+The path $(0,0)\to(0,1)\to(0,2)\to(1,2)\to(2,2)$ has consecutive
+differences $|2{-}1|=1$, $|2{-}2|=0$, $|2{-}2|=0$, $|5{-}2|=3$ --
+effort $3$. A better path,
+$(0,0)\to(1,0)\to(2,0)\to(2,1)\to(2,2)$, has differences
+$|3{-}1|=2$, $|5{-}3|=2$, $|3{-}5|=2$, $|5{-}3|=2$ -- effort $2$,
+worse on individual steps but capped lower overall. Dijkstra's
+frontier expansion explores cells in increasing order of their best
+known effort, popping $(2,2)$ (the destination) only once its true
+minimum effort, $2$, has been finalized.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\textit{rows} \cdot \textit{cols} \cdot
+\log(\textit{rows}\cdot\textit{cols}))$, identical structure to
+Dijkstra over a grid graph with $4$ edges per node.
+\textbf{Space Complexity.} $O(\textit{rows}\cdot\textit{cols})$ for
+the \textit{effort} grid and the priority queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Dijkstra's algorithm generalizes to any relaxation rule that is
+\textbf{monotonic} -- extending a path by one more edge can only keep
+the tracked quantity the same or make it worse, never better. Sum of
+weights and running maximum both satisfy this, which is why the exact
+same priority-queue frontier expansion solves both the standard
+shortest-path problem and this minimax variant.
+\end{takeawaybox}

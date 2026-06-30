@@ -1,0 +1,157 @@
+\section{Valid Parentheses}
+\label{sec:sq-valid-parentheses}
+
+\problemstatement{Given a string $s$ consisting only of the characters
+\texttt{'('}, \texttt{')'}, \texttt{'['}, \texttt{']'}, \texttt{'\{'},
+\texttt{'\}'}, determine whether the brackets are \textbf{valid}: every
+closing bracket must match the most recently opened, still-unmatched
+bracket of the same type, and every opening bracket must eventually be
+closed.}
+
+\begin{patternbox}
+\emph{``Matching/nesting''} is the most direct stack keyword there is: the
+defining feature of valid nesting is that the bracket needing to be closed
+\textbf{next} is always the \textbf{most recently opened} one still
+unmatched -- exactly LIFO order. Whenever a problem describes validity in
+terms of nested or paired structures (brackets, tags, nested function
+calls), a stack of ``currently open, unmatched'' items is almost always
+the right tool.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Scan the string left to right. Every opening bracket is a commitment that
+must be fulfilled later, in reverse order of when the commitments were
+made -- the bracket opened most recently must be the first one closed,
+because brackets cannot cross (that would not be ``nesting''). Pushing
+each opening bracket onto a stack, and popping when we see a closing
+bracket, mirrors this exactly: the stack's top is always the innermost
+currently-open bracket, which is precisely the one any new closing
+bracket must match.
+
+\begin{ideabox}[Stack of Open Brackets]
+For each character: if it is an opening bracket, push it. If it is a
+closing bracket: the stack must be non-empty, and its top must be the
+\emph{matching} opening bracket; if either check fails, the string is
+invalid. Otherwise, pop the stack (this pair is now resolved). After
+scanning the whole string, the string is valid if and only if the stack
+is empty (every opened bracket was eventually closed).
+\end{ideabox}
+
+\subsection*{Why both checks (stack non-empty, and top matches) are necessary}
+
+If the stack is empty when a closing bracket appears, there is no
+open bracket left to match it against -- the closing bracket is
+unmatched, and the string is invalid (e.g.\ \texttt{")"} alone). If the
+stack's top does not match the closing bracket's type (e.g.\ the top is
+\texttt{'('} but we just saw \texttt{']'}), the brackets have crossed
+incorrectly (e.g.\ \texttt{"(]"}), which also invalidates the string. And
+even if every individual closing bracket finds a match, any \emph{leftover}
+opening brackets at the end (a non-empty stack) mean some opens were never
+closed at all (e.g.\ \texttt{"(("}, missing both closing parentheses) --
+this is why the final emptiness check is also required, not just the
+per-character checks.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack.
+  \item For each character $c$ in $s$:
+  \begin{enumerate}
+    \item If $c$ is an opening bracket: push $c$.
+    \item Else ($c$ is a closing bracket): if the stack is empty, or its
+          top is not the matching opening bracket for $c$, return
+          \texttt{false}. Otherwise, pop the stack.
+  \end{enumerate}
+  \item Return whether the stack is now empty.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Valid Parentheses}
+\begin{algorithmic}[1]
+\Procedure{IsValid}{$s$}
+  \State $\textit{stack} \gets$ empty
+  \For{each character $c$ in $s$}
+    \If{$c \in \{(, [, \{\}$}
+      \State push $c$ onto \textit{stack}
+    \Else
+      \If{\textit{stack} is empty \textbf{or} top of \textit{stack} does not match $c$}
+        \State \Return \textbf{false}
+      \EndIf
+      \State pop \textit{stack}
+    \EndIf
+  \EndFor
+  \State \Return (\textit{stack} is empty)
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"\{[()]\}"}$.}
+
+\begin{itemize}
+  \item \texttt{'\{'}: push. Stack $=[\{]$.
+  \item \texttt{'['}: push. Stack $=[\{,[]$.
+  \item \texttt{'('}: push. Stack $=[\{,[,(]$.
+  \item \texttt{')'}: top is \texttt{'('}, matches. Pop. Stack
+        $=[\{,[]$.
+  \item \texttt{']'}: top is \texttt{'['}, matches. Pop. Stack $=[\{]$.
+  \item \texttt{'\}'}: top is \texttt{'\{'}, matches. Pop. Stack $=[]$.
+\end{itemize}
+
+Stack is empty at the end: \texttt{true}.
+
+Now take $s = \texttt{"(]"}$: push \texttt{'('}; then see \texttt{']'},
+top is \texttt{'('}, which does not match \texttt{']'} -- return
+\texttt{false} immediately.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isValid(string s) {
+    stack<char> st;
+    for (char c : s) {
+        if (c == '(' || c == '[' || c == '{') {
+            st.push(c);
+        } else {
+            if (st.empty()) return false;
+            char top = st.top();
+            if ((c == ')' && top != '(') ||
+                (c == ']' && top != '[') ||
+                (c == '}' && top != '{')) {
+                return false;
+            }
+            st.pop();
+        }
+    }
+    return st.empty();
+}
+
+int main() {
+    cout << (isValid("{[()]}") ? "true" : "false") << endl;
+    cout << (isValid("(]") ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each character is processed once with constant
+work, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ in the worst case (a string of all
+opening brackets pushes every character onto the stack).
+\end{complexitybox}
+
+\begin{takeawaybox}
+``The next thing that needs to be resolved is always the most recently
+opened, still-unresolved thing'' is the defining signature of a stack
+problem. This is not limited to brackets -- the same template applies to
+validating nested tags, matching function call/return pairs, or undoing
+actions in reverse order of when they were performed.
+\end{takeawaybox}

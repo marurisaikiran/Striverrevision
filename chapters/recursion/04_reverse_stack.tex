@@ -1,0 +1,165 @@
+\section{Reverse a Stack using Recursion}
+\label{sec:rec-reverse-stack}
+
+\problemstatement{Given a stack, reverse its order using \textbf{only}
+the stack's own \textit{push} and \textit{pop} operations and
+\textbf{recursion} -- no second stack, array, or queue is allowed as
+auxiliary storage.}
+
+\begin{patternbox}
+\emph{``Solve using only recursion, no auxiliary data structure''} is a
+direct instruction to use the \textbf{call stack itself} as the only
+permitted extra storage: every value temporarily removed from the stack
+must be held as a local variable on some recursive call's stack frame,
+not in any explicit container. This requires a second, helper recursive
+function -- inserting a value back at the \emph{bottom} of a stack is
+itself a small recursive sub-problem, since a stack has no native
+``insert at the bottom'' operation.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The overall idea: pop the top element off, recursively reverse
+\emph{everything else} below it, and then place the popped element back
+-- but at the \emph{bottom} of the now-reversed remainder, since
+reversal means the original top must end up at the very bottom of the
+final stack. Placing a value at the bottom of a stack, using only
+\textit{push}/\textit{pop}, is itself solved recursively: pop everything
+off one at a time, push the target value once the stack is empty, then
+push everything else back on top, in the reverse of the order it was
+removed (which recursion handles automatically via the call stack's own
+LIFO unwinding).
+
+\begin{ideabox}[Two Cooperating Recursive Functions]
+$\textsc{InsertAtBottom}(\textit{stack}, x)$: if $\textit{stack}$ is
+empty, push $x$ and return (base case). Otherwise, pop the top into a
+local variable $\textit{temp}$, recursively call
+$\textsc{InsertAtBottom}(\textit{stack}, x)$ (placing $x$ at the bottom
+of what remains), then push $\textit{temp}$ back on top.
+$\textsc{ReverseStack}(\textit{stack})$: if $\textit{stack}$ is empty (or
+has one element), return (base case). Otherwise, pop the top into
+$\textit{temp}$, recursively call
+$\textsc{ReverseStack}(\textit{stack})$ (reversing everything below
+$\textit{temp}$), then call
+$\textsc{InsertAtBottom}(\textit{stack}, \textit{temp})$.
+\end{ideabox}
+
+\subsection*{Why local variables on the call stack correctly substitute for an explicit auxiliary structure}
+
+Each recursive call to $\textsc{ReverseStack}$ holds exactly one
+popped element in its own local variable $\textit{temp}$, alive for the
+duration of that call (including everything that happens inside its
+recursive sub-call). Because the call stack itself maintains these
+local variables in a strict LIFO order matching the order elements were
+popped, and because each element is pushed back (via
+$\textsc{InsertAtBottom}$) exactly once as its corresponding call
+returns, no information is lost and no second container is ever needed
+-- the recursion's own bookkeeping does the job an explicit auxiliary
+stack would otherwise have done.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{InsertAtBottom}(\textit{stack}, x)$:
+  \begin{enumerate}
+    \item If $\textit{stack}$ is empty: push $x$; return.
+    \item Pop top into $\textit{temp}$.
+    \item $\textsc{InsertAtBottom}(\textit{stack}, x)$.
+    \item Push $\textit{temp}$.
+  \end{enumerate}
+  \item $\textsc{ReverseStack}(\textit{stack})$:
+  \begin{enumerate}
+    \item If $\textit{stack}$ is empty: return.
+    \item Pop top into $\textit{temp}$.
+    \item $\textsc{ReverseStack}(\textit{stack})$.
+    \item $\textsc{InsertAtBottom}(\textit{stack}, \textit{temp})$.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Reverse the stack $[1,2,3]$ (top to bottom: $3,2,1$).}
+
+\begin{itemize}
+  \item $\textsc{ReverseStack}$ call 1: pop $3$. Recurse on $[1,2]$.
+  \item Call 2: pop $2$. Recurse on $[1]$.
+  \item Call 3: pop $1$. Recurse on $[]$ (empty, base case, returns
+        immediately).
+  \item Back in call 3: $\textsc{InsertAtBottom}([], 1)$: stack is
+        empty, push $1$. Stack $=[1]$.
+  \item Back in call 2: $\textsc{InsertAtBottom}([1], 2)$: pop $1$ into
+        \textit{temp}; recurse $\textsc{InsertAtBottom}([], 2)$: empty,
+        push $2$, stack$=[2]$; back in outer call, push \textit{temp}
+        ($1$) back: stack$=[2,1]$ (top to bottom: $1,2$).
+  \item Back in call 1: $\textsc{InsertAtBottom}([2,1], 3)$: pop $1$
+        into \textit{temp}; recurse on $[2]$: pop $2$ into another
+        \textit{temp}; recurse on $[]$: push $3$, stack$=[3]$; push
+        back the inner \textit{temp} ($2$): stack$=[3,2]$; push back
+        the outer \textit{temp} ($1$): stack$=[3,2,1]$.
+\end{itemize}
+
+Final stack (top to bottom): $1,2,3$ -- the reverse of the original
+$3,2,1$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void insertAtBottom(stack<int>& st, int x) {
+    if (st.empty()) {
+        st.push(x);
+        return;
+    }
+    int temp = st.top();
+    st.pop();
+    insertAtBottom(st, x);
+    st.push(temp);
+}
+
+void reverseStack(stack<int>& st) {
+    if (st.empty()) return;
+
+    int temp = st.top();
+    st.pop();
+    reverseStack(st);
+    insertAtBottom(st, temp);
+}
+
+int main() {
+    stack<int> st;
+    st.push(1); st.push(2); st.push(3);
+
+    reverseStack(st);
+
+    while (!st.empty()) {
+        cout << st.top() << " ";
+        st.pop();
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $\textsc{InsertAtBottom}$ costs $O(k)$ for a
+stack of size $k$ (it must pop and re-push every element to reach the
+bottom). $\textsc{ReverseStack}$ calls it once for each of the $n$
+elements, with the stack shrinking by one each time, giving
+\[
+  O(1+2+\cdots+n) = O(n^2).
+\]
+\textbf{Space Complexity.} $O(n)$ for the recursion stack at the deepest
+point (both functions' call depths are bounded by $n$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Using only recursion, no auxiliary data structure'' is a direct
+instruction to use \emph{local variables on the call stack} as your only
+permitted temporary storage. Many such ``stack-only'' problems
+(reversing, sorting, this section and the next) need exactly this kind of
+helper function that performs an operation a real stack does not natively
+support (here, inserting at the bottom), built entirely out of recursive
+pop/push/recurse/push-back steps.
+\end{takeawaybox}

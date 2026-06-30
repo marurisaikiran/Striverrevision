@@ -1,0 +1,159 @@
+\section{Infix to Prefix Conversion}
+\label{sec:sq-infix-to-prefix}
+
+\problemstatement{Given an infix expression, convert it to prefix
+notation.}
+
+\begin{patternbox}
+\emph{``Convert to prefix''} immediately after having just solved
+``convert to postfix'' (Section~\ref{sec:sq-infix-to-postfix}) is an
+invitation to \textbf{reuse} that algorithm via a symmetry trick, rather
+than deriving a new one: prefix is postfix \emph{read backward}, with
+operators and operands swapped in scanning direction -- so reversing the
+input, adapting the tie-breaking rule, running the same postfix algorithm,
+and reversing the output again gets us there with no new derivation.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If postfix writes operators \emph{after} their operands, prefix writes
+them \emph{before} -- which is exactly what you get by mirror-imaging a
+postfix expression (reversing it character by character) \emph{and}
+reversing each multi-character operand if there were any. So the natural
+strategy is: reverse the input expression (also swapping every
+\texttt{'('} with \texttt{')'} and vice versa, since reversal flips which
+parenthesis opens and which closes), run essentially the same
+Shunting-Yard scan as Section~\ref{sec:sq-infix-to-postfix} on this
+reversed-and-swapped string, then reverse the resulting output once more
+to undo the initial reversal.
+
+\begin{ideabox}[The One Rule That Must Change]
+When running the postfix algorithm on the reversed string, the tie-break
+rule for \textbf{equal precedence} must flip: do \emph{not} pop an
+equal-precedence operator already on the stack before pushing a new one,
+\emph{regardless of true associativity}. This is because reversing the
+scan direction also reverses which operand of a left-associative chain we
+encounter first; treating every tie as if it were right-associative during
+this reversed scan is what correctly preserves the original
+left-to-right grouping once everything is reversed back.
+\end{ideabox}
+
+\subsection*{Why reverse-scan-reverse is correct}
+
+This is a direct application of the same ``reverse twice to flip an order
+without breaking internal structure'' idea seen in
+Section~\ref{sec:sq-queue-using-stack}. Reversing the infix string
+converts a left-to-right scan that would naturally produce postfix into
+one that, after the tie-break adjustment, produces the mirror image of
+postfix -- which, when reversed back to normal reading order, is exactly
+prefix. The parenthesis-swapping step is necessary because reversing a
+string turns every originally-opening parenthesis into a closing one
+(textually) and vice versa, and the algorithm needs them to still behave
+correctly as openers and closers during the reversed scan.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Reverse $s$; swap every \texttt{'('} with \texttt{')'} and vice
+        versa.
+  \item Run the Shunting-Yard postfix algorithm
+        (Algorithm~\ref{sec:sq-infix-to-postfix}) on this modified
+        string, with the tie-break rule changed to \emph{never} pop on
+        equal precedence.
+  \item Reverse the resulting output string. This is the prefix
+        expression.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"a+b*c"}$.}
+
+\begin{itemize}
+  \item Reverse and swap brackets (no brackets here): $\texttt{"c*b+a"}$.
+  \item Run the postfix algorithm (never popping on ties):
+  \begin{itemize}
+    \item \texttt{c}: output $=\texttt{"c"}$.
+    \item \texttt{*}: push. Stack $=[*]$.
+    \item \texttt{b}: output $=\texttt{"cb"}$.
+    \item \texttt{+}: top is \texttt{*} (higher precedence), pop:
+          output $=\texttt{"cb*"}$. Push \texttt{+}. Stack $=[+]$.
+    \item \texttt{a}: output $=\texttt{"cb*a"}$.
+    \item End: pop \texttt{+}: output $=\texttt{"cb*a+"}$.
+  \end{itemize}
+  \item Reverse the output: $\texttt{"+a*bc"}$.
+\end{itemize}
+
+Result: \texttt{"+a*bc"}, correctly representing $a+(b*c)$ in prefix.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int precedence(char op) {
+    if (op == '^') return 3;
+    if (op == '*' || op == '/') return 2;
+    if (op == '+' || op == '-') return 1;
+    return 0;
+}
+
+string infixToPrefix(string s) {
+    reverse(s.begin(), s.end());
+    for (char& c : s) {
+        if (c == '(') c = ')';
+        else if (c == ')') c = '(';
+    }
+
+    string output;
+    stack<char> st;
+
+    for (char c : s) {
+        if (isalnum(c)) {
+            output += c;
+        } else if (c == '(') {
+            st.push(c);
+        } else if (c == ')') {
+            while (st.top() != '(') {
+                output += st.top();
+                st.pop();
+            }
+            st.pop();
+        } else { // operator: never pop on equal precedence
+            while (!st.empty() && st.top() != '(' &&
+                   precedence(st.top()) > precedence(c)) {
+                output += st.top();
+                st.pop();
+            }
+            st.push(c);
+        }
+    }
+    while (!st.empty()) {
+        output += st.top();
+        st.pop();
+    }
+
+    reverse(output.begin(), output.end());
+    return output;
+}
+
+int main() {
+    cout << infixToPrefix("a+b*c") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$, identical in structure to
+Section~\ref{sec:sq-infix-to-postfix}.
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Reverse, adapt the tie-break rule, run the algorithm you already have,
+reverse again'' is a powerful general technique for converting a
+left-to-right algorithm into its mirror-image counterpart, without
+re-deriving the core logic. Recognize when a new problem is the
+\emph{mirror image} of one you have already solved before writing new
+code from scratch.
+\end{takeawaybox}

@@ -1,0 +1,231 @@
+\section{Assign Cookies}
+\label{sec:assign-cookies}
+
+\problemstatement{We are given two arrays. The array $g$ of length $n$ holds
+the \emph{greed factor} of each child: child $i$ will be content only if it
+receives a cookie of size at least $g[i]$. The array $s$ of length $m$ holds
+the \emph{size} of each available cookie. Each cookie may be given to at most
+one child, and each child may receive at most one cookie. We must hand out
+cookies so as to \textbf{maximize the number of content children}, and return
+that maximum count.}
+
+\begin{patternbox}
+The phrase \emph{``maximize the number of children you can satisfy''} together
+with two independent arrays that must be \emph{matched} against each other is
+the signature of a two-pointer greedy assignment problem. Whenever a problem
+gives you two collections, a one-to-one matching rule of the form ``resource
+$j$ can serve request $i$ if resource $j$ is large enough'', and asks for the
+maximum number of satisfied requests, the standard reflex is: \emph{sort both
+arrays, then match the smallest unsatisfied request with the smallest
+resource capable of satisfying it.} No recursion, no DP table, and no
+exhaustive matching is needed -- sorting already throws away every irrelevant
+ordering and leaves only a single greedy sweep.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Strip away the cookie/child story and the problem is really about two
+multisets of numbers, $g$ and $s$. We are allowed to pair an element of $g$
+with an element of $s$ exactly when
+\[
+  s[j] \;\ge\; g[i],
+\]
+and each element of either array can be used in at most one pair. We want the
+largest possible number of valid pairs.
+
+Notice two things immediately.
+
+\begin{enumerate}
+  \item The actual \emph{order} in which children or cookies are listed in
+        the input is irrelevant to the answer -- only the multiset of greed
+        factors and the multiset of cookie sizes matter. This is a strong hint
+        that we are free to reorder (sort) the input without losing anything,
+        which is exactly the kind of freedom a greedy algorithm wants to
+        exploit.
+  \item A large cookie can always satisfy any child that a smaller cookie
+        could satisfy. So if we are ever tempted to ``save'' a large cookie
+        for later while a smaller cookie sitting right next to it could have
+        done the same job, we are never making things better, and sometimes
+        we are making things strictly worse, because the large cookie might
+        have been the \emph{only} cookie capable of satisfying some greedier
+        child later on.
+\end{enumerate}
+
+\subsection*{Why sorting is the first move}
+
+\begin{ideabox}[Greedy Choice]
+Sort $g$ and $s$ in increasing order. Walk through the children from the
+least greedy to the most greedy. For the current least-greedy unsatisfied
+child, give them the \emph{smallest cookie that is still large enough} to
+satisfy them. If no remaining cookie is large enough, this child -- and every
+child after them, since they are all at least as greedy -- cannot be the next
+one satisfied with the cookies left, so we move on without giving up a
+cookie unnecessarily.
+\end{ideabox}
+
+Why does always matching the least-greedy child with the smallest sufficient
+cookie never hurt? Suppose, for contradiction, that some optimal assignment
+does \emph{not} give the least-greedy child $c$ the smallest sufficient
+cookie $k$ available, but instead gives $c$ some larger sufficient cookie
+$k'$, while $k$ is given to a different child $c'$ (or not used at all). Since
+$c$ is the least greedy child being considered, and $k$ is already known to
+satisfy $c$ (it is sufficient), and $k$ is the smallest such cookie, swapping
+$k$ and $k'$ between $c$ and $c'$ keeps $c$ satisfied (since $k$ is still
+sufficient for $c$ by definition) and does not break $c'$'s satisfaction
+either, because we only handed $c'$ a \emph{larger} cookie $k'$ than before --
+and a larger cookie satisfies anyone a smaller one would. So the swap never
+decreases the number of satisfied children. This is a standard
+\emph{exchange argument}: any optimal solution can be rearranged, one swap at
+a time, into the greedy solution without ever lowering the count of satisfied
+children. That is precisely what makes the greedy choice safe.
+
+\subsection*{Why two pointers are enough}
+
+Once both arrays are sorted, we never need to look backwards. We keep one
+pointer $i$ over children (starting at the least greedy) and one pointer $j$
+over cookies (starting at the smallest cookie).
+
+\begin{itemize}
+  \item If the current cookie $s[j]$ is large enough for the current child
+        $g[i]$, this is the cheapest cookie that can possibly satisfy this
+        child (every cookie before $j$ was too small, by sorted order), so we
+        commit: give it to the child, and advance both $i$ and $j$.
+  \item If $s[j]$ is too small for $g[i]$, this cookie is too small for
+        \emph{every} remaining child too (they are all at least as greedy as
+        $g[i]$), so it can never be used -- discard it by advancing $j$ alone.
+\end{itemize}
+
+Each pointer only ever moves forward, and each comparison either satisfies a
+child or permanently discards a cookie. There is no benefit to revisiting a
+discarded cookie or an already-satisfied child, so a single linear sweep after
+sorting is provably sufficient -- no recursion or dynamic programming is
+needed because there is no overlapping subproblem to memoize; every decision
+is final the moment it is made.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $g$ in increasing order; sort $s$ in increasing order.
+  \item Set $i \gets 0$ (pointer into $g$), $j \gets 0$ (pointer into $s$),
+        $\textit{count} \gets 0$.
+  \item While $i < n$ and $j < m$:
+  \begin{enumerate}
+    \item If $s[j] \ge g[i]$: this cookie satisfies this child. Increment
+          \textit{count}, and advance both $i \gets i+1$ and $j \gets j+1$.
+    \item Otherwise: this cookie is too small for every remaining child.
+          Advance $j \gets j+1$ only.
+  \end{enumerate}
+  \item Return \textit{count}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Assign Cookies}
+\begin{algorithmic}[1]
+\Procedure{FindContentChildren}{$g, s$}
+  \State sort $g$ in increasing order
+  \State sort $s$ in increasing order
+  \State $i \gets 0$, $j \gets 0$, $\textit{count} \gets 0$
+  \While{$i < \text{length}(g)$ \textbf{and} $j < \text{length}(s)$}
+    \If{$s[j] \ge g[i]$}
+      \State $\textit{count} \gets \textit{count} + 1$
+      \State $i \gets i + 1$
+      \State $j \gets j + 1$
+    \Else
+      \State $j \gets j + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{count}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $g = [1, 2, 3]$ and $s = [1, 1]$.}
+
+Both arrays are already sorted. We initialize $i = 0$, $j = 0$,
+$\textit{count} = 0$.
+
+\begin{itemize}
+  \item $i=0, j=0$: compare $s[0]=1$ with $g[0]=1$. Since $1 \ge 1$, the
+        child is satisfied. $\textit{count} = 1$, $i \to 1$, $j \to 1$.
+  \item $i=1, j=1$: compare $s[1]=1$ with $g[1]=2$. Since $1 < 2$, this
+        cookie is too small. $j \to 2$.
+  \item $j = 2$ equals the length of $s$, so the loop ends.
+\end{itemize}
+
+The final answer is $\textit{count} = 1$. Indeed, with cookies of size
+$[1,1]$ we can satisfy only the child with the smallest greed factor $1$; the
+children needing $2$ and $3$ can never be satisfied by a cookie of size $1$.
+
+Now take a second example: $g = [1, 2]$ and $s = [1, 2, 3]$.
+
+\begin{itemize}
+  \item $i=0, j=0$: $s[0]=1 \ge g[0]=1$. Satisfied. $\textit{count}=1$,
+        $i \to 1$, $j \to 1$.
+  \item $i=1, j=1$: $s[1]=2 \ge g[1]=2$. Satisfied. $\textit{count}=2$,
+        $i \to 2$, $j \to 2$.
+  \item $i = 2$ equals the length of $g$, so the loop ends.
+\end{itemize}
+
+The final answer is $\textit{count} = 2$: every child is satisfied, and the
+leftover cookie of size $3$ is simply not needed.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int findContentChildren(vector<int>& g, vector<int>& s) {
+    sort(g.begin(), g.end());
+    sort(s.begin(), s.end());
+
+    int i = 0, j = 0, count = 0;
+    int n = g.size(), m = s.size();
+
+    while (i < n && j < m) {
+        if (s[j] >= g[i]) {
+            count++;
+            i++;
+            j++;
+        } else {
+            j++;
+        }
+    }
+    return count;
+}
+
+int main() {
+    vector<int> g = {1, 2, 3};
+    vector<int> s = {1, 1};
+
+    cout << "Number of content children: "
+         << findContentChildren(g, s) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting $g$ takes $O(n \log n)$ and sorting $s$
+takes $O(m \log m)$. The subsequent two-pointer sweep visits each index of
+$g$ and $s$ at most once, so it costs $O(n + m)$. The sorting step dominates,
+giving an overall time complexity of
+\[
+  O(n \log n + m \log m).
+\]
+\textbf{Space Complexity.} Sorting can be done in place, and we use only the
+two pointers $i, j$ and the counter as extra variables, so the auxiliary
+space complexity is $O(1)$ (ignoring the in-place sort's recursion stack,
+which is $O(\log n)$ in the worst case for typical \texttt{std::sort}
+implementations).
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem asks you to \emph{match} two sorted resources against each
+other to maximize the count of satisfied requirements, sort both sides and
+sweep with two pointers, always trying to satisfy the smallest unsatisfied
+requirement with the cheapest resource capable of doing so. This pattern --
+\emph{sort, then greedily match smallest-feasible-to-smallest-need} -- recurs
+throughout greedy algorithms and is worth recognizing on sight.
+\end{takeawaybox}

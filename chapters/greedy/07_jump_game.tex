@@ -1,0 +1,180 @@
+\section{Jump Game}
+\label{sec:jump-game}
+
+\problemstatement{We are given an array $\textit{nums}$ of length $n$, where
+$\textit{nums}[i]$ is the maximum number of steps we are allowed to jump
+forward from index $i$ (we may jump anywhere from $1$ up to
+$\textit{nums}[i]$ steps, or choose to jump fewer). Starting at index $0$, we
+must decide whether it is possible to reach index $n-1$ \textbf{at all},
+following any sequence of valid jumps. Return \texttt{true} or
+\texttt{false}.}
+
+\begin{patternbox}
+\emph{``Can you reach the last index, given a maximum jump length at each
+position''} is the defining example of a \emph{reachability-horizon}
+greedy. The keyword to notice is that we only need a yes/no feasibility
+answer, not the actual sequence of jumps or the minimum number of jumps --
+that distinction matters, because it means we never need to track \emph{how}
+we got somewhere, only the single number \emph{how far forward can we
+possibly see from everything visited so far}. Whenever a problem asks
+``can position $X$ be reached'' under a rule where each position extends
+your reach by some amount, track a running \emph{farthest reachable index}
+and sweep once, left to right.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Define $\textit{farthest}$ as the largest index reachable using any
+combination of jumps from indices we have already confirmed are reachable,
+considering only indices up to the one we are currently examining. As we
+scan left to right through index $i = 0, 1, \dots, n-1$:
+
+\begin{itemize}
+  \item If $i \le \textit{farthest}$, then index $i$ itself is reachable
+        (it lies within the horizon established by earlier indices), so we
+        are allowed to jump from it: $\textit{farthest}$ can potentially be
+        extended to $i + \textit{nums}[i]$.
+  \item If $i > \textit{farthest}$, then index $i$ is \emph{not} reachable
+        by anything before it, and since we are scanning strictly left to
+        right, nothing later can make index $i$ reachable either -- the
+        whole array up to this point has failed to bridge the gap, so the
+        answer is immediately \texttt{false}.
+\end{itemize}
+
+\begin{ideabox}[Greedy Choice]
+Maintain a single running value $\textit{farthest}$, the best (largest)
+index reachable using everything examined so far. At each index $i$, first
+check whether $i$ itself is still within $\textit{farthest}$ (if not, fail
+immediately); otherwise, update
+$\textit{farthest} \gets \max(\textit{farthest},\, i + \textit{nums}[i])$.
+If at any point $\textit{farthest} \ge n-1$, the last index is reachable and
+we may stop early and answer \texttt{true}.
+\end{ideabox}
+
+\subsection*{Why tracking only the farthest reach is correct}
+
+This works because reachability is monotonic in a useful sense: if index
+$j \le \textit{farthest}$ is reachable, every index from $0$ up to
+$\textit{farthest}$ is also reachable, because we can always choose to jump
+\emph{short} of our maximum allowance at any earlier reachable index to land
+exactly where we want (jumping any number of steps from $1$ up to the
+maximum is allowed, so every intermediate landing spot is achievable, not
+just the farthest one). This means we never need to track the \emph{set} of
+reachable indices, nor which specific path of jumps was used -- only the
+single supremum of that set, $\textit{farthest}$, fully describes everything
+we need to know about reachability at each step. There is no benefit to
+"saving" a long jump for later or being clever about which specific jump
+length to use, because every index up to the maximum reach is already
+reachable regardless of which path got us there. This collapses what could
+look like an exponential search over jump sequences into one linear pass
+that only ever needs to remember one number.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{farthest} \gets 0$.
+  \item For $i \gets 0$ to $n-1$:
+  \begin{enumerate}
+    \item If $i > \textit{farthest}$: return \texttt{false} (index $i$, and
+          therefore the rest of the array, is unreachable).
+    \item $\textit{farthest} \gets \max(\textit{farthest},\, i +
+          \textit{nums}[i])$.
+    \item If $\textit{farthest} \ge n-1$: return \texttt{true} early.
+  \end{enumerate}
+  \item If the loop completes without returning \texttt{false}, return
+        \texttt{true}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Jump Game (Reachability)}
+\begin{algorithmic}[1]
+\Procedure{CanJump}{\textit{nums}}
+  \State $\textit{farthest} \gets 0$
+  \State $n \gets \text{length}(\textit{nums})$
+  \For{$i \gets 0$ to $n-1$}
+    \If{$i > \textit{farthest}$}
+      \State \Return \textbf{false}
+    \EndIf
+    \State $\textit{farthest} \gets \max(\textit{farthest}, i + \textit{nums}[i])$
+    \If{$\textit{farthest} \ge n - 1$}
+      \State \Return \textbf{true}
+    \EndIf
+  \EndFor
+  \State \Return \textbf{true}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [2, 3, 1, 1, 4]$ ($n=5$, last index $=4$).}
+
+\begin{itemize}
+  \item $i=0$: $0 \le \textit{farthest}=0$. Update
+        $\textit{farthest} = \max(0, 0+2) = 2$.
+  \item $i=1$: $1 \le 2$. Update
+        $\textit{farthest} = \max(2, 1+3) = 4$. Since $4 \ge n-1 = 4$,
+        return \texttt{true} immediately.
+\end{itemize}
+
+The answer is \texttt{true}: from index $0$ we can jump $2$ steps to index
+$2$... but more directly, from index $1$ (reachable, since $1 \le 2$) a jump
+of $3$ steps reaches index $4$, the last index.
+
+Now take $\textit{nums} = [3, 2, 1, 0, 4]$ ($n=5$, last index $=4$).
+
+\begin{itemize}
+  \item $i=0$: $0 \le 0$. $\textit{farthest} = \max(0, 0+3) = 3$.
+  \item $i=1$: $1 \le 3$. $\textit{farthest} = \max(3, 1+2) = 3$.
+  \item $i=2$: $2 \le 3$. $\textit{farthest} = \max(3, 2+1) = 3$.
+  \item $i=3$: $3 \le 3$. $\textit{farthest} = \max(3, 3+0) = 3$.
+  \item $i=4$: $4 > \textit{farthest}=3$. Return \texttt{false}.
+\end{itemize}
+
+The answer is \texttt{false}: index $3$ has a jump length of $0$, and
+everything before it can reach at most index $3$, so index $4$ -- and the
+useful $4$ sitting right there at index $4$ -- can never be reached.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool canJump(vector<int>& nums) {
+    int n = nums.size();
+    int farthest = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (i > farthest) return false;
+        farthest = max(farthest, i + nums[i]);
+        if (farthest >= n - 1) return true;
+    }
+    return true;
+}
+
+int main() {
+    vector<int> nums = {2, 3, 1, 1, 4};
+    cout << (canJump(nums) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} We scan the array once, doing constant work per
+index, so the time complexity is
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} We maintain only the single variable
+\textit{farthest}, so the space complexity is $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem only asks \emph{whether} some destination is reachable under
+a rule that extends your reach from any currently-reachable position, you
+rarely need to enumerate paths. Track the single furthest horizon reachable
+so far and sweep once -- this is strictly more efficient than recursion or
+BFS/DP over individual positions, and it generalizes directly to the
+minimum-jumps variant in the next section.
+\end{takeawaybox}

@@ -1,0 +1,178 @@
+\section{Word Search}
+\label{sec:rec-word-search}
+
+\problemstatement{Given an $m \times n$ grid of characters and a string
+$\textit{word}$, determine whether $\textit{word}$ can be formed by a
+path of \textbf{sequentially adjacent} cells (horizontally or vertically
+neighboring, not diagonal), where the \textbf{same cell may not be used
+more than once} within the path.}
+
+\begin{patternbox}
+This is Rat in a Maze's (Section~\ref{sec:rec-rat-in-maze}) grid
+backtracking template, combined with Sudoku's
+(Section~\ref{sec:rec-sudoku-solver}) boolean-return,
+short-circuit-on-success control flow: we need a path through the grid
+(mark-before-recurse, unmark-after-return, exactly as in the maze), but
+we only need to know \emph{whether one exists} matching the word, so the
+search should stop the instant a complete match is found, exactly as
+Sudoku stops the instant a full board is completed.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Try starting the search from every cell that matches $\textit{word}$'s
+first character (since the path could begin anywhere in the grid).
+From a starting cell, the path must match $\textit{word}$ character by
+character, moving to an adjacent, not-yet-used cell at each step; the
+search succeeds the moment all of $\textit{word}$'s characters have been
+matched, and fails along a particular path the moment a required
+character cannot be matched by any available neighbor.
+
+\begin{ideabox}[Boolean Grid Backtracking, with In-Place Visited Marking]
+$\textsc{Solve}(\textit{row}, \textit{col}, \textit{index})$: if
+$\textit{index} = |\textit{word}|$: return \texttt{true} (every
+character matched). If out of bounds, or
+$\textit{grid}[\textit{row}][\textit{col}] \ne \textit{word}[\textit{index}]$,
+or this cell is already used in the current path: return
+\texttt{false}. Otherwise: temporarily mark this cell as used (a common
+space-saving trick: overwrite the grid cell itself with a sentinel
+character unlikely to match anything, rather than maintaining a separate
+visited grid). Try all four neighboring directions, recursing with
+$\textit{index}+1$; if \emph{any} direction returns \texttt{true}: restore
+the cell and return \texttt{true} immediately. If none do: restore the
+cell and return \texttt{false}.
+\end{ideabox}
+
+\subsection*{Why overwriting the cell in place is a safe substitute for a separate visited array}
+
+Since the grid cell's original character is only needed for the
+\emph{duration} of exploring paths through it, and we always restore it
+before returning control to the caller (whether the exploration
+succeeded or failed), no information is permanently lost -- by the time
+any sibling branch or ancestor call inspects this cell again, it has
+already been restored to its original character. This avoids allocating
+an entire second $m \times n$ boolean grid purely to track visited
+cells, at the cost of briefly mutating the input grid during the search
+(acceptable as long as the grid is restored to its original state by
+the time the overall function returns, which the undo step guarantees).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For every cell $(\textit{row}, \textit{col})$ with
+        $\textit{grid}[\textit{row}][\textit{col}] = \textit{word}[0]$:
+        if $\textsc{Solve}(\textit{row}, \textit{col}, 0)$ returns
+        \texttt{true}: the word exists; return \texttt{true}.
+  \item $\textsc{Solve}(\textit{row}, \textit{col}, \textit{index})$:
+  \begin{enumerate}
+    \item If $\textit{index} = |\textit{word}|$: return \texttt{true}.
+    \item If out of bounds, or character mismatch, or this exact cell
+          is the sentinel (already in use): return \texttt{false}.
+    \item Save the original character; overwrite the cell with a
+          sentinel.
+    \item For each of the $4$ directions: if
+          $\textsc{Solve}(\textit{newRow}, \textit{newCol},
+          \textit{index}+1)$ returns \texttt{true}: restore the cell;
+          return \texttt{true}.
+    \item Restore the cell; return \texttt{false}.
+  \end{enumerate}
+  \item If no starting cell succeeds: return \texttt{false}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the grid
+$\begin{bmatrix} A&B&C&E \\ S&F&C&S \\ A&D&E&E \end{bmatrix}$,
+$\textit{word} = \texttt{"SEE"}$.}
+
+\begin{itemize}
+  \item Starting cells matching \texttt{'S'}: $(1,0)$ and $(1,3)$.
+  \item Try $(1,0)$: index $0$ matches \texttt{'S'}. Mark used. Try
+        neighbors for index $1$ (\texttt{'E'}): up $(0,0)=\texttt{A}$,
+        no; down $(2,0)=\texttt{A}$, no; left out of bounds; right
+        $(1,1)=\texttt{F}$, no. All fail. Restore $(1,0)$. Return
+        \texttt{false}.
+  \item Try $(1,3)$: index $0$ matches \texttt{'S'}. Mark used. Try
+        neighbors for index $1$ (\texttt{'E'}): up $(0,3)=\texttt{E}$,
+        match! Mark used. Try neighbors for index $2$ (\texttt{'E'}):
+        up out of bounds; down (back to $(1,3)$, sentinel, fail); left
+        $(0,2)=\texttt{C}$, no; right out of bounds. All fail from
+        $(0,3)$. Restore $(0,3)$. Try down from $(1,3)$ for index $1$:
+        $(2,3)=\texttt{E}$, match! Mark used. Try neighbors for index
+        $2$: up (back to $(1,3)$, sentinel, fail); left
+        $(2,2)=\texttt{E}$, match! index $2=3=|\textit{word}|$? Index
+        becomes $3$ which equals $|\textit{word}|=3$: return
+        \texttt{true} immediately.
+  \end{itemize}
+
+The word \texttt{"SEE"} is found via the path $(1,3) \to (2,3) \to
+(2,2)$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool solve(int row, int col, int index, vector<vector<char>>& grid,
+           string& word) {
+    if (index == (int)word.size()) return true;
+
+    int m = grid.size(), n = grid[0].size();
+    if (row < 0 || row >= m || col < 0 || col >= n) return false;
+    if (grid[row][col] != word[index]) return false;
+
+    char original = grid[row][col];
+    grid[row][col] = '#'; // sentinel: marks this cell as in use
+
+    int dr[] = {1, -1, 0, 0};
+    int dc[] = {0, 0, 1, -1};
+    bool found = false;
+    for (int d = 0; d < 4 && !found; d++) {
+        found = solve(row + dr[d], col + dc[d], index + 1, grid, word);
+    }
+
+    grid[row][col] = original; // restore
+    return found;
+}
+
+bool wordSearch(vector<vector<char>>& grid, string word) {
+    int m = grid.size(), n = grid[0].size();
+    for (int r = 0; r < m; r++) {
+        for (int c = 0; c < n; c++) {
+            if (grid[r][c] == word[0] && solve(r, c, 0, grid, word)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+int main() {
+    vector<vector<char>> grid = {
+        {'A','B','C','E'},
+        {'S','F','C','S'},
+        {'A','D','E','E'}
+    };
+    cout << (wordSearch(grid, "SEE") ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(mn \cdot 4^L)$, where $L$ is the word's
+length -- $mn$ possible starting cells, each potentially exploring up to
+$4$ directions at every one of $L$ steps.
+\textbf{Space Complexity.} $O(L)$ for the recursion depth (no separate
+visited grid needed, thanks to the in-place sentinel trick).
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a grid-backtracking problem only needs a single existence answer,
+combine Rat in a Maze's mark/unmark mechanics with Sudoku's
+short-circuit-on-success boolean propagation -- and consider whether the
+``visited'' marking can be folded directly into the grid itself (via a
+temporary sentinel overwrite) rather than allocating a separate
+tracking structure, whenever the grid's cells are not otherwise needed
+during the brief window before they are restored.
+\end{takeawaybox}

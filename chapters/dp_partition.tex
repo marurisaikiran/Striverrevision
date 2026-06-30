@@ -1,0 +1,67 @@
+\chapter{Dynamic Programming: MCM and Partition DP}
+\chapterepigraph{Every problem in this chapter asks the same question
+about a range: if I must split this range somewhere, which split point
+minimizes (or maximizes) the cost of the two halves plus the cost of
+joining them? The split point itself becomes the thing being searched
+over, inside an outer loop over every possible range.}
+
+\section{Interval DP: Searching Over the Split Point}
+\label{sec:dp-partition-intro}
+
+Every problem in this chapter shares a state shape new to this book:
+$f(i,j)$, the optimal answer for the \textbf{range} (interval) from
+index $i$ to index $j$ -- and the recurrence searches over every
+possible split point $k$ \emph{inside} that range, combining the
+optimal answers for $(i,k)$ and $(k,j)$ plus a cost specific to joining
+at $k$:
+\[
+  f(i,j) = \min_{i \le k < j}\ \Big( f(i,k) + f(k{+}1,j) +
+  \textit{joinCost}(i,k,j) \Big).
+\]
+
+\begin{ideabox}[Why This Needs a Third Loop, Not Just a Third Dimension]
+Every DP table so far in this book has been filled by iterating over
+\emph{indices}. Interval DP tables are filled by iterating over
+\textbf{range lengths} (smallest ranges first, since $f(i,j)$ depends
+on strictly smaller sub-ranges), and for each range, an
+\textbf{additional inner loop over every split point} $k$ inside it.
+This third loop is what pushes naive interval DP to $O(n^3)$ even after
+memoization removes the exponential blowup -- there are $O(n^2)$ ranges,
+each requiring an $O(n)$ scan over split points.
+\end{ideabox}
+
+\begin{patternbox}[How the Six Problems in This Chapter Vary the Template]
+\begin{itemize}
+  \item \textbf{Matrix Chain Multiplication (Section~\ref{sec:dp-mcm})}:
+        the foundational version -- $\textit{joinCost}$ is the scalar
+        multiplication cost of combining two matrix products.
+  \item \textbf{Minimum Cost to Cut a Stick (Section~\ref{sec:dp-min-cost-cut-sticks})}:
+        identical shape, with $\textit{joinCost}$ being the current
+        stick segment's length.
+  \item \textbf{Burst Balloons (Section~\ref{sec:dp-burst-balloons})}:
+        the same shape, but with a crucial reframing -- $k$ represents
+        the \emph{last} balloon burst in the range, not an arbitrary
+        split, which is what makes the cost formula well-defined.
+  \item \textbf{Evaluate Boolean Expression (Section~\ref{sec:dp-evaluate-boolean-expression})}:
+        $k$ ranges over operator \emph{positions}, and each range
+        tracks a \emph{pair} of values (ways to make it \texttt{True},
+        ways to make it \texttt{False}) instead of a single number.
+  \item \textbf{Palindrome Partitioning II (Section~\ref{sec:dp-palindrome-partitioning-2}):}
+        uses an interval-DP table only as a \textbf{precomputation}
+        (which substrings are palindromes), feeding into a separate,
+        simpler 1D ending-here cut-counting DP.
+  \item \textbf{Partition Array for Maximum Sum (Section~\ref{sec:dp-partition-max-sum}):}
+        a simplified partition DP where the split points are bounded
+        (every partition has length at most $k$), removing the need
+        for a full $O(n)$ search over all split points.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/dp_partition/01_matrix_chain_multiplication.tex}
+\input{chapters/dp_partition/02_min_cost_cut_stick.tex}
+\input{chapters/dp_partition/03_burst_balloons.tex}
+\input{chapters/dp_partition/04_evaluate_boolean_expression.tex}
+\input{chapters/dp_partition/05_palindrome_partitioning_2.tex}
+\input{chapters/dp_partition/06_partition_array_max_sum.tex}

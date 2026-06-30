@@ -1,0 +1,191 @@
+\section{Best Time to Buy and Sell Stock with Cooldown}
+\label{sec:dp-stock-5}
+
+\problemstatement{Given $\textit{price}$, find the maximum profit from
+unlimited transactions, with one restriction: after selling, you must
+wait at least one full day (a \textbf{cooldown}) before buying again.}
+
+\begin{patternbox}
+\emph{``Cooldown after selling''} modifies exactly one transition in
+Section~\ref{sec:dp-stocks-intro}'s base template: selling no longer
+leads to $f(i{+}1, 0)$ -- it leads to $f(i{+}2, 0)$, skipping the
+mandatory cooldown day entirely.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+\[
+  f(i, \textit{holding}) =
+  \begin{cases}
+    \max\big(-\textit{price}[i] + f(i{+}1, 1),\ f(i{+}1, 0)\big) &
+    \text{not holding}, \\
+    \max\big(\textit{price}[i] + f(i{+}2, 0),\ f(i{+}1, 1)\big) &
+    \text{holding.}
+  \end{cases}
+\]
+Only the sell clause changed: $f(i{+}1,0) \to f(i{+}2,0)$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock5Recursive(int i, int holding, vector<int>& price) {
+    int n = price.size();
+    if (i >= n) return 0;
+
+    if (holding) {
+        int sell = price[i] + stock5Recursive(i + 2, 0, price);
+        int hold = stock5Recursive(i + 1, 1, price);
+        return max(sell, hold);
+    }
+    int buy = -price[i] + stock5Recursive(i + 1, 1, price);
+    int skip = stock5Recursive(i + 1, 0, price);
+    return max(buy, skip);
+}
+
+int main() {
+    vector<int> price = {1, 2, 3, 0, 2};
+    cout << stock5Recursive(0, 0, price) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock5Memo(int i, int holding, vector<int>& price, vector<vector<int>>& memo) {
+    int n = price.size();
+    if (i >= n) return 0;
+    if (memo[i][holding] != -1) return memo[i][holding];
+
+    int result;
+    if (holding) {
+        result = max(price[i] + stock5Memo(i + 2, 0, price, memo),
+                     stock5Memo(i + 1, 1, price, memo));
+    } else {
+        result = max(-price[i] + stock5Memo(i + 1, 1, price, memo),
+                     stock5Memo(i + 1, 0, price, memo));
+    }
+    return memo[i][holding] = result;
+}
+
+int main() {
+    vector<int> price = {1, 2, 3, 0, 2};
+    int n = price.size();
+    vector<vector<int>> memo(n, vector<int>(2, -1));
+    cout << stock5Memo(0, 0, price, memo) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{ideabox}[Watch the Index Arithmetic at the Boundary]
+Because the sell clause now reaches two days ahead, the tabulation
+table needs \textbf{two} extra rows beyond $n$ as a buffer (indices $n$
+and $n+1$), both initialized to $0$, rather than just one extra row as
+in every earlier section.
+\end{ideabox}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock5Tabulation(vector<int>& price) {
+    int n = price.size();
+    vector<vector<int>> dp(n + 2, vector<int>(2, 0));
+
+    for (int i = n - 1; i >= 0; i--) {
+        dp[i][1] = max(price[i] + dp[i + 2][0], dp[i + 1][1]);
+        dp[i][0] = max(-price[i] + dp[i + 1][1], dp[i + 1][0]);
+    }
+    return dp[0][0];
+}
+
+int main() {
+    vector<int> price = {1, 2, 3, 0, 2};
+    cout << stock5Tabulation(price) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{price} = [1,2,3,0,2]$ (days $0$--$4$).}
+
+Filling the table backward gives $\textit{dp}[0][0]=3$, realized by two
+separate transactions: buy on day $0$ (price $1$), sell on day $1$
+(price $2$, profit $1$); cooldown on day $2$; buy on day $3$ (price
+$0$), sell on day $4$ (price $2$, profit $2$). Total profit
+$1+2=3$. Note that selling on day $1$ forces the next buy to wait until
+day $3$ (day $2$ is the mandatory cooldown), which the recurrence
+enforces automatically via its $i{+}2$ jump on every sell.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{ideabox}[Now Three Rolling Rows Are Needed, Not Two]
+Because the sell clause reads $\textit{dp}[i+2][0]$, the space-optimized
+version must keep track of \emph{two} steps of history for the
+not-holding value, not just one -- three rolling variables (or two small
+arrays) instead of the usual two.
+\end{ideabox}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock5SpaceOptimized(vector<int>& price) {
+    int n = price.size();
+    int holdNext1 = 0, notHoldNext1 = 0; // i+1
+    int notHoldNext2 = 0;                // i+2
+
+    for (int i = n - 1; i >= 0; i--) {
+        int curHold = max(price[i] + notHoldNext2, holdNext1);
+        int curNotHold = max(-price[i] + holdNext1, notHoldNext1);
+
+        notHoldNext2 = notHoldNext1;
+        notHoldNext1 = curNotHold;
+        holdNext1 = curHold;
+    }
+    return notHoldNext1;
+}
+
+int main() {
+    vector<int> price = {1, 2, 3, 0, 2};
+    cout << stock5SpaceOptimized(price) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$ -- three scalars instead of two.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A cooldown (or any fixed-length mandatory delay) changes a recurrence's
+\emph{lookback/lookahead distance} for one specific transition, which
+ripples into two places: the tabulation table needs extra boundary rows
+sized to the longest jump, and the space-optimized version needs to keep
+that many extra rows of rolling history, not just the usual one.
+\end{takeawaybox}

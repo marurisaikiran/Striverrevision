@@ -1,0 +1,96 @@
+\section{Postfix to Prefix Conversion}
+\label{sec:sq-postfix-to-prefix}
+
+\problemstatement{Given a postfix expression, convert it to prefix
+notation.}
+
+\begin{patternbox}
+Identical setup to Section~\ref{sec:sq-postfix-to-infix} -- the only
+change is \emph{how} two popped sub-expressions are combined: instead of
+$(\textit{left}\ \textit{op}\ \textit{right})$, prefix writes the operator
+\textbf{first}, with no parentheses needed at all (prefix, like postfix,
+is unambiguous without them).
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The stack-of-sub-expressions technique from
+Section~\ref{sec:sq-postfix-to-infix} carries over completely unchanged;
+only the string-building step at each operator differs.
+
+\begin{ideabox}[Combine as Prefix Instead of Infix]
+On an operator $\textit{op}$: pop $\textit{right}$, pop $\textit{left}$
+(same order as before); push $\textit{op} + \textit{left} +
+\textit{right}$ (operator first, then both sub-expressions
+back-to-back, no parentheses or spaces needed since prefix length is
+self-delimiting when operands are single characters, or separated by a
+delimiter for multi-character operands).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack of strings.
+  \item For each token: operand $\to$ push as a string. Operator
+        $\textit{op}$ $\to$ pop $\textit{right}$, pop $\textit{left}$;
+        push $\textit{op} + \textit{left} + \textit{right}$.
+  \item The stack's single remaining element is the prefix result.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\texttt{"ab+c*"}$.}
+
+\begin{itemize}
+  \item \texttt{a}: push. Stack $=[\texttt{a}]$.
+  \item \texttt{b}: push. Stack $=[\texttt{a},\texttt{b}]$.
+  \item \texttt{+}: pop right$=\texttt{b}$, left$=\texttt{a}$. Push
+        \texttt{+ab}. Stack $=[\texttt{+ab}]$.
+  \item \texttt{c}: push. Stack $=[\texttt{+ab},\texttt{c}]$.
+  \item \texttt{*}: pop right$=\texttt{c}$, left$=\texttt{+ab}$. Push
+        \texttt{*+abc}.
+\end{itemize}
+
+Result: \texttt{*+abc}, correctly representing $(a+b)*c$ in prefix.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string postfixToPrefix(string s) {
+    stack<string> st;
+
+    for (char c : s) {
+        if (isalnum(c)) {
+            st.push(string(1, c));
+        } else {
+            string right = st.top(); st.pop();
+            string left = st.top(); st.pop();
+            st.push(string(1, c) + left + right);
+        }
+    }
+    return st.top();
+}
+
+int main() {
+    cout << postfixToPrefix("ab+c*") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ worst case with naive string
+concatenation, as in Section~\ref{sec:sq-postfix-to-infix}.
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This section is intentionally a near-copy of
+Section~\ref{sec:sq-postfix-to-infix} -- the lesson is that once you have
+the ``stack of sub-expressions, combine on every operator'' skeleton
+right, every output \emph{format} (parenthesized infix, prefix, or
+postfix-of-a-different-source) is just a one-line change to how the
+combination step builds its string.
+\end{takeawaybox}

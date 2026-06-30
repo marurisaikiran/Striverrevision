@@ -1,0 +1,109 @@
+\chapter{Recursion}
+\chapterepigraph{To understand recursion, trust the recursion. Assume
+your function already correctly solves every strictly smaller version of
+the problem, and ask only one question: given those correct smaller
+answers, how do I build the answer to \emph{this} input? If you can
+answer that question once, you have solved every input, by induction.}
+
+\section{The One Question Every Recursive Function Must Answer}
+\label{sec:rec-intro}
+
+Every recursive function is built from exactly three ingredients: a
+\textbf{base case} (the smallest input(s) the function can answer
+directly, without recursing), a \textbf{recursive case} (how to build
+this input's answer from one or more strictly smaller sub-calls, trusted
+to already be correct), and a guarantee that the sub-calls' inputs
+actually \emph{shrink} toward the base case (otherwise the recursion
+never terminates).
+
+\begin{ideabox}[The Recursive Leap of Faith]
+When designing a recursive function, do not try to mentally trace through
+every recursive call -- this is the single most common source of
+confusion and wasted time. Instead, write down what the function is
+\emph{supposed} to do in words, assume every call with a strictly smaller
+input already does exactly that correctly, and then write only the logic
+needed to combine those trusted smaller answers into this input's answer.
+Verifying the base case and the combination step is enough to prove the
+whole function correct, by mathematical induction on the input's size --
+there is no need to simulate the call stack by hand except when actively
+debugging.
+\end{ideabox}
+
+\subsection*{Two Families of Recursion in This Chapter}
+
+\begin{patternbox}[How to Recognise Which Family You Are In]
+\begin{itemize}
+  \item \textbf{``Compute a single value/result''} (a power, a digit
+        count, a stack reversed or sorted) -- \textbf{straight-line
+        recursion}: each call makes exactly one (or a small fixed
+        number of) recursive call(s) and combines the result(s) in a
+        fixed way. The skill here is finding the right way to shrink the
+        input and the right combination step, often exploiting a
+        mathematical identity (as in fast exponentiation) to shrink
+        faster than one unit at a time.
+  \item \textbf{``Generate/find all ...''} (subsequences, subsets,
+        combinations, permutations, paths, valid placements) --
+        \textbf{exploration recursion}, commonly called
+        \textbf{backtracking}: each call branches into \emph{multiple}
+        recursive calls, one per choice available at this step, and an
+        explicit \emph{undo} step restores shared state after each
+        branch returns, so that the next branch starts from a clean
+        slate. The skill here is identifying, at each step, the full set
+        of choices available, and recognizing when a partial choice can
+        be abandoned early (pruned) because it can no longer lead to a
+        valid complete answer.
+\end{itemize}
+This chapter moves from the first family (Section~\ref{sec:rec-good-numbers}
+through Section~\ref{sec:rec-sort-stack}) into the second
+(Section~\ref{sec:rec-power-set} onward), building backtracking's
+``choose, explore, un-choose'' template up gradually through string and
+subset generation before tackling full constraint-satisfaction problems
+like N-Queens and Sudoku.
+\end{patternbox}
+
+\subsection*{Why Recursion Sets Up Everything in the Dynamic Programming Chapters}
+
+Every dynamic programming problem in the chapters that follow
+\emph{begins} as a recursive solution: identify the choices available at
+each step, write the recursive recurrence that combines smaller
+sub-answers into this one, and verify it against small examples by hand
+-- exactly the discipline built in this chapter. Memoization and
+tabulation, covered there, are mechanical transformations applied
+\emph{after} a correct recursive solution already exists; they do not
+replace the need to find that recursion first. Mastering straight-line
+and exploration recursion here is therefore not a detour before dynamic
+programming -- it is dynamic programming's first and most important step,
+practiced in isolation.
+
+Each section in this chapter follows the established structure: problem
+statement and keywords; the reasoning that identifies the base case,
+the recursive case, and (for backtracking problems) the choice set and
+any pruning opportunity; the algorithm in words and pseudocode; a
+hand-traced dry run (often shown as a small recursion tree); complete
+compilable C++ code; and a time/space complexity analysis, including the
+recursion's call-stack depth.
+
+\newpage
+
+\input{chapters/recursion/01_count_good_numbers.tex}
+\input{chapters/recursion/02_pow_x_n.tex}
+\input{chapters/recursion/03_recursive_atoi.tex}
+\input{chapters/recursion/04_reverse_stack.tex}
+\input{chapters/recursion/05_sort_stack.tex}
+\input{chapters/recursion/06_power_set.tex}
+\input{chapters/recursion/07_check_subsequence_sum_k.tex}
+\input{chapters/recursion/08_count_subsequence_sum_k.tex}
+\input{chapters/recursion/09_subset_sum_1.tex}
+\input{chapters/recursion/10_subset_sum_2.tex}
+\input{chapters/recursion/11_combination_sum.tex}
+\input{chapters/recursion/12_combination_sum_2.tex}
+\input{chapters/recursion/13_combination_sum_3.tex}
+\input{chapters/recursion/14_generate_parentheses.tex}
+\input{chapters/recursion/15_generate_binary_strings.tex}
+\input{chapters/recursion/16_letter_combinations_phone.tex}
+\input{chapters/recursion/17_rat_in_maze.tex}
+\input{chapters/recursion/18_n_queens.tex}
+\input{chapters/recursion/19_sudoku_solver.tex}
+\input{chapters/recursion/20_word_search.tex}
+\input{chapters/recursion/21_palindrome_partitioning.tex}
+\input{chapters/recursion/22_word_break.tex}

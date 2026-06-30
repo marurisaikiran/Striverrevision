@@ -1,0 +1,155 @@
+\section{Largest Rectangle in Histogram}
+\label{sec:sq-largest-rectangle-histogram}
+
+\problemstatement{Given an array $\textit{heights}$ representing the
+heights of adjacent bars of width $1$ in a histogram, find the area of
+the \textbf{largest rectangle} that can be formed using contiguous bars
+(the rectangle's height is limited by the shortest bar it spans).}
+
+\begin{patternbox}
+This is the contribution-counting idea from
+Section~\ref{sec:sq-sum-subarray-minimums}, repurposed to
+\textbf{maximize} rather than sum: for every bar $i$, the largest
+rectangle that uses $\textit{heights}[i]$ as its limiting height spans
+exactly the maximal contiguous range around $i$ over which
+$\textit{heights}[i]$ is the minimum -- found by the exact same nearest
+strictly-smaller-element boundaries on each side.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For a rectangle of height $\textit{heights}[i]$ to be valid, every bar it
+spans must be at least $\textit{heights}[i]$ tall (otherwise the
+rectangle would poke above some shorter bar within its width). So the
+widest rectangle using $\textit{heights}[i]$ as its height extends left
+until hitting a strictly shorter bar (or the histogram's edge), and right
+until hitting a strictly shorter bar (or the edge) -- exactly the
+$\textit{left}[i]$ and $\textit{right}[i]$ boundaries from
+Section~\ref{sec:sq-sum-subarray-minimums}, just used to compute one
+candidate area per bar and take the maximum, rather than summing
+contributions.
+
+\begin{ideabox}[One Pop, One Area, via a Single Monotonic Pass]
+Maintain a stack of indices with strictly increasing heights. Scan left
+to right (appending a sentinel height of $0$ at the very end to force
+every remaining bar to be resolved). When the current height is less than
+the stack's top height, pop that top index $j$: the rectangle with height
+$\textit{heights}[j]$ has width $i - (\text{new top index}) - 1$ (or
+simply $i$ if the stack becomes empty, meaning $j$'s rectangle could
+extend all the way to the histogram's left edge). Compute this area and
+update the running maximum. Continue popping until the current height no
+longer triggers a pop, then push the current index.
+\end{ideabox}
+
+\subsection*{Why a single left-to-right pass (with a sentinel) suffices}
+
+This combines the boundary-finding idea from
+Section~\ref{sec:sq-sum-subarray-minimums} with the floor-resolution idea
+from Trapping Rain Water (Section~\ref{sec:sq-trapping-rain-water}): each
+bar's rectangle is fully resolved -- both its left and right boundary
+determined -- in a single pop, because by the time bar $j$ is popped, the
+current index $i$ is exactly its right boundary (the nearest strictly
+shorter bar to the right), and the stack's new top after the pop is
+exactly its left boundary (the nearest still-standing, and therefore
+strictly shorter or absent, bar to the left). The sentinel height $0$ at
+the end guarantees every bar still on the stack when the scan finishes is
+popped and resolved, rather than left unresolved.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Append a sentinel value $0$ to the end of $\textit{heights}$
+        (conceptually); initialize an empty stack and
+        $\textit{maxArea} \gets 0$.
+  \item For $i$ from $0$ to $n$ (inclusive of the sentinel position):
+  \begin{enumerate}
+    \item While the stack is not empty and
+          $\textit{heights}[i] < \textit{heights}[\text{stack's top}]$:
+    \begin{itemize}
+      \item Pop the top as $j$.
+      \item $\textit{width} \gets$ (stack empty $? i :$
+            $i - \text{new top} - 1$).
+      \item $\textit{maxArea} \gets \max(\textit{maxArea},
+            \textit{heights}[j] \times \textit{width})$.
+    \end{itemize}
+    \item Push $i$.
+  \end{enumerate}
+  \item Return \textit{maxArea}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{heights} = [2,1,5,6,2,3]$ (sentinel $0$ appended at
+index $6$).}
+
+\begin{itemize}
+  \item $i=0$ ($h=2$): stack empty, push. Stack $=[0]$.
+  \item $i=1$ ($h=1$): $1<2$, pop $0$. Stack empty: width $=1$. Area
+        $=2\times1=2$. $\textit{maxArea}=2$. Push $1$. Stack $=[1]$.
+  \item $i=2$ ($h=5$): $5 \not< 1$, no pop. Push. Stack $=[1,2]$.
+  \item $i=3$ ($h=6$): $6 \not< 5$, no pop. Push. Stack $=[1,2,3]$.
+  \item $i=4$ ($h=2$): $2<6$, pop $3$: width $=4-2-1=1$. Area
+        $=6\times1=6$. $\textit{maxArea}=6$. $2<5$, pop $2$: width
+        $=4-1-1=2$. Area $=5\times2=10$. $\textit{maxArea}=10$. $2
+        \not< 1$, stop. Push $4$. Stack $=[1,4]$.
+  \item $i=5$ ($h=3$): $3 \not< 2$, no pop. Push. Stack $=[1,4,5]$.
+  \item $i=6$ ($h=0$, sentinel): $0<3$, pop $5$: width $=6-4-1=1$. Area
+        $=3$. $0<2$, pop $4$: width $=6-1-1=4$. Area $=8$. $0<1$, pop
+        $1$: stack empty: width $=6$. Area $=6$. None exceed $10$.
+\end{itemize}
+
+The largest rectangle has area $\boxed{10}$ (bars of height $5$ and $6$
+at indices $2,3$, using height $5$ across width $2$).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int largestRectangleArea(vector<int>& heights) {
+    heights.push_back(0); // sentinel
+    int n = heights.size();
+    stack<int> st;
+    long long maxArea = 0;
+
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && heights[i] < heights[st.top()]) {
+            int j = st.top();
+            st.pop();
+            int width = st.empty() ? i : i - st.top() - 1;
+            maxArea = max(maxArea, (long long)heights[j] * width);
+        }
+        st.push(i);
+    }
+    heights.pop_back(); // restore original array
+    return maxArea;
+}
+
+int main() {
+    vector<int> heights = {2, 1, 5, 6, 2, 3};
+    cout << "Largest rectangle area: "
+         << largestRectangleArea(heights) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each index is pushed once and popped at most
+once, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Largest rectangle/area limited by the shortest bar within some span''
+is solved by the same boundary-finding idea as
+Section~\ref{sec:sq-sum-subarray-minimums}, condensed into a single
+left-to-right pass with a sentinel, since we only need each bar's
+\emph{maximum} possible area, not a sum over every possible sub-span.
+This single-pass technique is reused directly in Maximal Rectangle
+(Section~\ref{sec:sq-maximal-rectangle}) to extend from a 1D histogram to
+a full 2D binary matrix.
+\end{takeawaybox}

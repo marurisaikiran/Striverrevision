@@ -1,0 +1,100 @@
+\section{Search Insert Position}
+\label{sec:bs-search-insert}
+
+\problemstatement{We are given a sorted array $\textit{arr}$ of $n$
+distinct integers and a target value $X$. If $X$ is found in the array,
+return its index. If not, return the index at which $X$ \textbf{would be
+inserted} to keep the array sorted.}
+
+\begin{patternbox}
+This problem is worth pausing on specifically \emph{because} it looks new
+but is not: \emph{``the index where $X$ would be inserted to keep the array
+sorted''} is, word for word, a description of the \textbf{lower bound} of
+$X$ from Section~\ref{sec:bs-lower-bound}. The position just before the
+first element $\ge X$ is exactly where $X$ slots in. Recognizing when a
+new-sounding problem statement is a known pattern in disguise is as
+important a skill in this chapter as deriving a pattern from scratch.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If $X$ is present in the array, the lower bound of $X$ is precisely the
+index of $X$ (since the array has distinct elements, the first index with
+$\textit{arr}[i] \ge X$ is the unique index where $\textit{arr}[i] = X$).
+If $X$ is absent, the lower bound is the first index whose value exceeds
+$X$ -- which is exactly the index where $X$ should be inserted, since
+everything before that index is smaller than $X$ and everything from that
+index onward is larger.
+
+\begin{ideabox}[Candidate Space and Predicate]
+Identical to lower bound: candidate space is indices $0, \dots, n$,
+predicate $P(i) = (\textit{arr}[i] \ge X)$, answer is the smallest index
+where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why no new derivation is needed}
+
+There is nothing new to prove here -- this section exists to train the
+habit of \emph{reducing} an unfamiliar-sounding problem to a pattern you
+already have a proven, working template for, rather than re-deriving binary
+search bounds from scratch every time a problem uses different words for
+the same underlying question.
+
+\subsection*{Algorithm}
+
+Identical to Algorithm~\ref{sec:bs-lower-bound}'s lower-bound procedure,
+called directly on $X$.
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1, 3, 5, 6]$, $X = 5$.}
+
+This is present at index $2$; the lower bound of $5$ is index $2$
+(verify: $\textit{arr}[2]=5 \ge 5$, and $\textit{arr}[1]=3 < 5$), so the
+answer is $2$.
+
+Now take $X = 2$ on the same array. $2$ is absent. The lower bound of $2$
+is index $1$ (the first element $\ge 2$ is $\textit{arr}[1]=3$), so $2$
+would be inserted at index $1$, giving $[1,2,3,5,6]$ -- correct.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int searchInsert(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1, ans = n;
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] >= X) {
+            ans = mid;
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return ans;
+}
+
+int main() {
+    vector<int> arr = {1, 3, 5, 6};
+    cout << "Insert position for 5: " << searchInsert(arr, 5) << endl;
+    cout << "Insert position for 2: " << searchInsert(arr, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\log n)$.
+\textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Before deriving a new binary search predicate from scratch, check whether
+the problem is just lower bound, upper bound, or a simple combination of
+the two, restated in different words. Many ``new'' binary search problems
+on interview sheets are exactly this.
+\end{takeawaybox}

@@ -1,0 +1,115 @@
+\section{Number of Operations to Make Network Connected}
+\label{sec:graph-network-connected}
+
+\problemstatement{Given $n$ computers and a list of existing cable
+connections, find the \textbf{minimum number of operations} to make
+every computer connected, where one operation removes a cable and uses
+it to connect any two currently-disconnected computers. Return $-1$ if
+there are not enough cables to possibly connect everything.}
+
+\begin{patternbox}
+\emph{``Reuse redundant connections to join separate groups''} is a
+direct Disjoint Set application: union every given connection, then
+count how many separate \textbf{components} remain. Connecting $k$
+components into $1$ always takes exactly $k{-}1$ operations (each
+operation merges two components into one), and a \textbf{redundant}
+cable (one connecting two computers \emph{already} in the same
+component) is exactly a ``spare'' cable available to be moved.
+\end{patternbox}
+
+\subsection*{Why redundant cables exactly cover the requirement}
+
+A graph with $n$ nodes and $c$ connected components needs exactly
+$c{-}1$ more edges to become fully connected (this is the same
+spanning-tree counting argument from Section~\ref{sec:graph-kruskal}:
+each component is already internally connected, like a single
+``super-node,'' and connecting $c$ super-nodes into one tree needs
+$c{-}1$ edges). The number of redundant cables (edges that connected
+two nodes already in the same component when processed) is exactly
+$\textit{totalCables} - (n - c)$, since a spanning structure over $n$
+nodes split into $c$ components uses exactly $n-c$ non-redundant
+edges. So the operation is feasible exactly when the redundant count
+is $\ge c{-}1$ -- equivalently, exactly when $\textit{totalCables}
+\ge n-1$.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the number of connections is less than $n{-}1$, return
+        $-1$ immediately (not enough cable to possibly connect $n$
+        computers).
+  \item Union every connection using Disjoint Set.
+  \item Count the number of distinct components $c$ remaining (count
+        nodes that are their own root).
+  \item Return $c{-}1$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent, size;
+public:
+    DisjointSet(int n) : parent(n), size(n, 1) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(int x, int y) {
+        int rootX = find(x), rootY = find(y);
+        if (rootX == rootY) return;
+        if (size[rootX] < size[rootY]) swap(rootX, rootY);
+        parent[rootY] = rootX;
+        size[rootX] += size[rootY];
+    }
+};
+
+int makeConnected(int n, vector<vector<int>>& connections) {
+    if ((int)connections.size() < n - 1) return -1;
+
+    DisjointSet ds(n);
+    for (auto& c : connections) ds.unite(c[0], c[1]);
+
+    int components = 0;
+    for (int i = 0; i < n; i++) {
+        if (ds.find(i) == i) components++;
+    }
+    return components - 1;
+}
+
+int main() {
+    vector<vector<int>> connections = {{0,1},{0,2},{1,2}};
+    cout << makeConnected(4, connections) << endl; // 1
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=4$, $\textit{connections}=[[0,1],[0,2],[1,2]]$.}
+
+$3$ connections $\ge n{-}1=3$: feasible. Union $0{-}1$, $0{-}2$
+(now $\{0,1,2\}$ connected), $1{-}2$ (redundant -- already same
+component). After processing, components: $\{0,1,2\}$ (root, say,
+$0$) and $\{3\}$ (its own root) -- $c=2$. Answer: $c-1=1$ -- one
+redundant cable (the $1{-}2$ connection) can be moved to connect node
+$3$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((n+E)\cdot\alpha(n))$ -- unioning every
+connection plus a final scan over all nodes.
+\textbf{Space Complexity.} $O(n)$ for the Disjoint Set.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This is the first of several problems in this chapter where Disjoint
+Set is used purely for its \textbf{grouping} ability -- counting and
+merging components -- with no notion of edge weight or minimality
+involved at all, distinguishing it clearly from the MST algorithms
+earlier in this chapter that also relied on Disjoint Set.
+\end{takeawaybox}

@@ -1,0 +1,158 @@
+\section{Find the Nth Root of a Number using Binary Search}
+\label{sec:bs-nth-root}
+
+\problemstatement{Given two positive integers $n$ and $m$, find $x$ such
+that $x^n = m$, where $x$ is a positive integer. If no such integer $x$
+exists, report $-1$.}
+
+\begin{patternbox}
+This is the direct generalization of Section~\ref{sec:bs-sqrt} from
+``square root'' to ``$n$-th root.'' The keyword pattern is identical:
+\emph{``find the value $x$ such that $x$ raised to some power equals (or
+is bounded by) a target.''} The only change is the predicate's exponent,
+from $2$ to a general $n$ -- everything else about the binary-search-on-
+the-answer template carries over unchanged.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Define $P(\textit{candidate}) = (\textit{candidate}^n \le m)$ for
+candidates in $[1, m]$. Just as squaring is monotonic for non-negative
+integers, raising to any fixed positive power $n$ is monotonic too:
+$x \le y \Rightarrow x^n \le y^n$. So $P$ is \texttt{true} for a prefix of
+candidates and \texttt{false} afterward, with a single crossover -- the
+largest candidate satisfying $P$ is a perfect $n$-th root only if
+$\textit{candidate}^n$ exactly equals $m$ at that point; otherwise, no
+exact integer $n$-th root exists.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is integers $[1, m]$. The predicate is
+$P(\textit{candidate}) = (\textit{candidate}^n \le m)$. Track the largest
+candidate for which $P$ holds; at the end, check whether that candidate,
+raised to the $n$-th power, exactly equals $m$.
+\end{ideabox}
+
+\subsection*{Why we must verify exactness at the end}
+
+Unlike the square-root problem, which explicitly asked for the
+\emph{floor} of the root (so any final value of \textit{ans} is a valid
+answer), this problem demands an \emph{exact} integer root, or $-1$ if
+none exists. So the binary search itself is unchanged -- it always finds
+the largest candidate whose $n$-th power does not exceed $m$ -- but we add
+one final check: if that candidate's $n$-th power is not exactly $m$,
+there is no integer solution, and we must report $-1$ rather than the
+nearest approximation.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 1$, $\textit{hi} \gets m$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Compute $p \gets \textit{mid}^n$ (stop early/clamp if it exceeds
+          $m$, to avoid overflow for large $n$).
+    \item If $p = m$: return \textit{mid}.
+    \item If $p < m$: $\textit{lo} \gets \textit{mid}+1$.
+    \item Else: $\textit{hi} \gets \textit{mid}-1$.
+  \end{enumerate}
+  \item If the loop ends without returning, return $-1$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Nth Root}
+\begin{algorithmic}[1]
+\Procedure{NthRoot}{$n, m$}
+  \State $\textit{lo} \gets 1$, $\textit{hi} \gets m$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $p \gets \textit{mid}^n$ \Comment{computed with early-exit on overflow}
+    \If{$p = m$} \Return \textit{mid} \EndIf
+    \If{$p < m$}
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \EndIf
+  \EndWhile
+  \State \Return $-1$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n = 3$, $m = 27$ (find the cube root).}
+
+\begin{itemize}
+  \item $\textit{lo}=1,\textit{hi}=27$: $\textit{mid}=14$, $14^3=2744 \le
+        27$? No, $p > m$. $\textit{hi}=13$.
+  \item $\textit{lo}=1,\textit{hi}=13$: $\textit{mid}=7$, $7^3=343 > 27$.
+        $\textit{hi}=6$.
+  \item $\textit{lo}=1,\textit{hi}=6$: $\textit{mid}=3$, $3^3=27=27$.
+        Return $3$.
+\end{itemize}
+
+The answer is $3$, since $3^3 = 27$.
+
+Now take $n=4$, $m=20$. No integer fourth root of $20$ exists ($2^4=16$,
+$3^4=81$), so the binary search will narrow down without ever finding
+$p=m$, and the final answer will correctly be $-1$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+// Computes base^exp, capped to indicate ">m" without overflow.
+long long power(long long base, int exp, long long cap) {
+    long long result = 1;
+    for (int i = 0; i < exp; i++) {
+        result *= base;
+        if (result > cap) return cap + 1; // overflow guard
+    }
+    return result;
+}
+
+int nthRoot(int n, int m) {
+    int lo = 1, hi = m;
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        long long p = power(mid, n, m);
+
+        if (p == m) return mid;
+        else if (p < m) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return -1;
+}
+
+int main() {
+    cout << "Cube root of 27: " << nthRoot(3, 27) << endl;
+    cout << "4th root of 20: " << nthRoot(4, 20) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The candidate range $[1, m]$ halves each
+iteration, and each predicate evaluation costs $O(n)$ to compute the
+power (or $O(\log n)$ with fast exponentiation), giving an overall time
+complexity of
+\[
+  O(n \log m)
+\]
+(or $O(\log n \log m)$ with fast exponentiation).
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Generalizing a binary-search-on-the-answer problem from a fixed exponent
+(square root, exponent $2$) to a variable exponent ($n$-th root) changes
+nothing about the search itself -- only the cost of evaluating the
+predicate changes, since computing $\textit{candidate}^n$ is more expensive
+than $\textit{candidate}^2$. Always separate ``how do I search the
+candidate space'' from ``how expensive is one feasibility check,'' since
+they contribute independently to the total complexity.
+\end{takeawaybox}

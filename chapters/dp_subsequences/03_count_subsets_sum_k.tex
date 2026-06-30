@@ -1,0 +1,201 @@
+\section{Count Subsets with Sum K}
+\label{sec:dp-count-subsets-sum-k}
+
+\problemstatement{Given an array $\textit{arr}$ of non-negative integers
+and a target $k$, count \textbf{how many} subsets sum to exactly $k$.}
+
+\begin{patternbox}
+This is Section~\ref{sec:dp-subset-sum-target}'s exact recurrence with
+the logical OR replaced by \textbf{addition} -- the same
+exists-to-count transformation as the Recursion chapter's
+``Check if There Exists a Subsequence with Sum K'' to ``Count
+Subsequences with Sum K'' transition,
+now applied on top of the memoized/tabulated table instead of plain
+recursion.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+\[
+  f(\textit{index}, \textit{target}) = f(\textit{index}{-}1, \textit{target})
+  \ +\ \big(\textit{arr}[\textit{index}] \le \textit{target}\ ?\
+  f(\textit{index}{-}1, \textit{target}-\textit{arr}[\textit{index}]) : 0\big).
+\]
+Base case (handling a possible zero-valued element carefully, since a
+$0$ can be included or excluded without changing the sum, doubling the
+count): if $\textit{index}=0$, return $2$ if $\textit{target}=0$ and
+$\textit{arr}[0]=0$; return $1$ if $\textit{target}=0$ or
+$\textit{target}=\textit{arr}[0]$ (but not both conditions above); else
+return $0$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSubsetsRecursive(int index, int target, vector<int>& arr) {
+    if (index == 0) {
+        if (target == 0 && arr[0] == 0) return 2;
+        if (target == 0 || target == arr[0]) return 1;
+        return 0;
+    }
+
+    int notPick = countSubsetsRecursive(index - 1, target, arr);
+    int pick = 0;
+    if (arr[index] <= target) {
+        pick = countSubsetsRecursive(index - 1, target - arr[index], arr);
+    }
+    return notPick + pick;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 2, 3};
+    int n = arr.size();
+    cout << countSubsetsRecursive(n - 1, 3, arr) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSubsetsMemo(int index, int target, vector<int>& arr,
+                      vector<vector<int>>& memo) {
+    if (index == 0) {
+        if (target == 0 && arr[0] == 0) return 2;
+        if (target == 0 || target == arr[0]) return 1;
+        return 0;
+    }
+    if (memo[index][target] != -1) return memo[index][target];
+
+    int notPick = countSubsetsMemo(index - 1, target, arr, memo);
+    int pick = 0;
+    if (arr[index] <= target) {
+        pick = countSubsetsMemo(index - 1, target - arr[index], arr, memo);
+    }
+    return memo[index][target] = notPick + pick;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 2, 3};
+    int n = arr.size(), k = 3;
+    vector<vector<int>> memo(n, vector<int>(k + 1, -1));
+    cout << countSubsetsMemo(n - 1, k, arr, memo) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n \cdot k)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSubsetsTabulation(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<vector<int>> dp(n, vector<int>(k + 1, 0));
+
+    dp[0][0] = (arr[0] == 0) ? 2 : 1;
+    if (arr[0] != 0 && arr[0] <= k) dp[0][arr[0]] = 1;
+
+    for (int index = 1; index < n; index++) {
+        for (int target = 0; target <= k; target++) {
+            int notPick = dp[index - 1][target];
+            int pick = (arr[index] <= target) ? dp[index - 1][target - arr[index]] : 0;
+            dp[index][target] = notPick + pick;
+        }
+    }
+    return dp[n - 1][k];
+}
+
+int main() {
+    vector<int> arr = {1, 2, 2, 3};
+    cout << countSubsetsTabulation(arr, 3) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{arr} = [1,2,2,3]$, $k=3$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+$\textit{index}\backslash\textit{target}$ & 0 & 1 & 2 & 3 \\ \hline
+$0$ (val $1$) & 1 & 1 & 0 & 0 \\
+$1$ (val $2$) & 1 & 1 & 1 & 1 \\
+$2$ (val $2$) & 1 & 1 & 2 & 2 \\
+$3$ (val $3$) & 1 & 1 & 2 & 3
+\end{tabular}
+\end{center}
+
+The three qualifying subsets summing to $3$ are $\{1,2\}$ (using the
+first $2$), $\{1,2\}$ (using the second $2$), and $\{3\}$ alone --
+matching $\textit{dp}[3][3]=3$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n \cdot k)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSubsetsSpaceOptimized(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<int> prev(k + 1, 0);
+
+    prev[0] = (arr[0] == 0) ? 2 : 1;
+    if (arr[0] != 0 && arr[0] <= k) prev[arr[0]] = 1;
+
+    for (int index = 1; index < n; index++) {
+        vector<int> current(k + 1, 0);
+        for (int target = 0; target <= k; target++) {
+            int notPick = prev[target];
+            int pick = (arr[index] <= target) ? prev[target - arr[index]] : 0;
+            current[target] = notPick + pick;
+        }
+        prev = current;
+    }
+    return prev[k];
+}
+
+int main() {
+    vector<int> arr = {1, 2, 2, 3};
+    cout << countSubsetsSpaceOptimized(arr, 3) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(k)$ for the rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Counting subsets and checking subset existence differ by exactly one
+operator (addition instead of logical OR) at every step of an otherwise
+identical recurrence -- the same lesson already drawn from the
+Recursion chapter's exists-to-count transition.
+Watch for the zero-value edge case specifically whenever a problem allows
+zero-valued array elements, since a $0$ can always be freely included or
+excluded without affecting the sum, silently doubling some counts if not
+handled in the base case.
+\end{takeawaybox}

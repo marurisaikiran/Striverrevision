@@ -1,0 +1,155 @@
+\section{Making a Large Island}
+\label{sec:graph-making-large-island}
+
+\problemstatement{Given an $n \times n$ binary grid, change \textbf{at
+most one} cell from $0$ to $1$ to maximize the size of the largest
+resulting island ($4$-connected group of $1$s). Return that maximum
+possible size.}
+
+\begin{patternbox}
+This closing problem of the chapter combines Disjoint Set's component
+\textbf{sizing} (already used implicitly by union-by-size throughout
+this chapter) with a final scan: first, group every existing island
+using Disjoint Set, tracking each group's size; then, for every water
+cell, compute what size would result from flipping \textbf{just that
+one cell} -- the sum of the sizes of its (up to $4$) \textbf{distinct}
+neighboring islands, plus $1$ for the flipped cell itself.
+\end{patternbox}
+
+\subsection*{Why distinctness of neighboring islands matters}
+
+A water cell might have two or more $4$-directional neighbors that
+belong to the \emph{same} island (e.g., a water cell with land both
+above and below, where that land happens to already be connected via
+some other path around the grid). Counting that island's size twice
+would overcount. So neighboring islands must be collected into a
+\textbf{set} of distinct roots before summing their sizes -- exactly
+the kind of deduplication Disjoint Set's $\textit{find}$ operation
+makes trivial (two neighbors are ``the same island'' precisely when
+$\textit{find}$ returns the same root for both).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build a Disjoint Set over all $n^2$ cells; union every land
+        cell with its land neighbors.
+  \item For every water cell, collect the distinct roots among its up
+        to $4$ neighbors that are land; the candidate size if flipped
+        is $1$ plus the sum of those distinct roots' group sizes.
+  \item Track the maximum candidate size across all water cells (and
+        separately, the largest existing island's size, in case the
+        grid has no water cell to flip at all -- the answer is then
+        simply $n^2$).
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent, size;
+public:
+    DisjointSet(int n) : parent(n), size(n, 1) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(int x, int y) {
+        int rootX = find(x), rootY = find(y);
+        if (rootX == rootY) return;
+        if (size[rootX] < size[rootY]) swap(rootX, rootY);
+        parent[rootY] = rootX;
+        size[rootX] += size[rootY];
+    }
+    int getSize(int x) { return size[find(x)]; }
+};
+
+int largestIsland(vector<vector<int>>& grid) {
+    int n = grid.size();
+    DisjointSet ds(n * n);
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    for (int r = 0; r < n; r++) {
+        for (int c = 0; c < n; c++) {
+            if (grid[r][c] == 1) {
+                for (int dir = 0; dir < 4; dir++) {
+                    int nr = r + dr[dir], nc = c + dc[dir];
+                    if (nr >= 0 && nr < n && nc >= 0 && nc < n && grid[nr][nc] == 1) {
+                        ds.unite(r * n + c, nr * n + nc);
+                    }
+                }
+            }
+        }
+    }
+
+    int best = 0;
+    bool hasWater = false;
+
+    for (int r = 0; r < n; r++) {
+        for (int c = 0; c < n; c++) {
+            if (grid[r][c] == 0) {
+                hasWater = true;
+                unordered_set<int> distinctRoots;
+                for (int dir = 0; dir < 4; dir++) {
+                    int nr = r + dr[dir], nc = c + dc[dir];
+                    if (nr >= 0 && nr < n && nc >= 0 && nc < n && grid[nr][nc] == 1) {
+                        distinctRoots.insert(ds.find(nr * n + nc));
+                    }
+                }
+                int candidate = 1;
+                for (int root : distinctRoots) candidate += ds.getSize(root);
+                best = max(best, candidate);
+            } else {
+                best = max(best, ds.getSize(r * n + c));
+            }
+        }
+    }
+    return hasWater ? best : n * n;
+}
+
+int main() {
+    vector<vector<int>> grid = {
+        {1, 0},
+        {0, 1}
+    };
+    cout << largestIsland(grid) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $2\times2$ grid $[[1,0],[0,1]]$ (two separate
+single-cell islands, diagonally placed).}
+
+After building the Disjoint Set: cell $(0,0)$ and cell $(1,1)$ are
+each their own island of size $1$ (they are not $4$-directionally
+adjacent to each other). Checking water cell $(0,1)$: neighbors
+$(0,0)$ (land, size $1$) and $(1,1)$ (land, size $1$) -- two
+\emph{distinct} roots, candidate $=1+1+1=3$. Checking water cell
+$(1,0)$: neighbors $(0,0)$ (land, size $1$) and $(1,1)$ (land, size
+$1$) -- also distinct, candidate $=1+1+1=3$. Best: $3$ -- flipping
+either water cell connects both existing islands into one.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2 \cdot \alpha(n^2))$ -- building the
+Disjoint Set and the final scan both touch every cell a constant
+number of times.
+\textbf{Space Complexity.} $O(n^2)$ for the Disjoint Set.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This chapter closes by combining nearly everything it introduced:
+Disjoint Set's grouping (Section~\ref{sec:graph-disjoint-set-impl}),
+size tracking (the same union-by-size bookkeeping Kruskal's and Prim's
+relied on internally), and the deduplication that distinguishes a
+\emph{group} from a list of individual elements (echoing Accounts
+Merge's account-grouping and Most Stones Removed's row/column
+grouping) -- a fitting capstone for a chapter built entirely around one
+data structure's surprising range of applications.
+\end{takeawaybox}

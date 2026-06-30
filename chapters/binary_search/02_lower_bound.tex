@@ -1,0 +1,168 @@
+\section{Implement Lower Bound}
+\label{sec:bs-lower-bound}
+
+\problemstatement{We are given a sorted array $\textit{arr}$ of $n$
+elements and a value $X$. We must find the \textbf{lower bound} of $X$:
+the index of the first element in $\textit{arr}$ that is $\textbf{greater
+than or equal to}$ $X$. If no such element exists (every element is smaller
+than $X$), the lower bound is $n$ (one past the end of the array).}
+
+\begin{patternbox}
+\emph{``Find the first/smallest index such that some condition holds''} --
+here, the condition is $\textit{arr}[i] \ge X$ -- is the
+\textbf{find-the-boundary} variant of binary search, distinct from the
+exact-match search of Section~\ref{sec:bs-find-x}. The keyword is not
+``find $X$'' but \textbf{``find the first position where a property
+becomes true.''} This phrasing recurs constantly throughout this chapter
+(first/last occurrence, search insert position, floor/ceil, and many
+``binary search on the answer'' problems), so internalizing the
+boundary-search template here pays off many times over.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Define the predicate $P(i) = (\textit{arr}[i] \ge X)$. Because the array is
+sorted in increasing order, $P$ is \texttt{false} for some prefix of
+indices and \texttt{true} for the remaining suffix, with exactly one
+crossover point -- the lower bound is, by definition, that crossover index.
+Unlike Section~\ref{sec:bs-find-x}, we are not looking for a single exact
+match; we are looking for the \emph{boundary} between ``too small'' and
+``big enough,'' which exists regardless of whether $X$ itself is actually
+present in the array.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is indices $0, \dots, n$ (note: $n$ itself is a valid
+answer, representing ``no element is large enough''). The predicate is
+$P(i) = (\textit{arr}[i] \ge X)$ for $i < n$, and we want the smallest index
+where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why we keep a separate ``best answer so far'' variable}
+
+In exact-match search, the loop stops the instant we find a match. Here, we
+cannot stop early, because finding \emph{one} index where $\textit{arr}[i]
+\ge X$ does not tell us it is the \emph{first} such index -- there might be
+an even smaller valid index hiding in the left half. So instead of
+returning immediately, whenever $\textit{arr}[\textit{mid}] \ge X$ we
+record $\textit{mid}$ as a candidate answer and \emph{keep searching to the
+left}, hoping to find an even smaller valid index; whenever
+$\textit{arr}[\textit{mid}] < X$, we know the entire left portion up to and
+including $\textit{mid}$ is too small, so we discard it and search to the
+right. This is the general template for every ``find the first/last index
+satisfying a monotonic property'' problem: maintain a running best answer,
+and keep shrinking the window based on the predicate, rather than stopping
+on the first observed success.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$,
+        $\textit{ans} \gets n$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo} + (\textit{hi}-\textit{lo})/2$.
+    \item If $\textit{arr}[\textit{mid}] \ge X$: record
+          $\textit{ans} \gets \textit{mid}$, and search left:
+          $\textit{hi} \gets \textit{mid}-1$.
+    \item Otherwise: search right: $\textit{lo} \gets \textit{mid}+1$.
+  \end{enumerate}
+  \item Return \textit{ans}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Lower Bound}
+\begin{algorithmic}[1]
+\Procedure{LowerBound}{$\textit{arr}, X$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$, $\textit{ans} \gets n$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo} + (\textit{hi}-\textit{lo})/2$
+    \If{$\textit{arr}[\textit{mid}] \ge X$}
+      \State $\textit{ans} \gets \textit{mid}$
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{ans}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1, 2, 2, 3]$, $X = 2$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=3,\textit{ans}=4$: $\textit{mid}=1$,
+        $\textit{arr}[1]=2 \ge 2$. $\textit{ans}=1$, $\textit{hi}=0$.
+  \item $\textit{lo}=0,\textit{hi}=0$: $\textit{mid}=0$,
+        $\textit{arr}[0]=1 \ge 2$? No. $\textit{lo}=1$.
+  \item $\textit{lo}=1 > \textit{hi}=0$: loop ends.
+\end{itemize}
+
+The lower bound is index $1$ -- the first occurrence of $2$.
+
+Now take $X = 5$ on the same array (larger than every element).
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=3,\textit{ans}=4$: $\textit{mid}=1$,
+        $\textit{arr}[1]=2 \ge 5$? No. $\textit{lo}=2$.
+  \item $\textit{lo}=2,\textit{hi}=3$: $\textit{mid}=2$,
+        $\textit{arr}[2]=2 \ge 5$? No. $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=3$: $\textit{mid}=3$,
+        $\textit{arr}[3]=3 \ge 5$? No. $\textit{lo}=4$.
+  \item $\textit{lo}=4 > \textit{hi}=3$: loop ends. $\textit{ans}$ remains
+        $4$ (its initial value, never overwritten).
+\end{itemize}
+
+The lower bound is $4 = n$, correctly signaling that no element is large
+enough.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lowerBound(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1, ans = n;
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] >= X) {
+            ans = mid;
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return ans;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 2, 3};
+    cout << "Lower bound of 2: " << lowerBound(arr, 2) << endl;
+    cout << "Lower bound of 5: " << lowerBound(arr, 5) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The search window halves each iteration, giving
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} Only a constant number of scalar variables are
+used, giving $O(1)$ space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a problem asks for the \emph{first} (or \emph{last}) index
+satisfying a monotonic condition, do not stop the binary search the moment
+you observe the condition holding -- instead, record it as a tentative
+answer and keep narrowing the search toward the boundary, in the direction
+that could produce an even better (earlier, or later) answer. This
+``record and keep narrowing'' template is reused, almost verbatim, in
+upper bound, floor/ceil, and first/last occurrence.
+\end{takeawaybox}

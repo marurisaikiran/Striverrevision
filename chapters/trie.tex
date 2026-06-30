@@ -1,0 +1,81 @@
+\chapter{Trie}
+\chapterepigraph{A trie trades memory for a kind of search no comparison-based
+structure can offer: it does not ask ``is this string less than or
+greater than that one'' -- it asks ``what character comes next,'' one
+position at a time, branching only where words actually disagree.}
+
+\section{What Problem Does a Trie Actually Solve?}
+\label{sec:trie-intro}
+
+A \textbf{trie} (prefix tree) stores a collection of strings (or, viewed
+differently, a collection of fixed-length binary numbers) as paths from a
+shared root, where every node represents one character (or one bit)
+consumed so far, and nodes are shared across all strings that agree on a
+prefix. Two strings that share a $k$-character prefix share the first $k$
+nodes of their paths through the trie; they only diverge into separate
+branches at the first character where they differ.
+
+\begin{ideabox}[Why This Beats a Hash Set or a BST for Prefix Questions]
+A hash set answers ``is this exact string present'' in $O(\text{length})$,
+but cannot answer ``how many stored strings start with this prefix''
+without scanning every stored string. A BST of strings can answer prefix
+questions via range queries, but each comparison still costs
+$O(\text{length})$ in the worst case, and the tree's shape depends on
+insertion order. A trie answers \textbf{both} exact-match and
+prefix-match queries in $O(\text{length of the query})$, completely
+independent of how many strings are stored or in what order they were
+inserted -- because shared prefixes are physically shared as the same
+path, prefix counting is just a matter of annotating nodes along that
+shared path with counts as strings are inserted.
+\end{ideabox}
+
+\subsection*{How to Recognise a Trie Problem from Its Wording}
+
+\begin{patternbox}[Recurring Trie Keywords]
+\begin{itemize}
+  \item \textbf{``Insert/search words,'' ``starts with,'' ``prefix''} --
+        a direct, textbook trie: one node per character, a marker at
+        nodes where a complete word ends.
+  \item \textbf{``Count words equal to / starting with a given
+        string,'' or ``erase a word''} -- the same trie, with each node
+        additionally annotated with a small counter (how many inserted
+        words pass through, or end at, this node), updated incrementally
+        on insert/erase.
+  \item \textbf{``Longest prefix that is itself always a complete,
+        previously-seen word'' or ``every prefix of this word must also
+        be a complete word''} -- a trie where the search/build step
+        explicitly checks, at every node along a path, whether that node
+        marks the end of \emph{some} inserted word, not just whether the
+        final node does.
+  \item \textbf{``Maximum XOR'' between numbers, or ``maximum XOR with
+        an element from an array,'' for a query''} -- a \textbf{binary
+        trie}: treat each number as a fixed-length sequence of bits
+        (e.g.\ $32$ bits), insert each number bit by bit from the most
+        significant bit downward, and answer a maximum-XOR query by
+        greedily choosing, at each bit position, the branch that
+        \emph{disagrees} with the query number's corresponding bit
+        (since XOR-ing differing bits produces a $1$, maximizing the
+        result).
+  \item \textbf{``Number of distinct substrings''} -- build a trie of
+        \emph{every suffix} of the string; the number of distinct
+        substrings equals the number of nodes created during this
+        construction (every trie node corresponds to exactly one
+        distinct substring, the one spelled out by the path from the
+        root to that node).
+\end{itemize}
+\end{patternbox}
+
+Each section in this chapter follows the established structure: problem
+statement and keywords; the reasoning that identifies the trie variant
+needed and why it is correct; the algorithm in words and pseudocode; a
+hand-traced dry run; complete compilable C++ code; and a time/space
+complexity analysis.
+
+\newpage
+
+\input{chapters/trie/01_implement_trie.tex}
+\input{chapters/trie/02_implement_trie_2.tex}
+\input{chapters/trie/03_longest_word_all_prefixes.tex}
+\input{chapters/trie/04_distinct_substrings.tex}
+\input{chapters/trie/05_max_xor_two_numbers.tex}
+\input{chapters/trie/06_max_xor_query.tex}

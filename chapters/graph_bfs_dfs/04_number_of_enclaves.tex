@@ -1,0 +1,106 @@
+\section{Number of Enclaves}
+\label{sec:graph-number-of-enclaves}
+
+\problemstatement{Given a binary grid where $0$ is sea and $1$ is
+land, a move walks $4$-directionally from one land cell to another.
+Count the number of land cells from which it is \textbf{impossible}
+to walk off the boundary of the grid in any number of moves.}
+
+\begin{patternbox}
+This is Section~\ref{sec:graph-surrounded-regions}'s boundary-first
+elimination technique again, with the roles renamed: land cells
+connected to the border can ``escape,'' so traverse from every
+\textbf{border land cell} first, marking everything reachable as
+escapable; every \textbf{unmarked} land cell remaining afterward is an
+enclave, and the answer is simply the count of those.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For every land cell on the border, DFS (or BFS) outward,
+        marking every $4$-directionally connected land cell as visited
+        (mutate the grid in place, setting visited land to $0$, exactly
+        as the previous section reused the grid itself as the
+        \textit{visited} structure).
+  \item Scan the entire grid and count every remaining land cell
+        ($1$) -- these are cells no border-seeded traversal ever
+        reached, i.e.\ the enclaves.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void markEscapable(int r, int c, vector<vector<int>>& grid) {
+    int rows = grid.size(), cols = grid[0].size();
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (grid[r][c] != 1) return;
+
+    grid[r][c] = 0;
+    markEscapable(r - 1, c, grid);
+    markEscapable(r + 1, c, grid);
+    markEscapable(r, c - 1, grid);
+    markEscapable(r, c + 1, grid);
+}
+
+int numEnclaves(vector<vector<int>>& grid) {
+    int rows = grid.size(), cols = grid[0].size();
+
+    for (int r = 0; r < rows; r++) {
+        markEscapable(r, 0, grid);
+        markEscapable(r, cols - 1, grid);
+    }
+    for (int c = 0; c < cols; c++) {
+        markEscapable(0, c, grid);
+        markEscapable(rows - 1, c, grid);
+    }
+
+    int enclaves = 0;
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (grid[r][c] == 1) enclaves++;
+        }
+    }
+    return enclaves;
+}
+
+int main() {
+    vector<vector<int>> grid = {
+        {0, 0, 0, 0},
+        {1, 0, 1, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0}
+    };
+    cout << numEnclaves(grid) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $4\times4$ grid above.}
+
+Border land cells: $(1,0)$ (column $0$). $\textit{markEscapable}(1,0)$:
+sets $(1,0)$ to $0$; its only land neighbor would need to be checked,
+but $(0,0)=0,(2,0)=0,(1,1)=0$ -- no further spread. No other border
+cell is land. The remaining land cells $(1,2),(2,1),(2,2)$ form a
+connected interior region untouched by the border traversal -- they
+are never adjacent to the border, and $(1,0)$'s region doesn't reach
+them. Final count: $3$ enclaves.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\textit{rows} \times \textit{cols})$.
+\textbf{Space Complexity.} $O(\textit{rows} \times \textit{cols})$
+recursion stack in the worst case.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Surrounded Regions and Number of Enclaves are, structurally, the same
+algorithm: seed a traversal from the boundary, and treat whatever it
+fails to reach as the answer. Once this boundary-first elimination
+pattern is recognized, both problems reduce to writing the same dozen
+lines of code with different variable names.
+\end{takeawaybox}

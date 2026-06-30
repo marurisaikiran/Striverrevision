@@ -1,0 +1,213 @@
+\section{Frog Jump with K Distances}
+\label{sec:dp-frog-jump-k}
+
+\problemstatement{Same setting as Section~\ref{sec:dp-frog-jump}, except
+the frog may jump from index $i$ to any of $i+1, i+2, \ldots, i+k$ (up
+to $k$ steps ahead, instead of only $1$ or $2$), at cost
+$|\textit{height}[i]-\textit{height}[j]|$ for a jump to index $j$. Find
+the minimum total cost to reach index $n-1$.}
+
+\begin{patternbox}
+\emph{``Same recurrence shape, but the fixed set of options widens from
+$2$ to a parameter $k$''} -- recognizing this is the entire content of
+this section: Section~\ref{sec:dp-frog-jump}'s minimum over $2$ candidates
+($i-1$ and $i-2$) becomes a minimum over up to $k$ candidates
+($i-1, i-2, \ldots, i-k$), with everything else about the derivation
+unchanged.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+The frog's last jump into index $i$ came from some index $i-j$ for some
+$j$ between $1$ and $k$ (as long as $i-j \ge 0$). So:
+\[
+  \textit{minCost}(i) = \min_{1 \le j \le k,\ i-j \ge 0}
+  \Big(\textit{minCost}(i-j) + |\textit{height}[i]-\textit{height}[i-j]|\Big).
+\]
+Base case: $\textit{minCost}(0)=0$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpKRecursive(int i, int k, vector<int>& height) {
+    if (i == 0) return 0;
+
+    int best = INT_MAX;
+    for (int j = 1; j <= k && i - j >= 0; j++) {
+        int cost = frogJumpKRecursive(i - j, k, height) +
+                    abs(height[i] - height[i - j]);
+        best = min(best, cost);
+    }
+    return best;
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50, 20};
+    int n = height.size(), k = 3;
+    cout << frogJumpKRecursive(n - 1, k, height) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(k^n)$ in the worst case -- each call now branches
+into up to $k$ recursive calls instead of $2$.
+\textbf{Space.} $O(n)$ for the recursion stack depth.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpKMemo(int i, int k, vector<int>& height, vector<int>& memo) {
+    if (i == 0) return 0;
+    if (memo[i] != -1) return memo[i];
+
+    int best = INT_MAX;
+    for (int j = 1; j <= k && i - j >= 0; j++) {
+        int cost = frogJumpKMemo(i - j, k, height, memo) +
+                    abs(height[i] - height[i - j]);
+        best = min(best, cost);
+    }
+    return memo[i] = best;
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50, 20};
+    int n = height.size(), k = 3;
+    vector<int> memo(n, -1);
+    cout << frogJumpKMemo(n - 1, k, height, memo) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot k)$ -- $n$ distinct sub-problems, each doing
+$O(k)$ work in its loop.
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpKTabulation(vector<int>& height, int k) {
+    int n = height.size();
+    vector<int> dp(n, 0);
+
+    for (int i = 1; i < n; i++) {
+        int best = INT_MAX;
+        for (int j = 1; j <= k && i - j >= 0; j++) {
+            int cost = dp[i - j] + abs(height[i] - height[i - j]);
+            best = min(best, cost);
+        }
+        dp[i] = best;
+    }
+    return dp[n - 1];
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50, 20};
+    cout << frogJumpKTabulation(height, 3) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{height} = [10,30,40,50,20]$, $k=3$.}
+
+\begin{itemize}
+  \item $\textit{dp}[0]=0$.
+  \item $\textit{dp}[1] = \textit{dp}[0]+|30{-}10| = 20$ (only $j=1$
+        possible).
+  \item $\textit{dp}[2] = \min(\textit{dp}[1]+|40{-}30|,\
+        \textit{dp}[0]+|40{-}10|) = \min(30,30) = 30$.
+  \item $\textit{dp}[3] = \min(\textit{dp}[2]+|50{-}40|,\
+        \textit{dp}[1]+|50{-}30|,\ \textit{dp}[0]+|50{-}10|) =
+        \min(40,40,40) = 40$.
+  \item $\textit{dp}[4] = \min(\textit{dp}[3]+|20{-}50|,\
+        \textit{dp}[2]+|20{-}40|,\ \textit{dp}[1]+|20{-}30|) =
+        \min(40{+}30,\ 30{+}20,\ 20{+}10) = \min(70,50,30) = 30$.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c|c}
+$i$ & 0 & 1 & 2 & 3 & 4 \\ \hline
+$\textit{dp}[i]$ & 0 & 20 & 30 & 40 & 30
+\end{tabular}
+\end{center}
+
+The answer is $\textit{dp}[4]=30$, achieved by jumping directly from
+index $1$ ($\textit{height}=30$) to index $4$ ($\textit{height}=20$), a
+jump of size $3 \le k$, costing $\textit{dp}[1] + |20-30| = 20+10=30$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{ideabox}[Why This One Cannot Be Reduced All the Way to $O(1)$]
+Unlike Section~\ref{sec:dp-frog-jump}, where only the \emph{two}
+immediately preceding entries were ever needed, here computing
+$\textit{dp}[i]$ may need any of the previous $k$ entries -- so the
+space optimization here reduces storage to a \textbf{sliding window} of
+the last $k$ entries (e.g.\ a small circular buffer or deque of size
+$k$), rather than collapsing all the way to two scalar variables. When
+$k$ is a fixed small constant, this is still $O(k) = O(1)$ relative to
+$n$; when $k$ can grow proportionally with $n$, no reduction below
+$O(n)$ is possible, since up to $n$ of the entries might genuinely be
+needed.
+\end{ideabox}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int frogJumpKSpaceOptimized(vector<int>& height, int k) {
+    int n = height.size();
+    vector<int> window(k, 0); // window[i % k] holds dp[i]
+    window[0] = 0;
+
+    for (int i = 1; i < n; i++) {
+        int best = INT_MAX;
+        for (int j = 1; j <= k && i - j >= 0; j++) {
+            int cost = window[(i - j) % k] + abs(height[i] - height[i - j]);
+            best = min(best, cost);
+        }
+        window[i % k] = best;
+    }
+    return window[(n - 1) % k];
+}
+
+int main() {
+    vector<int> height = {10, 30, 40, 50, 20};
+    cout << frogJumpKSpaceOptimized(height, 3) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot k)$, unchanged.
+\textbf{Space.} $O(k)$ for the sliding window, instead of $O(n)$ for
+the full table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Generalizing a recurrence's fixed-size option set from a small constant
+(here, $2$, in Frog Jump) to a parameter $k$ widens every stage's loop
+from $2$ iterations to $k$, multiplying the time complexity by $k$ and
+capping how far the space optimization can shrink: only the last $k$
+table entries, not just the last $2$, must remain available, so the
+``two rolling variables'' trick of earlier sections becomes a
+``sliding window of size $k$'' trick here.
+\end{takeawaybox}

@@ -1,0 +1,217 @@
+\section{Fractional Knapsack Problem}
+\label{sec:fractional-knapsack}
+
+\problemstatement{We are given $n$ items, where the $i$-th item has a value
+$\textit{val}[i]$ and a weight $\textit{wt}[i]$, and a knapsack of capacity
+$W$. Unlike the classical $0/1$ knapsack, here we are allowed to take any
+\emph{fraction} of an item -- if we take a fraction $x \in [0,1]$ of item $i$,
+we gain $x \cdot \textit{val}[i]$ value while consuming $x \cdot
+\textit{wt}[i]$ weight. We must choose fractions for each item, subject to
+the total weight taken not exceeding $W$, so as to \textbf{maximize the total
+value} carried out of the knapsack.}
+
+\begin{patternbox}
+The single word \emph{``fraction''} (or \emph{``can be broken into
+smaller units''}) attached to a knapsack-style capacity problem is the
+loudest signal in this entire chapter: it rules out dynamic programming
+immediately. The $0/1$ knapsack needs DP precisely because an item is
+all-or-nothing, which creates genuine overlapping subproblems (``did we take
+item $i$ or not''). The moment items become divisible, that branching
+disappears -- we can always characterize the best item to put in next using a
+single number, its \emph{value-per-unit-weight ratio}, and greedily fill the
+knapsack from the best ratio downward. Any time you see ``maximize total
+value/profit under a single weight/capacity/budget constraint, items may be
+split,'' reach for the ratio-greedy pattern.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Define, for each item $i$, its \emph{rate of return}
+\[
+  r_i = \frac{\textit{val}[i]}{\textit{wt}[i]}.
+\]
+This number tells us exactly how much value we earn per unit of weight we
+spend if we take item $i$. Because we are allowed to take fractions, taking
+item $i$ is like having access to an unlimited (well, limited by
+$\textit{wt}[i]$) supply of ``value at rate $r_i$.'' If our only constraint is
+a total weight budget $W$, then to maximize value, common sense says: spend
+the budget first on the item with the best rate of return, then the next
+best, and so on, until the budget runs out -- possibly using only part of the
+last item we touch.
+
+\begin{ideabox}[Greedy Choice]
+Sort the items in decreasing order of $r_i = \textit{val}[i] /
+\textit{wt}[i]$. Process them in this order; for each item, take as much of
+it as the remaining capacity allows -- the whole item if it fits, otherwise
+exactly the fraction of it that exactly fills the remaining capacity, after
+which the knapsack is full and we stop.
+\end{ideabox}
+
+\subsection*{Why the greedy choice is correct}
+
+Suppose, for contradiction, that some optimal solution does not follow this
+rule -- say it takes a positive amount $a > 0$ of a lower-ratio item $i$
+while leaving some amount $b > 0$ of a higher-ratio item $i'$ (with $r_{i'} >
+r_i$) untaken, even though there was room for it. Then we can perform a small
+exchange: reduce the amount of item $i$ taken by $\varepsilon =
+\min(a, b)$ in weight, and increase the amount of item $i'$ taken by the same
+weight $\varepsilon$. The total weight used is unchanged, so the solution
+remains feasible. But the value changes by
+\[
+  \Delta = \varepsilon \cdot r_{i'} - \varepsilon \cdot r_i
+         = \varepsilon (r_{i'} - r_i) > 0,
+\]
+since $r_{i'} > r_i$. So the exchange strictly increases total value, which
+contradicts the assumption that the original solution was optimal. Hence no
+optimal solution can avoid fully preferring higher-ratio items over
+lower-ratio ones whenever weight can be moved between them -- which is
+exactly the greedy rule. Because fractional amounts are allowed, this
+exchange can always be performed down to an infinitesimal degree, so the
+greedy strategy is not just \emph{a} good heuristic here, it is provably
+optimal, with no gap to close via DP.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute the ratio $r_i = \textit{val}[i] / \textit{wt}[i]$ for every
+        item.
+  \item Sort the items in decreasing order of $r_i$.
+  \item Initialize $\textit{remaining} \gets W$ and
+        $\textit{totalValue} \gets 0$.
+  \item For each item $i$ in sorted order:
+  \begin{enumerate}
+    \item If $\textit{wt}[i] \le \textit{remaining}$: take the whole item.
+          $\textit{totalValue} \gets \textit{totalValue} + \textit{val}[i]$;
+          $\textit{remaining} \gets \textit{remaining} - \textit{wt}[i]$.
+    \item Otherwise: take the fraction
+          $f = \textit{remaining} / \textit{wt}[i]$ of this item.
+          $\textit{totalValue} \gets \textit{totalValue} + f \cdot
+          \textit{val}[i]$; set $\textit{remaining} \gets 0$ and stop --
+          the knapsack is now full.
+  \end{enumerate}
+  \item Return $\textit{totalValue}$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Fractional Knapsack}
+\begin{algorithmic}[1]
+\Procedure{FractionalKnapsack}{$\textit{val}, \textit{wt}, W$}
+  \State sort items by $\textit{val}[i]/\textit{wt}[i]$ in decreasing order
+  \State $\textit{remaining} \gets W$, $\textit{totalValue} \gets 0$
+  \For{each item $i$ in sorted order}
+    \If{$\textit{remaining} = 0$}
+      \State \textbf{break}
+    \EndIf
+    \If{$\textit{wt}[i] \le \textit{remaining}$}
+      \State $\textit{totalValue} \gets \textit{totalValue} + \textit{val}[i]$
+      \State $\textit{remaining} \gets \textit{remaining} - \textit{wt}[i]$
+    \Else
+      \State $f \gets \textit{remaining} / \textit{wt}[i]$
+      \State $\textit{totalValue} \gets \textit{totalValue} + f \times \textit{val}[i]$
+      \State $\textit{remaining} \gets 0$
+    \EndIf
+  \EndFor
+  \State \Return \textit{totalValue}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take three items with $(\textit{val}, \textit{wt})$ pairs
+$(60, 10)$, $(100, 20)$, $(120, 30)$, and knapsack capacity $W = 50$.}
+
+First compute ratios:
+\[
+  r_1 = 60/10 = 6.0, \qquad r_2 = 100/20 = 5.0, \qquad r_3 = 120/30 = 4.0.
+\]
+Sorted in decreasing order of ratio, the items are already in the order
+$1, 2, 3$.
+
+\begin{itemize}
+  \item \textbf{Item 1} ($\textit{val}=60, \textit{wt}=10$): remaining
+        capacity is $50$, and $10 \le 50$, so we take all of it.
+        $\textit{totalValue} = 60$, $\textit{remaining} = 40$.
+  \item \textbf{Item 2} ($\textit{val}=100, \textit{wt}=20$): remaining
+        capacity is $40$, and $20 \le 40$, so we take all of it.
+        $\textit{totalValue} = 160$, $\textit{remaining} = 20$.
+  \item \textbf{Item 3} ($\textit{val}=120, \textit{wt}=30$): remaining
+        capacity is $20$, but $30 > 20$, so we cannot take the whole item.
+        We take the fraction $f = 20/30 = 2/3$. This contributes
+        $\frac{2}{3} \times 120 = 80$ value.
+        $\textit{totalValue} = 160 + 80 = 240$, $\textit{remaining} = 0$.
+\end{itemize}
+
+The knapsack is now full, so we stop. The maximum value obtainable is
+$\boxed{240}$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Item {
+    int value;
+    int weight;
+};
+
+double fractionalKnapsack(int W, vector<Item>& items) {
+    // Sort items by value/weight ratio in decreasing order
+    sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
+        double r1 = (double)a.value / (double)a.weight;
+        double r2 = (double)b.value / (double)b.weight;
+        return r1 > r2;
+    });
+
+    int remaining = W;
+    double totalValue = 0.0;
+
+    for (auto& item : items) {
+        if (remaining == 0) break;
+
+        if (item.weight <= remaining) {
+            totalValue += item.value;
+            remaining -= item.weight;
+        } else {
+            double fraction = (double)remaining / (double)item.weight;
+            totalValue += fraction * item.value;
+            remaining = 0;
+        }
+    }
+    return totalValue;
+}
+
+int main() {
+    vector<Item> items = {{60, 10}, {100, 20}, {120, 30}};
+    int W = 50;
+
+    cout << "Maximum value: " << fractionalKnapsack(W, items) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting the $n$ items by ratio costs
+$O(n \log n)$. The subsequent single pass over the sorted items costs
+$O(n)$. Hence the total time complexity is
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} Sorting is performed in place (or with a small
+$O(n)$ auxiliary array depending on implementation), and we use only a
+constant number of extra scalar variables, giving auxiliary space
+complexity $O(1)$ beyond the input storage (or $O(n)$ if we count the
+input array itself, and $O(\log n)$ for the sort's recursion stack).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Divisibility is the tell. The instant a knapsack-style problem allows
+\emph{fractions} of an item, the all-or-nothing branching that forces
+dynamic programming in $0/1$ knapsack disappears, and a single
+value-per-weight ratio becomes a perfect, provably optimal greedy ranking.
+Contrast this sharply with Section~\ref{sec:assign-cookies}: there, sorting
+gave us a feasibility-matching greedy; here, sorting by ratio gives us a
+value-maximizing greedy, but the underlying exchange-argument justification
+is the same family of reasoning.
+\end{takeawaybox}

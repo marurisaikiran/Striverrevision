@@ -1,0 +1,198 @@
+\section{Unique Paths II (With Obstacles)}
+\label{sec:dp-unique-paths-2}
+
+\problemstatement{Same as Section~\ref{sec:dp-unique-paths}, except some
+grid cells are marked as \textbf{obstacles} (value $1$; open cells are
+$0$), and the robot cannot step onto an obstacle cell at all. Count the
+number of unique paths from top-left to bottom-right.}
+
+\begin{patternbox}
+\emph{``Same grid-path-counting problem, with some cells forbidden''}
+needs exactly one change to Section~\ref{sec:dp-unique-paths}'s
+recurrence: an obstacle cell contributes \textbf{zero} paths, regardless
+of what its predecessors computed, because no path is allowed to pass
+through it at all.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+\[
+  \textit{ways}(i,j) =
+  \begin{cases}
+    0 & \text{if } (i,j) \text{ is an obstacle}, \\
+    \textit{ways}(i-1,j) + \textit{ways}(i,j-1) & \text{otherwise.}
+  \end{cases}
+\]
+The base case also needs the obstacle check: $\textit{ways}(0,0) = 1$
+\emph{unless} $(0,0)$ itself is an obstacle, in which case no path can
+even begin, and the answer is $0$ overall.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePaths2Recursive(int i, int j, vector<vector<int>>& grid) {
+    if (i < 0 || j < 0 || grid[i][j] == 1) return 0;
+    if (i == 0 && j == 0) return 1;
+
+    int fromAbove = uniquePaths2Recursive(i - 1, j, grid);
+    int fromLeft  = uniquePaths2Recursive(i, j - 1, grid);
+    return fromAbove + fromLeft;
+}
+
+int main() {
+    vector<vector<int>> grid = {{0,0,0},{0,1,0},{0,0,0}};
+    int m = grid.size(), n = grid[0].size();
+    cout << uniquePaths2Recursive(m - 1, n - 1, grid) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^{m+n})$.
+\textbf{Space.} $O(m+n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePaths2Memo(int i, int j, vector<vector<int>>& grid,
+                      vector<vector<int>>& memo) {
+    if (i < 0 || j < 0 || grid[i][j] == 1) return 0;
+    if (i == 0 && j == 0) return 1;
+    if (memo[i][j] != -1) return memo[i][j];
+
+    int fromAbove = uniquePaths2Memo(i - 1, j, grid, memo);
+    int fromLeft  = uniquePaths2Memo(i, j - 1, grid, memo);
+    return memo[i][j] = fromAbove + fromLeft;
+}
+
+int main() {
+    vector<vector<int>> grid = {{0,0,0},{0,1,0},{0,0,0}};
+    int m = grid.size(), n = grid[0].size();
+    vector<vector<int>> memo(m, vector<int>(n, -1));
+    cout << uniquePaths2Memo(m - 1, n - 1, grid, memo) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(m \cdot n)$.
+\textbf{Space.} $O(m \cdot n)$ memo $+$ $O(m+n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePaths2Tabulation(vector<vector<int>>& grid) {
+    int m = grid.size(), n = grid[0].size();
+    vector<vector<int>> dp(m, vector<int>(n, 0));
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (grid[i][j] == 1) {
+                dp[i][j] = 0;
+                continue;
+            }
+            if (i == 0 && j == 0) {
+                dp[i][j] = 1;
+                continue;
+            }
+            int fromAbove = (i > 0) ? dp[i-1][j] : 0;
+            int fromLeft  = (j > 0) ? dp[i][j-1] : 0;
+            dp[i][j] = fromAbove + fromLeft;
+        }
+    }
+    return dp[m - 1][n - 1];
+}
+
+int main() {
+    vector<vector<int>> grid = {{0,0,0},{0,1,0},{0,0,0}};
+    cout << uniquePaths2Tabulation(grid) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{grid} = \begin{bmatrix}0&0&0\\0&1&0\\0&0&0\end{bmatrix}$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+ & $j=0$ & $j=1$ & $j=2$ \\ \hline
+$i=0$ & 1 & 1 & 1 \\ \hline
+$i=1$ & 1 & 0 (obstacle) & 1 \\ \hline
+$i=2$ & 1 & 1 & 2
+\end{tabular}
+\end{center}
+
+At $(1,1)$, the obstacle forces $\textit{dp}=0$ regardless of its
+neighbors. At $(2,2)$: $\textit{dp}[1][2]+\textit{dp}[2][1] = 1+1=2$.
+The answer is $2$: the two paths route either entirely along the top
+then down the right edge, or entirely down the left edge then along the
+bottom.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(m \cdot n)$.
+\textbf{Space.} $O(m \cdot n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePaths2SpaceOptimized(vector<vector<int>>& grid) {
+    int m = grid.size(), n = grid[0].size();
+    vector<int> prevRow(n, 0);
+
+    for (int i = 0; i < m; i++) {
+        vector<int> currentRow(n, 0);
+        for (int j = 0; j < n; j++) {
+            if (grid[i][j] == 1) {
+                currentRow[j] = 0;
+                continue;
+            }
+            if (i == 0 && j == 0) {
+                currentRow[j] = 1;
+                continue;
+            }
+            int fromAbove = prevRow[j];
+            int fromLeft  = (j > 0) ? currentRow[j-1] : 0;
+            currentRow[j] = fromAbove + fromLeft;
+        }
+        prevRow = currentRow;
+    }
+    return prevRow[n - 1];
+}
+
+int main() {
+    vector<vector<int>> grid = {{0,0,0},{0,1,0},{0,0,0}};
+    cout << uniquePaths2SpaceOptimized(grid) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(m \cdot n)$.
+\textbf{Space.} $O(n)$ for the rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Adding a ``forbidden state'' constraint to an already-derived DP
+recurrence is almost always a single extra case at the very top of the
+recurrence (here, ``obstacle $\Rightarrow$ zero,'' checked before
+anything else), with every other part of the four-stage derivation
+unchanged. This is the same kind of small, composable extension already
+seen when Combination Sum III added a length constraint to Combination
+Sum II's base case.
+\end{takeawaybox}

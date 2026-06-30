@@ -1,0 +1,175 @@
+\section{House Robber II (Houses in a Circle)}
+\label{sec:dp-house-robber-2}
+
+\problemstatement{Same as Section~\ref{sec:dp-house-robber}, except the
+houses are arranged in a \textbf{circle} -- house $0$ and house $n-1$ are
+now also considered adjacent, so robbing both of them together is
+forbidden, in addition to the usual no-two-consecutive-houses rule.}
+
+\begin{patternbox}
+\emph{``Same problem, but the arrangement is circular instead of
+linear''} is a keyword for a \textbf{reduction} technique: rather than
+deriving a new recurrence that somehow accounts for a wraparound
+adjacency, we instead run the \emph{already-solved} linear House Robber
+(Section~\ref{sec:dp-house-robber}) twice, on two carefully chosen
+linear sub-ranges, and combine their results.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The only new constraint, compared to the linear version, is that house
+$0$ and house $n-1$ cannot \emph{both} be robbed. Equivalently: in any
+valid circular solution, \textbf{at least one} of house $0$ or house
+$n-1$ is never robbed. This means every valid circular solution is also
+a valid \emph{linear} solution either to the sub-array excluding house
+$0$ (i.e.\ houses $1$ through $n-1$), or to the sub-array excluding
+house $n-1$ (i.e.\ houses $0$ through $n-2$) -- because whichever of the
+two ``forbidden together'' houses is excluded from the solution can
+simply be excluded from consideration entirely.
+
+\begin{ideabox}[Reduce to Two Linear Sub-problems, Take the Better One]
+Run Section~\ref{sec:dp-house-robber}'s linear House Robber on the
+sub-array $\textit{nums}[0..n-2]$ (excluding the last house), and again
+on $\textit{nums}[1..n-1]$ (excluding the first house). The answer to the
+circular version is the \textbf{maximum} of these two results.
+\end{ideabox}
+
+\subsection*{Why considering exactly these two sub-ranges is sufficient}
+
+Every valid circular solution falls into (at least) one of two
+categories: those that do not rob house $n-1$ (entirely captured by the
+linear sub-problem on houses $0$ through $n-2$, since within that range
+the usual linear adjacency rule is the \emph{only} remaining constraint),
+and those that do not rob house $0$ (captured by the linear sub-problem
+on houses $1$ through $n-1$). A solution that robs \emph{neither} house
+$0$ nor house $n-1$ is captured by both sub-problems redundantly, which
+costs nothing -- we just take whichever of the two computed maximums is
+larger, and that larger value is guaranteed to be a valid circular
+answer that misses no better possibility, since any valid circular
+solution at all must belong to at least one of these two categories.
+
+\subsection*{Approach 1: Recursion (via Two Calls to the Linear Helper)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int robRecursive(int i, vector<int>& nums) {
+    if (i == 0) return nums[0];
+    if (i < 0) return 0;
+
+    int skip = robRecursive(i - 1, nums);
+    int take = robRecursive(i - 2, nums) + nums[i];
+    return max(skip, take);
+}
+
+int robLinear(vector<int> sub) {
+    if (sub.empty()) return 0;
+    return robRecursive((int)sub.size() - 1, sub);
+}
+
+int robCircular(vector<int>& nums) {
+    int n = nums.size();
+    if (n == 1) return nums[0];
+
+    vector<int> excludeLast(nums.begin(), nums.end() - 1);
+    vector<int> excludeFirst(nums.begin() + 1, nums.end());
+
+    return max(robLinear(excludeLast), robLinear(excludeFirst));
+}
+
+int main() {
+    vector<int> nums = {2, 3, 2};
+    cout << robCircular(nums) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$ for each of the two linear calls, so $O(2^n)$
+overall (the constant factor of $2$ calls does not change the
+asymptotic class).
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approaches 2--4: Memoization, Tabulation, and Space Optimization}
+
+Each of these three later stages is obtained by substituting
+Section~\ref{sec:dp-house-robber}'s corresponding memoized, tabulated, or
+space-optimized linear House Robber implementation in place of
+$\textit{robLinear}$ above -- no new derivation is required, since the
+reduction itself (call the linear solver twice, take the max) is
+independent of which of the four stages that linear solver internally
+uses.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int robLinearSpaceOptimized(vector<int>& nums) {
+    if (nums.empty()) return 0;
+    int n = nums.size();
+    int prev2 = 0, prev1 = nums[0];
+
+    for (int i = 1; i < n; i++) {
+        int skip = prev1;
+        int take = prev2 + nums[i];
+        int current = max(skip, take);
+        prev2 = prev1;
+        prev1 = current;
+    }
+    return prev1;
+}
+
+int robCircularSpaceOptimized(vector<int>& nums) {
+    int n = nums.size();
+    if (n == 1) return nums[0];
+
+    vector<int> excludeLast(nums.begin(), nums.end() - 1);
+    vector<int> excludeFirst(nums.begin() + 1, nums.end());
+
+    return max(robLinearSpaceOptimized(excludeLast),
+               robLinearSpaceOptimized(excludeFirst));
+}
+
+int main() {
+    vector<int> nums = {2, 3, 2};
+    cout << robCircularSpaceOptimized(nums) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [2,3,2]$.}
+
+\begin{itemize}
+  \item Exclude last (sub-array $[2,3]$): linear House Robber gives
+        $\max(2,3)=3$.
+  \item Exclude first (sub-array $[3,2]$): linear House Robber gives
+        $\max(3,2)=3$.
+  \item Overall answer: $\max(3,3)=3$.
+\end{itemize}
+
+Checking by hand: robbing houses $0$ and $2$ together is forbidden
+(circular adjacency), so the best options are house $1$ alone ($3$), or
+house $0$ alone ($2$), or house $2$ alone ($2$) -- confirming $3$ is
+correct.
+
+\begin{complexitybox}[Final (Space-Optimized) Complexity]
+\textbf{Time.} $O(n)$ -- two linear passes, each $O(n)$.
+\textbf{Space.} $O(1)$ extra (beyond the two $O(n)$ sliced sub-arrays,
+which could themselves be avoided by passing index ranges instead of
+copying, reducing auxiliary space to true $O(1)$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a new constraint (here, circularity) only affects the boundary
+between two elements, check whether the problem can be split into a
+small, fixed number of cases that each remove the offending boundary
+entirely -- reducing the new problem to multiple calls of an
+already-solved simpler one, rather than re-deriving a new recurrence
+from scratch. This reduction technique is often faster to get correct
+than attempting to encode the wraparound constraint directly into a
+single, more complex recurrence.
+\end{takeawaybox}

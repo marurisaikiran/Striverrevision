@@ -1,0 +1,193 @@
+\section{Rat in a Maze}
+\label{sec:rec-rat-in-maze}
+
+\noindent We now begin the chapter's final group: full
+\textbf{constraint-satisfaction backtracking}, where the choice at each
+step is a move on a grid or board, and a choice already made can block
+later choices in ways that must be explicitly tracked and undone.
+
+\problemstatement{Given an $n \times n$ binary maze (cells are either
+open, marked $1$, or blocked, marked $0$), a rat starts at the top-left
+cell $(0,0)$ and wants to reach the bottom-right cell $(n-1,n-1)$,
+moving only through open cells, in any of the four directions (down,
+left, right, up), without revisiting a cell already used in the current
+path. Find every path from start to destination, each described as a
+string of move directions.}
+
+\begin{patternbox}
+\emph{``Find all paths through a grid avoiding revisits''} is the
+canonical \textbf{grid backtracking} template: at each cell, the choice
+set is ``which of up to $4$ neighboring directions to move into next,''
+each choice must be validated against the grid's boundaries and
+blocked/visited cells \emph{before} being taken, and -- crucially -- a
+cell marked as visited while exploring one direction must be
+\textbf{unmarked} once that direction's exploration fully returns, so
+that a \emph{different} path (reached via backtracking to an earlier
+cell) can freely reuse that same cell.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+At any cell $(\textit{row},\textit{col})$ during the search, a move into
+neighbor $(\textit{newRow},\textit{newCol})$ is valid only if it is
+within the grid's bounds, the cell there is open (value $1$), and it has
+not already been visited earlier in the \emph{current} path (revisiting
+would create a cycle, which is never part of a valid simple path). If
+the move is valid, we mark the destination visited, append the
+direction's label to the path string, and recurse from there; once that
+entire recursive exploration finishes (having found every path reachable
+through this move), we must \textbf{unmark} the destination as visited
+and remove the direction label, so that a sibling direction's
+exploration -- reached by returning to this same cell -- does not
+incorrectly believe this cell is permanently blocked.
+
+\begin{ideabox}[Mark Visited Before Recursing, Unmark After Returning]
+$\textsc{Solve}(\textit{row}, \textit{col}, \textit{path})$: if
+$(\textit{row},\textit{col})$ is the destination: record $\textit{path}$
+(and return, or continue if the destination cell itself could lead
+further, depending on problem variant). Otherwise, for each of the $4$
+directions, in a fixed order: compute the neighbor; if it is in bounds,
+open, and not visited: mark it visited; append the direction's label to
+$\textit{path}$; recurse into the neighbor; remove the label from
+$\textit{path}$ (undo); unmark the neighbor as visited (undo).
+\end{ideabox}
+
+\subsection*{Why unmarking after the recursive call returns is essential for correctness}
+
+If a cell, once visited during the exploration of one direction, were
+\emph{never} unmarked, it would remain permanently blocked for every
+other path that might also legitimately need to pass through it later
+-- incorrectly preventing valid paths from being discovered. The
+visited-marking only needs to prevent revisiting \emph{within a single,
+currently-in-progress path} (to avoid infinite loops/cycles along that
+one path); it must not persist across different candidate paths, which
+are explored one at a time, each needing a clean slate. Unmarking
+immediately after a direction's full recursive exploration returns is
+exactly what restores that clean slate for the next direction (or for an
+ancestor's next sibling branch) to use.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Mark $(0,0)$ visited; call $\textsc{Solve}(0,0,\texttt{""})$.
+  \item $\textsc{Solve}(\textit{row}, \textit{col}, \textit{path})$:
+  \begin{enumerate}
+    \item If $(\textit{row},\textit{col}) = (n-1,n-1)$: record
+          $\textit{path}$; return.
+    \item For each direction $(dr, dc, \textit{label})$ in $\{(1,0,
+          \texttt{D}), (0,-1,\texttt{L}), (0,1,\texttt{R}),
+          (-1,0,\texttt{U})\}$:
+    \begin{itemize}
+      \item $\textit{nr} \gets \textit{row}+dr$, $\textit{nc} \gets
+            \textit{col}+dc$.
+      \item If $\textit{nr},\textit{nc}$ in bounds, maze cell is open,
+            and not visited: mark visited; append $\textit{label}$ to
+            $\textit{path}$; recurse $\textsc{Solve}(\textit{nr},
+            \textit{nc}, \textit{path})$; remove the appended label
+            (undo); unmark visited (undo).
+    \end{itemize}
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $2\times2$ maze
+$\begin{bmatrix}1&1\\0&1\end{bmatrix}$.}
+
+\begin{itemize}
+  \item Start at $(0,0)$, visited$=\{(0,0)\}$,
+        $\textit{path}=\texttt{""}$.
+  \item Try \texttt{D} (down to $(1,0)$): maze value is $0$ (blocked).
+        Invalid, skip.
+  \item Try \texttt{L} (left to $(0,-1)$): out of bounds. Skip.
+  \item Try \texttt{R} (right to $(0,1)$): open, not visited. Mark
+        visited, path$=\texttt{"R"}$. Recurse from $(0,1)$.
+  \begin{itemize}
+    \item Try \texttt{D} (down to $(1,1)$): open, not visited. Mark
+          visited, path$=\texttt{"RD"}$. Recurse from $(1,1)$:
+          destination reached! Record \texttt{"RD"}.
+    \item Undo: unmark $(1,1)$, path back to $\texttt{"R"}$.
+    \item Try \texttt{L} (back to $(0,0)$): visited already, skip.
+    \item Try \texttt{U}: out of bounds. Skip.
+  \end{itemize}
+  \item Undo: unmark $(0,1)$, path back to $\texttt{""}$.
+  \item Try \texttt{U} (up to $(-1,0)$): out of bounds. Skip.
+\end{itemize}
+
+The only path found is \texttt{"RD"} (right, then down).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(int row, int col, vector<vector<int>>& maze, int n,
+           vector<vector<bool>>& visited, string& path,
+           vector<string>& result) {
+    if (row == n - 1 && col == n - 1) {
+        result.push_back(path);
+        return;
+    }
+
+    int dr[] = {1, 0, 0, -1};
+    int dc[] = {0, -1, 1, 0};
+    char label[] = {'D', 'L', 'R', 'U'};
+
+    for (int d = 0; d < 4; d++) {
+        int nr = row + dr[d], nc = col + dc[d];
+        if (nr >= 0 && nr < n && nc >= 0 && nc < n &&
+            maze[nr][nc] == 1 && !visited[nr][nc]) {
+            visited[nr][nc] = true;
+            path.push_back(label[d]);
+
+            solve(nr, nc, maze, n, visited, path, result);
+
+            path.pop_back();
+            visited[nr][nc] = false;
+        }
+    }
+}
+
+vector<string> ratInMaze(vector<vector<int>>& maze) {
+    int n = maze.size();
+    vector<string> result;
+    if (maze[0][0] == 0) return result;
+
+    vector<vector<bool>> visited(n, vector<bool>(n, false));
+    visited[0][0] = true;
+    string path;
+    solve(0, 0, maze, n, visited, path, result);
+    return result;
+}
+
+int main() {
+    vector<vector<int>> maze = {{1,1},{0,1}};
+    for (string& p : ratInMaze(maze)) cout << p << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} In the worst case (an open grid with no
+blocked cells), the number of simple paths can be exponential in $n^2$
+(roughly $O(4^{n^2})$ branching, though heavily pruned by the
+no-revisit rule in practice); a tight closed-form bound is not generally
+useful here -- what matters is that each cell visit does $O(1)$ work
+beyond the recursive calls themselves.
+\textbf{Space Complexity.} $O(n^2)$ for the visited grid, plus
+$O(n^2)$ for the maximum recursion depth (a path can visit at most every
+cell once).
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Mark visited before recursing, unmark after returning'' is the
+universal template for any backtracking search over a grid or graph that
+must avoid revisiting nodes within a single path -- it is the direct
+generalization of the choose/recurse/un-choose rhythm from
+Section~\ref{sec:rec-power-set}, applied to spatial moves instead of
+array-element inclusion. The same template, with different validity
+checks, drives N-Queens, Sudoku, and Word Search in the sections that
+follow.
+\end{takeawaybox}

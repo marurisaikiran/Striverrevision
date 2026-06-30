@@ -1,0 +1,183 @@
+\section{Non-overlapping Intervals}
+\label{sec:non-overlapping-intervals}
+
+\problemstatement{We are given an array of intervals
+$\textit{intervals}[i] = [\textit{start}_i, \textit{end}_i]$. We must find
+the \textbf{minimum number of intervals to remove} so that the remaining
+intervals are pairwise non-overlapping (two intervals that merely touch at
+an endpoint, i.e.\ one ends exactly where another begins, are \emph{not}
+considered overlapping).}
+
+\begin{patternbox}
+\emph{``Minimum number of intervals to remove so that the rest are
+non-overlapping''} is logically the complement of
+\emph{``maximum number of non-overlapping intervals you can keep''} -- and
+the latter is exactly the activity selection problem from
+Section~\ref{sec:n-meetings}. Whenever a problem asks for the
+\textbf{minimum number to delete/remove} to enforce some property, check
+whether the property is equivalent to a maximization you already know how
+to solve; if so, the answer is simply
+$n - (\text{the maximum achievable count})$. Recognizing this equivalence
+saves you from re-deriving a new greedy strategy from scratch.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Removing the fewest intervals to make the rest non-overlapping is the same
+goal, viewed backward, as keeping the most intervals while staying
+non-overlapping: every interval not removed must survive, and the survivors
+must be mutually non-overlapping. So if we can compute
+\[
+  \textit{maxKept} = \text{largest number of pairwise non-overlapping
+  intervals selectable},
+\]
+then the answer to this problem is immediately
+\[
+  n - \textit{maxKept}.
+\]
+And computing $\textit{maxKept}$ is precisely the activity selection problem
+solved in Section~\ref{sec:n-meetings}: sort by finish time, and greedily
+keep an interval whenever it does not conflict with the most recently kept
+one.
+
+\begin{ideabox}[Greedy Choice]
+Sort intervals by end time, increasing. Walk through them in this order,
+maintaining the end time of the last interval kept. Keep the current
+interval (it does not need to be removed) if its start is at least the end
+of the last kept interval (recall that touching endpoints are allowed, so
+the comparison is $\ge$, not strictly $>$, unlike the room-booking version
+in Section~\ref{sec:n-meetings} where touching endpoints \emph{do} conflict
+because a physical room cannot instantly reset). Otherwise, this interval
+must be removed, since it overlaps the last interval we chose to keep.
+\end{ideabox}
+
+\subsection*{Why this reduction and greedy choice are correct}
+
+The correctness of greedily building $\textit{maxKept}$ by always preferring
+the interval that finishes earliest among the remaining candidates is
+exactly the exchange argument given in Section~\ref{sec:n-meetings}: the
+interval with the globally earliest finish time can always be included in
+some optimal non-overlapping selection, because including it can never
+block more future options than including any later-finishing alternative
+would. Once that first choice is fixed, the same argument applies
+recursively to the remaining intervals that start after it ends. The only
+change from Section~\ref{sec:n-meetings} is the boundary condition at
+matching endpoints -- this problem explicitly states that touching is not
+overlapping, so the compatibility check uses
+$\textit{start}_i \ge \textit{lastEnd}$ rather than a strict inequality.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $\textit{intervals}$ by end time, increasing.
+  \item Initialize $\textit{lastEnd} \gets -\infty$ (or the end of the
+        first interval after selecting it) and $\textit{kept} \gets 0$.
+  \item For each interval $[\textit{s}, \textit{e}]$ in sorted order:
+  \begin{enumerate}
+    \item If $\textit{s} \ge \textit{lastEnd}$: keep this interval.
+          $\textit{kept} \gets \textit{kept}+1$;
+          $\textit{lastEnd} \gets \textit{e}$.
+    \item Otherwise: this interval must be removed (it overlaps the last
+          kept interval); do nothing further.
+  \end{enumerate}
+  \item Return $n - \textit{kept}$ as the minimum number of removals.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Minimum Removals for Non-overlapping Intervals}
+\begin{algorithmic}[1]
+\Procedure{EraseOverlapIntervals}{\textit{intervals}}
+  \State sort \textit{intervals} by end time, increasing
+  \State $\textit{lastEnd} \gets -\infty$, $\textit{kept} \gets 0$
+  \For{each $[\textit{s}, \textit{e}]$ in sorted order}
+    \If{$\textit{s} \ge \textit{lastEnd}$}
+      \State $\textit{kept} \gets \textit{kept} + 1$
+      \State $\textit{lastEnd} \gets \textit{e}$
+    \EndIf
+  \EndFor
+  \State \Return $n - \textit{kept}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{intervals} = [[1,2],[2,3],[3,4],[1,3]]$.}
+
+Sorted by end time: $[1,2],[2,3],[1,3],[3,4]$ (ties between intervals ending
+at the same time can be broken arbitrarily; here $[2,3]$ and $[1,3]$ both
+end at $3$).
+
+\begin{itemize}
+  \item $\textit{lastEnd}=-\infty$. Interval $[1,2]$: $1 \ge -\infty$.
+        Keep. $\textit{kept}=1$, $\textit{lastEnd}=2$.
+  \item Interval $[2,3]$: $2 \ge 2$. Keep (touching endpoints are allowed).
+        $\textit{kept}=2$, $\textit{lastEnd}=3$.
+  \item Interval $[1,3]$: $1 \ge 3$? No. Remove (do not update
+        \textit{lastEnd} or \textit{kept}).
+  \item Interval $[3,4]$: $3 \ge 3$. Keep. $\textit{kept}=3$,
+        $\textit{lastEnd}=4$.
+\end{itemize}
+
+We kept $3$ out of $4$ intervals, so the minimum number of removals is
+$4 - 3 = 1$ -- specifically, removing $[1,3]$ leaves
+$[1,2],[2,3],[3,4]$, which are pairwise non-overlapping (touching only at
+shared endpoints).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int eraseOverlapIntervals(vector<vector<int>>& intervals) {
+    if (intervals.empty()) return 0;
+
+    sort(intervals.begin(), intervals.end(),
+         [](const vector<int>& a, const vector<int>& b) {
+             return a[1] < b[1];
+         });
+
+    int n = intervals.size();
+    int kept = 1;
+    int lastEnd = intervals[0][1];
+
+    for (int i = 1; i < n; i++) {
+        if (intervals[i][0] >= lastEnd) {
+            kept++;
+            lastEnd = intervals[i][1];
+        }
+    }
+    return n - kept;
+}
+
+int main() {
+    vector<vector<int>> intervals = {{1,2},{2,3},{3,4},{1,3}};
+    cout << "Minimum removals: "
+         << eraseOverlapIntervals(intervals) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting the $n$ intervals by end time costs
+$O(n \log n)$. The subsequent single pass costs $O(n)$. The overall time
+complexity is
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} Beyond the input array (sorted in place or with
+$O(n)$ auxiliary space, depending on the sort implementation), we use only
+a constant number of extra scalar variables, giving auxiliary space
+complexity $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Many ``minimum removals/deletions to enforce property $P$'' problems are
+secretly ``maximum subset satisfying property $P$'' problems wearing a
+disguise: the answer is $n$ minus the size of the largest valid subset.
+Whenever you see a removal-minimization phrasing, check whether flipping it
+to a keep-maximization phrasing turns it into a pattern you already
+recognize -- here, it turns directly into the activity selection problem
+from Section~\ref{sec:n-meetings}.
+\end{takeawaybox}

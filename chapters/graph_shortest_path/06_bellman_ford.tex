@@ -1,0 +1,120 @@
+\section{Bellman-Ford Algorithm}
+\label{sec:graph-bellman-ford}
+
+\problemstatement{Given a weighted directed graph, possibly containing
+\textbf{negative} edge weights, find the shortest distance from a
+source to every other node -- or detect that a \textbf{negative-weight
+cycle} makes the notion of ``shortest path'' undefined.}
+
+\begin{patternbox}
+\emph{``Shortest path, negative weights allowed''} is solved by
+relaxing \textbf{every edge}, $V{-}1$ times over (no priority queue, no
+greedy frontier choice -- Dijkstra's greedy finalization is provably
+unsafe the moment a negative edge exists, as discussed in
+Section~\ref{sec:graph-dijkstra}). A final, $V$-th round that still
+finds an improvement reveals a negative cycle.
+\end{patternbox}
+
+\subsection*{Why $V-1$ rounds are exactly enough}
+
+In a graph with no negative cycle, the shortest path between any two
+nodes is always a \textbf{simple} path (visits no node twice) -- a path
+revisiting a node would include a cycle, and removing that cycle could
+only shorten the path further unless the cycle's total weight is
+\emph{exactly} $0$, in which case removing it doesn't change the
+length either way. A simple path in a graph with $V$ nodes has at most
+$V{-}1$ edges. Each full round of relaxing every edge extends the
+\emph{confirmed-correct} prefix of every shortest path by (at least)
+one more edge -- so after $V{-}1$ rounds, every shortest path (having
+at most $V{-}1$ edges) is guaranteed fully relaxed and correct.
+
+\subsection*{Why a $V$-th round detects a negative cycle}
+
+If, after $V{-}1$ rounds (when every legitimate shortest path must
+already be finalized), a $V$-th round of relaxation \emph{still} finds
+an improvement on some edge, that improvement cannot correspond to any
+genuine shortest path (those are already settled) -- it can only be
+explained by a cycle whose total weight is negative, allowing
+``distance'' to be driven arbitrarily low by looping through it
+repeatedly.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{dist}[\textit{src}]=0$, all others
+        $\infty$.
+  \item Repeat $V{-}1$ times: for every edge $(u,v,w)$, if
+        $\textit{dist}[u] \neq \infty$ and $\textit{dist}[u]+w <
+        \textit{dist}[v]$, update $\textit{dist}[v]$.
+  \item Run one more relaxation pass over all edges; if any edge can
+        still be relaxed, report a negative cycle.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> bellmanFord(int n, vector<vector<int>>& edges, int src) {
+    vector<int> dist(n, INT_MAX);
+    dist[src] = 0;
+
+    for (int i = 0; i < n - 1; i++) {
+        for (auto& e : edges) {
+            int u = e[0], v = e[1], w = e[2];
+            if (dist[u] != INT_MAX && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+            }
+        }
+    }
+
+    for (auto& e : edges) {
+        int u = e[0], v = e[1], w = e[2];
+        if (dist[u] != INT_MAX && dist[u] + w < dist[v]) {
+            return {-1}; // sentinel: negative cycle detected
+        }
+    }
+    return dist;
+}
+
+int main() {
+    vector<vector<int>> edges = {{0,1,4},{0,2,5},{1,2,-3},{2,3,4}};
+    vector<int> dist = bellmanFord(4, edges, 0);
+    for (int d : dist) cout << d << " ";
+    cout << endl; // 0 4 1 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take edges $0{\to}1(4)$, $0{\to}2(5)$, $1{\to}2(-3)$,
+$2{\to}3(4)$, $n=4$, source $0$.}
+
+$\textit{dist}=[0,\infty,\infty,\infty]$. Round $1$: relax $0{\to}1$
+($\infty\to4$); relax $0{\to}2$ ($\infty\to5$); relax $1{\to}2$
+($4{-}3=1<5$, update to $1$); relax $2{\to}3$ ($1+4=5<\infty$, update
+to $5$). $\textit{dist}=[0,4,1,5]$. Round $2$: relax $0{\to}1$ ($4$
+not $<4$); relax $0{\to}2$ ($5$ not $<1$); relax $1{\to}2$ ($1$ not
+$<1$); relax $2{\to}3$ ($5$ not $<5$) -- no changes,
+\textbf{stabilized} early (rounds can stop as soon as a full pass makes
+no change, though the algorithm above runs the full $V{-}1$ rounds
+regardless). Round $3$ ($n{-}1=3$ total): no changes. Final check
+round: no edge relaxes further -- no negative cycle. Final:
+$[0,4,1,5]$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V \cdot E)$ -- $V{-}1$ rounds (plus one
+check round), each scanning all $E$ edges.
+\textbf{Space Complexity.} $O(V)$ for \textit{dist}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Bellman-Ford trades Dijkstra's $O((V+E)\log V)$ speed for two things
+Dijkstra cannot offer: correctness with negative edges, and the ability
+to detect negative cycles at all. When a problem's weights are
+guaranteed non-negative, Dijkstra remains the faster default --
+Bellman-Ford is the fallback specifically for when that guarantee is
+unavailable.
+\end{takeawaybox}

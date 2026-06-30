@@ -1,0 +1,163 @@
+\section{Generate Parentheses}
+\label{sec:rec-generate-parentheses}
+
+\problemstatement{Given an integer $n$, generate all combinations of
+\textbf{well-formed} (valid) parenthesis strings using exactly $n$ pairs
+of parentheses.}
+
+\begin{patternbox}
+\emph{``Generate all valid \ldots''} signals backtracking with
+\textbf{validity-aware pruning}: rather than generating all $\binom{2n}{n}$
+arrangements of $n$ open and $n$ close parentheses and filtering out the
+invalid ones afterward (as in the Stack and Queue chapter's Valid
+Parentheses problem \emph{checking} a given string), we instead only ever make a choice that
+keeps the string-so-far on track to \emph{possibly} become valid,
+pruning illegal branches the moment they would become unsalvageable.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+At any point while building the string, two counts matter: how many
+open parentheses have been placed so far, and how many close parentheses
+have been placed so far. An open parenthesis can be placed as long as
+fewer than $n$ have been used so far (we must not exceed $n$ total). A
+close parenthesis can be placed only if doing so would not create more
+closes than opens at any prefix -- i.e.\ only if the current count of
+closes is still strictly less than the current count of opens (otherwise
+an unmatched close would appear, which the Stack and Queue chapter's Valid Parentheses problem
+already established invalidates a parenthesis string).
+
+\begin{ideabox}[Two Guarded Choices Instead of a Binary Pick/Not-Pick]
+$\textsc{Solve}(\textit{current}, \textit{openCount}, \textit{closeCount})$:
+if $|\textit{current}| = 2n$: record $\textit{current}$; return.
+Otherwise: if $\textit{openCount} < n$: append \texttt{'('}; recurse with
+$\textit{openCount}+1$; remove (undo). If $\textit{closeCount} <
+\textit{openCount}$: append \texttt{')'}; recurse with
+$\textit{closeCount}+1$; remove (undo).
+\end{ideabox}
+
+\subsection*{Why these two guards are exactly the validity conditions, applied early}
+
+This is the backtracking analogue of
+the Stack and Queue chapter's Valid Parentheses stack-based validity check,
+applied \emph{during construction} rather than after the fact: a
+parenthesis string is valid exactly when every prefix has at least as
+many opens as closes, and the total opens and closes both equal $n$. The
+guard $\textit{closeCount} < \textit{openCount}$ is precisely
+``this prefix currently has more opens than closes, so one more close is
+still safe''; the guard $\textit{openCount} < n$ simply caps the total
+opens at $n$. Because these guards are checked \emph{before} a character
+is ever placed, no invalid prefix is ever constructed in the first
+place -- the search space explored is exactly the valid strings (and
+their valid-so-far prefixes), never the much larger space of all
+arrangements.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Solve}(\textit{current}, \textit{openCount}, \textit{closeCount})$:
+  \begin{enumerate}
+    \item If $|\textit{current}| = 2n$: record $\textit{current}$;
+          return.
+    \item If $\textit{openCount} < n$: append \texttt{'('}; recurse;
+          remove.
+    \item If $\textit{closeCount} < \textit{openCount}$: append
+          \texttt{')'}; recurse; remove.
+  \end{enumerate}
+  \item Call $\textsc{Solve}(\texttt{""}, 0, 0)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=2$.}
+
+\begin{itemize}
+  \item $\textsc{Solve}(\texttt{""},0,0)$: open allowed ($0<2$):
+        append \texttt{(}. $\textsc{Solve}(\texttt{"("},1,0)$.
+  \begin{itemize}
+    \item Open allowed ($1<2$): append \texttt{(}.
+          $\textsc{Solve}(\texttt{"(("},2,0)$.
+    \begin{itemize}
+      \item Open not allowed ($2\not<2$). Close allowed ($0<2$): append
+            \texttt{)}. $\textsc{Solve}(\texttt{"(()"},2,1)$: close
+            allowed ($1<2$): append \texttt{)}.
+            $\textsc{Solve}(\texttt{"(())"},2,2)$: length $4=2n$,
+            record \texttt{"(())"}.
+    \end{itemize}
+    \item Undo back to \texttt{"("}. Close allowed ($0<1$): append
+          \texttt{)}. $\textsc{Solve}(\texttt{"()"},1,1)$: open allowed
+          ($1<2$): append \texttt{(}.
+          $\textsc{Solve}(\texttt{"()("},2,1)$: close allowed
+          ($1<2$): append \texttt{)}.
+          $\textsc{Solve}(\texttt{"()()"},2,2)$: record
+          \texttt{"()()"}.
+  \end{itemize}
+\end{itemize}
+
+Recorded strings: \texttt{"(())"}, \texttt{"()()"} -- exactly the $2$
+valid parenthesizations of $n=2$ pairs.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(string& current, int openCount, int closeCount, int n,
+           vector<string>& result) {
+    if ((int)current.size() == 2 * n) {
+        result.push_back(current);
+        return;
+    }
+    if (openCount < n) {
+        current.push_back('(');
+        solve(current, openCount + 1, closeCount, n, result);
+        current.pop_back();
+    }
+    if (closeCount < openCount) {
+        current.push_back(')');
+        solve(current, openCount, closeCount + 1, n, result);
+        current.pop_back();
+    }
+}
+
+vector<string> generateParenthesis(int n) {
+    vector<string> result;
+    string current;
+    solve(current, 0, 0, n, result);
+    return result;
+}
+
+int main() {
+    for (string& s : generateParenthesis(3)) cout << s << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The number of valid strings generated is the
+$n$-th Catalan number, $C_n = \binom{2n}{n}/(n+1)$, and each costs
+$O(n)$ to build, giving an overall time complexity of
+\[
+  O\!\left(\frac{4^n}{\sqrt{n}}\right)
+\]
+(the asymptotic growth rate of the Catalan numbers), substantially
+smaller than the $O(2^{2n})$ that generating and filtering all
+arrangements would cost.
+\textbf{Space Complexity.} $O(n)$ for the recursion depth (the string
+grows to length $2n$, but the call depth is also $O(n)$ since two
+characters can be added back to back in the worst case, or more
+precisely the depth equals the string length built so far, $O(n)$ at the
+deepest).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a backtracking problem's notion of ``validity'' can be checked
+\emph{incrementally} (true/false after every partial choice, not only at
+the very end), build that incremental check directly into the recursion
+as a guard before each choice, rather than generating complete candidates
+and validating them afterward. This is dramatically more efficient
+whenever invalid prefixes are common, since entire invalid subtrees are
+never explored at all.
+\end{takeawaybox}

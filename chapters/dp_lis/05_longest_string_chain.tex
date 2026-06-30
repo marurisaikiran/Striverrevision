@@ -1,0 +1,110 @@
+\section{Longest String Chain}
+\label{sec:dp-longest-string-chain}
+
+\problemstatement{Given a list of words, a \textbf{string chain} is a
+sequence $\textit{word}_1, \textit{word}_2, \ldots, \textit{word}_k$
+where each $\textit{word}_i$ (for $i>1$) can be formed by inserting
+exactly one character, anywhere, into $\textit{word}_{i-1}$. Find the
+length of the longest possible chain using the given words.}
+
+\begin{patternbox}
+A third instance of Section~\ref{sec:dp-lis-intro}'s ending-here
+template: sort by \textbf{length} (the natural analogue of LIS's
+numeric ordering), and replace the extension condition with ``removing
+exactly one character from $\textit{word}_i$ yields exactly
+$\textit{word}_j$.''
+\end{patternbox}
+
+\subsection*{The predecessor check}
+
+A word $w_j$ is a valid predecessor of $w_i$ exactly when
+$|w_i| = |w_j| + 1$ and deleting some single character from $w_i$
+produces $w_j$ exactly. Checking this directly: try deleting each
+character of $w_i$ in turn (one position at a time) and see if any
+resulting string equals $w_j$.
+
+\subsection*{The recurrence}
+
+After sorting words by increasing length:
+\[
+  \textit{dp}[i] = 1 + \max_{j<i,\ \textit{isPredecessor}(w_j, w_i)}
+  \textit{dp}[j] \quad (\text{or } 1 \text{ if no such } j).
+\]
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isPredecessor(string& shorter, string& longer) {
+    if (longer.size() != shorter.size() + 1) return false;
+    int i = 0, j = 0;
+    bool skippedOne = false;
+    while (i < (int)longer.size() && j < (int)shorter.size()) {
+        if (longer[i] == shorter[j]) {
+            i++; j++;
+        } else if (!skippedOne) {
+            i++; skippedOne = true;
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
+int longestStringChain(vector<string> words) {
+    sort(words.begin(), words.end(),
+         [](const string& a, const string& b) { return a.size() < b.size(); });
+
+    int n = words.size();
+    vector<int> dp(n, 1);
+    int best = 1;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++) {
+            if (isPredecessor(words[j], words[i]) && 1 + dp[j] > dp[i]) {
+                dp[i] = 1 + dp[j];
+            }
+        }
+        best = max(best, dp[i]);
+    }
+    return best;
+}
+
+int main() {
+    vector<string> words = {"a", "b", "ba", "bca", "bda", "bdca"};
+    cout << longestStringChain(words) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{words} = [\text{"a"}, \text{"b"}, \text{"ba"},
+\text{"bca"}, \text{"bda"}, \text{"bdca"}]$, already sorted by length.}
+
+$\textit{dp}[\text{"a"}]=\textit{dp}[\text{"b"}]=1$.
+$\textit{dp}[\text{"ba"}]=2$ (predecessor \texttt{"a"} or \texttt{"b"},
+either gives $1+1=2$). $\textit{dp}[\text{"bca"}]=3$ (predecessor
+\texttt{"ba"}, delete \texttt{'c'}). $\textit{dp}[\text{"bda"}]=3$
+(predecessor \texttt{"ba"}, delete \texttt{'d'}).
+$\textit{dp}[\text{"bdca"}]=4$ (predecessor \texttt{"bca"}, delete
+\texttt{'d'} -- or equally \texttt{"bda"}, delete \texttt{'c'}; either
+extends a length-$3$ chain to $4$). The maximum is $4$, realized by the
+chain $\text{"a"} \to \text{"ba"} \to \text{"bca"} \to \text{"bdca"}$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \log n)$ to sort, plus $O(n^2 \cdot L)$
+to fill the table ($L$ = max word length, the cost of each
+\textit{isPredecessor} check): $O(n^2 \cdot L)$ overall.
+\textbf{Space Complexity.} $O(n)$ for \textit{dp}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The ``sort, then ending-here chain with a custom extension check''
+template now has three independent instances (numeric order for LIS,
+divisibility for the previous section, and length-plus-single-insertion
+here) -- a strong signal that this template, not any one specific
+condition, is the reusable idea worth carrying forward.
+\end{takeawaybox}

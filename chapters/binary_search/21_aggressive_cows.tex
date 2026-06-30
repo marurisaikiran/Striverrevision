@@ -1,0 +1,192 @@
+\section{Aggressive Cows Problem}
+\label{sec:bs-aggressive-cows}
+
+\problemstatement{We are given $n$ stall positions $\textit{stalls}[0..n-1]$
+along a number line, and $k$ cows to place into these stalls (at most one
+cow per stall). The cows are aggressive, so we want to place them to
+\textbf{maximize the minimum distance} between any two cows. Find this
+maximum possible minimum distance.}
+
+\begin{patternbox}
+\emph{``Maximize the minimum distance/gap between placed items''} is the
+mirror image of every problem so far in this section: until now we
+\emph{minimized} a candidate (speed, day, divisor, capacity) subject to a
+feasibility constraint that became \emph{easier} as the candidate grew.
+Here, feasibility (``can we place all $k$ cows with at least this much
+spacing'') becomes \textbf{harder} as the candidate distance grows, so we
+are finding the \textbf{largest} feasible candidate, not the smallest.
+Whenever you see \emph{``maximize the minimum ...''}, expect to flip the
+binary search's narrowing direction relative to the ``minimize subject to
+feasibility'' problems seen earlier.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Sort the stall positions first -- only relative order matters for spacing,
+and an unsorted input gives no useful structure to exploit. For a fixed
+candidate minimum distance $d$, ask: can we place all $k$ cows in the
+sorted stalls such that every pair of adjacent placed cows is at least $d$
+apart? This is checked greedily: place the first cow at the first stall,
+then repeatedly place the next cow at the first stall that is at least $d$
+away from the previously placed cow. If we manage to place all $k$ cows
+this way, $d$ is feasible.
+
+As $d$ increases, this greedy placement can only place fewer or equal
+cows (every placement decision becomes at least as restrictive), so the
+number of cows placeable is non-increasing in $d$ -- meaning feasibility
+($\ge k$ cows placed) is \texttt{true} for small $d$ and \texttt{false}
+for large $d$, the mirror image of the earlier sections' monotonicity
+direction.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is distances $d \in [1, \max(\textit{stalls}) -
+\min(\textit{stalls})]$. The predicate is
+$P(d) = (\text{greedy placement with spacing} \ge d \text{ fits all } k
+\text{ cows})$, and we want the \textbf{largest} $d$ where $P$ holds --
+since $P$ is true for small $d$ and false for large $d$, we record a
+successful candidate and narrow \emph{right} (search for an even larger
+feasible $d$), the mirrored version of the ``narrow left after success''
+template used for minimize-type problems.
+\end{ideabox}
+
+\subsection*{Why the greedy feasibility check is optimal}
+
+For a \emph{fixed} target spacing $d$, greedily placing each next cow as
+early as possible (at the first stall that is at least $d$ from the
+previous placement) maximizes the number of cows we can fit using that
+spacing: placing a cow any later than necessary only makes it harder to
+fit subsequent cows, never easier, since stalls are processed in
+increasing order and no stall can be revisited. This is the same kind of
+exchange argument used for interval scheduling in the Greedy chapter --
+the earliest valid placement is always at least as good as any later
+valid placement for the purpose of fitting more items afterward.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $\textit{stalls}$.
+  \item Initialize $\textit{lo} \gets 1$,
+        $\textit{hi} \gets \textit{stalls}[n-1] - \textit{stalls}[0]$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Greedily count how many cows fit with minimum spacing
+          $\textit{mid}$.
+    \item If $\textit{count} \ge k$: feasible; record \textit{mid}, try
+          larger: $\textit{lo} \gets \textit{mid}+1$.
+    \item Else: infeasible; try smaller: $\textit{hi} \gets \textit{mid}-1$.
+  \end{enumerate}
+  \item Return the recorded answer (equivalently \textit{hi} once the loop
+        ends).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Aggressive Cows}
+\begin{algorithmic}[1]
+\Procedure{AggressiveCows}{\textit{stalls}, $k$}
+  \State sort \textit{stalls}
+  \State $\textit{lo} \gets 1$, $\textit{hi} \gets \textit{stalls}[n-1] - \textit{stalls}[0]$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{count} \gets \Call{CowsPlaceable}{\textit{stalls}, \textit{mid}}$
+    \If{$\textit{count} \ge k$}
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{hi}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{stalls} = [0, 3, 4, 7, 10, 9]$, $k = 4$. Sorted:
+$[0,3,4,7,9,10]$.}
+
+\begin{itemize}
+  \item $\textit{lo}=1,\textit{hi}=10$: $\textit{mid}=5$. Greedy: place at
+        $0$; next $\ge 5$ is $7$, place; next $\ge 12$ -- none. Only $2$
+        cows placed $< 4$. Infeasible. $\textit{hi}=4$.
+  \item $\textit{lo}=1,\textit{hi}=4$: $\textit{mid}=2$. Greedy: place at
+        $0$; next $\ge 2$ is $3$, place; next $\ge 5$ is $7$, place; next
+        $\ge 9$ is $9$, place. $4$ cows placed $\ge 4$. Feasible.
+        $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=4$: $\textit{mid}=3$. Greedy: place at
+        $0$; next $\ge 3$ is $3$, place; next $\ge 6$ is $7$, place; next
+        $\ge 10$ is $10$, place. $4$ cows placed $\ge 4$. Feasible.
+        $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=4$: $\textit{mid}=4$. Greedy: place at
+        $0$; next $\ge 4$ is $4$, place; next $\ge 8$ is $9$, place; next
+        $\ge 13$ -- none. Only $3$ cows placed $< 4$. Infeasible.
+        $\textit{hi}=3$.
+  \item $\textit{lo}=4 > \textit{hi}=3$: loop ends.
+\end{itemize}
+
+The answer is $\textit{hi} = 3$: the maximum minimum distance is $3$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int cowsPlaceable(vector<int>& stalls, int d) {
+    int count = 1;
+    int lastPos = stalls[0];
+
+    for (int i = 1; i < (int)stalls.size(); i++) {
+        if (stalls[i] - lastPos >= d) {
+            count++;
+            lastPos = stalls[i];
+        }
+    }
+    return count;
+}
+
+int aggressiveCows(vector<int>& stalls, int k) {
+    sort(stalls.begin(), stalls.end());
+    int n = stalls.size();
+    int lo = 1, hi = stalls[n - 1] - stalls[0];
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (cowsPlaceable(stalls, mid) >= k) {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return hi;
+}
+
+int main() {
+    vector<int> stalls = {0, 3, 4, 7, 10, 9};
+    cout << "Maximum minimum distance: "
+         << aggressiveCows(stalls, 4) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting costs $O(n \log n)$. The candidate
+distance range halves each iteration, costing
+$O(\log(\max(\textit{stalls})-\min(\textit{stalls})))$ iterations, and
+each feasibility check costs $O(n)$, giving an overall time complexity of
+\[
+  O(n \log n + n \log(\max(\textit{stalls}))).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space beyond sorting.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Maximize the minimum'' and ``minimize the maximum'' problems both binary
+search on the answer, but with the narrowing direction flipped relative to
+each other: for ``maximize the minimum,'' record a successful candidate
+and search for a \emph{larger} one; for ``minimize the maximum'' (as in
+Sections~\ref{sec:bs-koko}--\ref{sec:bs-ship-packages}), record a
+successful candidate and search for a \emph{smaller} one. Always pause to
+identify which of the two flavors you are facing before writing the
+narrowing logic.
+\end{takeawaybox}

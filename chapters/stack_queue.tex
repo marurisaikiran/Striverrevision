@@ -1,0 +1,107 @@
+\chapter{Stack and Queue}
+\chapterepigraph{A stack remembers what just happened. A queue remembers
+what happened first. Almost every problem in this chapter is, underneath,
+a decision about which of these two memories the problem actually needs --
+and a surprising number of ``queue'' problems turn out to be built from
+stacks, and vice versa.}
+
+\section{Stacks, Queues, and the Monotonic Stack Idea}
+\label{sec:sq-intro}
+
+A \textbf{stack} supports two operations, \textit{push} and \textit{pop},
+with Last-In-First-Out (LIFO) order: the most recently pushed element is
+always the first one popped. A \textbf{queue} supports \textit{enqueue}
+and \textit{dequeue} with First-In-First-Out (FIFO) order: the earliest
+enqueued element still present is always the first one dequeued. Both can
+be implemented on top of an array, a linked list, or -- as the first
+section of this chapter shows -- on top of \emph{each other}.
+
+\begin{patternbox}[How to Recognise Which One You Need]
+\begin{itemize}
+  \item \textbf{``Matching/nesting/balanced''} (parentheses, expression
+        evaluation, undo history) -- a stack, because the most recent
+        unmatched thing is always the first thing that needs to be closed
+        or undone.
+  \item \textbf{``Next/previous greater/smaller element''} -- a
+        \textbf{monotonic stack}: a stack kept strictly increasing or
+        decreasing from bottom to top by popping elements that violate
+        the order before pushing a new one. This is the single most
+        important pattern in this chapter, covered in depth starting at
+        Section~\ref{sec:sq-next-greater-1}.
+  \item \textbf{``Maximum/minimum over every sliding window''} -- a
+        \textbf{monotonic deque} (Section~\ref{sec:sq-sliding-window-max}):
+        a double-ended queue that behaves like a monotonic stack at one
+        end, while also supporting eviction from the other end as the
+        window slides.
+  \item \textbf{``Most/least recently used,'' with fast lookup} -- a
+        combination of a hash map (for $O(1)$ lookup) and a doubly linked
+        list or queue-like ordering (for fast reordering by recency), as
+        in LRU/LFU Cache (Sections~\ref{sec:sq-lru-cache}--\ref{sec:sq-lfu-cache}).
+\end{itemize}
+\end{patternbox}
+
+\subsection*{The Monotonic Stack, Explained Once}
+
+\begin{ideabox}[Why a Monotonic Stack Finds ``Next Greater'' in $O(n)$]
+To find, for every element, the next element to its right that is
+strictly greater, scan from \textbf{right to left}, maintaining a stack
+that is kept strictly \emph{decreasing} from bottom to top. Before
+processing element $i$, pop every stack element that is $\le
+\textit{arr}[i]$ -- those elements can never again be the ``next greater''
+answer for anything to their left, because $\textit{arr}[i]$ is closer and
+at least as large, so it would always be found first; equivalently they have
+just been proven useless once $\textit{arr}[i]$ shows up. After popping,
+whatever remains on top of the stack (if anything) is the next greater
+element for $\textit{arr}[i]$ -- the nearest still-undefeated candidate
+to $i$'s right. Then push $\textit{arr}[i]$ itself, since it might be the
+answer for elements further to the left.
+
+The reason this is $O(n)$ total, not $O(n^2)$: every element is pushed
+exactly once and popped at most once, across the \emph{entire} scan -- so
+even though some steps pop many elements, the total number of pops across
+all steps combined can never exceed $n$.
+\end{ideabox}
+
+This single idea -- maintain a monotonic stack, popping whatever the
+current element invalidates before pushing -- powers roughly a third of
+this chapter's problems, sometimes directly (next/previous greater or
+smaller element) and sometimes as a hidden sub-step inside a larger
+problem (histogram area, trapping rain water, sum of subarray minimums).
+
+Each section in this chapter follows the same structure as the rest of
+this book: problem statement and keywords; the reasoning that identifies
+the right stack/queue technique and why it is correct; the algorithm in
+words and pseudocode; a hand-traced dry run; complete compilable C++ code;
+and a time/space complexity analysis.
+
+\newpage
+
+\input{chapters/stack_queue/01_stack_using_array.tex}
+\input{chapters/stack_queue/02_stack_using_linked_list.tex}
+\input{chapters/stack_queue/03_queue_using_linked_list.tex}
+\input{chapters/stack_queue/04_stack_using_queue.tex}
+\input{chapters/stack_queue/05_queue_using_stack.tex}
+\input{chapters/stack_queue/06_min_stack.tex}
+\input{chapters/stack_queue/07_valid_parentheses.tex}
+\input{chapters/stack_queue/08_infix_to_postfix.tex}
+\input{chapters/stack_queue/09_infix_to_prefix.tex}
+\input{chapters/stack_queue/10_postfix_to_infix.tex}
+\input{chapters/stack_queue/11_postfix_to_prefix.tex}
+\input{chapters/stack_queue/12_prefix_to_infix.tex}
+\input{chapters/stack_queue/13_prefix_to_postfix.tex}
+\input{chapters/stack_queue/14_next_greater_element_1.tex}
+\input{chapters/stack_queue/15_next_greater_element_2.tex}
+\input{chapters/stack_queue/16_next_smaller_element.tex}
+\input{chapters/stack_queue/17_number_of_nges_right.tex}
+\input{chapters/stack_queue/18_trapping_rain_water.tex}
+\input{chapters/stack_queue/19_sum_subarray_minimums.tex}
+\input{chapters/stack_queue/20_sum_subarray_ranges.tex}
+\input{chapters/stack_queue/21_asteroid_collision.tex}
+\input{chapters/stack_queue/22_remove_k_digits.tex}
+\input{chapters/stack_queue/23_largest_rectangle_histogram.tex}
+\input{chapters/stack_queue/24_maximal_rectangle.tex}
+\input{chapters/stack_queue/25_stock_span.tex}
+\input{chapters/stack_queue/26_celebrity_problem.tex}
+\input{chapters/stack_queue/27_sliding_window_maximum.tex}
+\input{chapters/stack_queue/28_lru_cache.tex}
+\input{chapters/stack_queue/29_lfu_cache.tex}

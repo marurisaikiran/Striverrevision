@@ -1,0 +1,101 @@
+\section{Floyd-Warshall Algorithm}
+\label{sec:graph-floyd-warshall}
+
+\problemstatement{Given a weighted directed graph (as an
+$n \times n$ adjacency matrix, with $\infty$ for missing edges), find
+the shortest distance between \textbf{every pair} of nodes.}
+
+\begin{patternbox}
+\emph{``Shortest path between every pair of nodes, simultaneously''}
+is solved not by running Section~\ref{sec:graph-dijkstra}'s Dijkstra
+from every node (which would cost $O(V \cdot (V+E)\log V)$), but by a
+direct dynamic programming recurrence over which nodes are
+\textbf{allowed as intermediate stops}: progressively allow node $1$,
+then nodes $1$ and $2$, then $1,2,3$, and so on, updating every pair's
+shortest distance each time a new node becomes available as a
+potential stop along the way.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $\textit{dist}_k[i][j]$ be the shortest distance from $i$ to $j$
+using \textbf{only} nodes $1,\ldots,k$ as intermediate stops (besides
+$i,j$ themselves). Either the shortest such path doesn't use node $k$
+at all (so $\textit{dist}_k[i][j] = \textit{dist}_{k-1}[i][j]$), or it
+does use $k$ -- exactly once, as a single stop, splitting the path into
+an $i\to k$ segment and a $k\to j$ segment, both of which only need
+nodes $1,\ldots,k{-}1$ as their own intermediates (since they don't
+revisit $k$):
+\[
+  \textit{dist}_k[i][j] = \min\big(\textit{dist}_{k-1}[i][j],\
+  \textit{dist}_{k-1}[i][k] + \textit{dist}_{k-1}[k][j]\big).
+\]
+Implemented in place, with $k$ as the \textbf{outermost} loop, this
+needs only a single 2D array (each cell is read and written using
+already-updated values from the current and prior $k$, which is safe
+because $\textit{dist}[i][k]$ and $\textit{dist}[k][j]$ are never
+themselves updated using $k$ as an intermediate -- a path from $i$ to
+$k$ using $k$ itself as a stop would be nonsensical).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int INF = 1e9;
+
+void floydWarshall(vector<vector<int>>& dist) {
+    int n = dist.size();
+
+    for (int k = 0; k < n; k++) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (dist[i][k] < INF && dist[k][j] < INF) {
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    int n = 4;
+    vector<vector<int>> dist(n, vector<int>(n, INF));
+    for (int i = 0; i < n; i++) dist[i][i] = 0;
+    dist[0][1] = 5; dist[1][2] = 3; dist[2][3] = 1; dist[0][3] = 100;
+
+    floydWarshall(dist);
+    cout << dist[0][3] << endl; // 9  (via 0->1->2->3: 5+3+1)
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $4$-node graph above: $0{\to}1(5)$, $1{\to}2(3)$,
+$2{\to}3(1)$, $0{\to}3(100)$.}
+
+Initial $\textit{dist}[0][3]=100$ (direct edge). After allowing $k=1$:
+$\textit{dist}[0][2] = \min(\infty, \textit{dist}[0][1]+\textit{dist}[1][2]) =
+\min(\infty,5+3)=8$. After allowing $k=2$: $\textit{dist}[0][3] =
+\min(100, \textit{dist}[0][2]+\textit{dist}[2][3]) = \min(100,8+1)=9$.
+After allowing $k=3$: no further improvement possible through $3$
+(it has no outgoing edges in this example). Final
+$\textit{dist}[0][3]=9$, matching the path $0\to1\to2\to3$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V^3)$ -- three nested loops over all
+nodes.
+\textbf{Space Complexity.} $O(V^2)$ for the distance matrix (updated
+in place; no extra space needed per layer of $k$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Floyd-Warshall is this book's clearest example of an
+\textbf{ending-here}-style DP (Section~\ref{sec:graph-shortest-path-intro}'s
+opening idea, generalized) applied to a 2D state $(i,j)$ with a third
+dimension -- ``which nodes are allowed as intermediates'' -- collapsed
+into a single in-place array by processing $k$ in the outer loop, the
+same in-place-update trick used by every space-optimized DP table
+throughout this book series.
+\end{takeawaybox}

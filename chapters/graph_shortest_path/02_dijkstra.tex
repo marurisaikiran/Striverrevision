@@ -1,0 +1,128 @@
+\section{Dijkstra's Algorithm}
+\label{sec:graph-dijkstra}
+
+\problemstatement{Given a weighted graph with \textbf{non-negative}
+edge weights and a source node, find the shortest distance from the
+source to every other node.}
+
+\begin{patternbox}
+\emph{``Shortest path, non-negative weights''} is solved by always
+expanding the \textbf{unfinished} node with the currently
+\textbf{smallest known} distance -- a greedy choice, made efficient by
+storing candidate $(\textit{distance}, \textit{node})$ pairs in a
+\textbf{min-heap} (priority queue) so the smallest is always available
+in $O(\log V)$.
+\end{patternbox}
+
+\subsection*{Why the greedy choice is correct (and needs non-negative weights)}
+
+When the node $u$ with the smallest tentative distance is popped, that
+distance is guaranteed \textbf{final} -- no future relaxation through
+any other, not-yet-finalized node $x$ could ever produce a shorter path
+to $u$, because every such path would have to pass through some node
+with tentative distance $\ge \textit{dist}[u]$ \emph{and then add a
+non-negative edge weight}, which can only make the total $\ge
+\textit{dist}[u]$. This argument breaks immediately if a negative edge
+weight is allowed: a long detour through a very negative edge could
+undercut the greedily-chosen shortest path, which is exactly why
+Dijkstra's algorithm requires non-negative weights and Bellman-Ford
+(Section~\ref{sec:graph-bellman-ford}) exists for the negative case.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{dist}[\textit{src}]=0$, all others
+        $\infty$. Push $(0, \textit{src})$ into a min-heap.
+  \item While the heap is non-empty: pop the smallest
+        $(\textit{d}, \textit{node})$; if $\textit{d} >
+        \textit{dist}[\textit{node}]$, this is a stale entry (a better
+        path was already found), skip it.
+  \item Otherwise, relax every edge out of $\textit{node}$: if
+        $\textit{dist}[\textit{node}] + w < \textit{dist}[\textit{neighbor}]$,
+        update and push $(\textit{dist}[\textit{neighbor}],
+        \textit{neighbor})$.
+\end{enumerate}
+
+\begin{ideabox}[Why Stale Entries Are Allowed Rather Than Removed]
+A node may be pushed onto the heap multiple times, once per
+improvement to its tentative distance, rather than removing and
+re-inserting it (which most heap implementations don't support
+efficiently). The $\textit{d} > \textit{dist}[\textit{node}]$ check
+simply ignores outdated copies when they're eventually popped --
+correct, and simpler than maintaining a decrease-key operation.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> dijkstra(int n, vector<vector<pair<int,int>>>& adj, int src) {
+    vector<int> dist(n, INT_MAX);
+    dist[src] = 0;
+    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> pq;
+    pq.push({0, src});
+
+    while (!pq.empty()) {
+        auto [d, node] = pq.top();
+        pq.pop();
+        if (d > dist[node]) continue; // stale entry
+
+        for (auto& [neighbor, weight] : adj[node]) {
+            if (dist[node] + weight < dist[neighbor]) {
+                dist[neighbor] = dist[node] + weight;
+                pq.push({dist[neighbor], neighbor});
+            }
+        }
+    }
+    return dist;
+}
+
+int main() {
+    int n = 5;
+    vector<vector<pair<int,int>>> adj(n); // {neighbor, weight}
+    auto addEdge = [&](int u, int v, int w) {
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    };
+    addEdge(0, 1, 4); addEdge(0, 2, 1); addEdge(2, 1, 2);
+    addEdge(1, 3, 1); addEdge(2, 3, 5); addEdge(3, 4, 3);
+
+    vector<int> dist = dijkstra(n, adj, 0);
+    for (int d : dist) cout << d << " ";
+    cout << endl; // 0 3 1 4 7
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the graph above, source $0$.}
+
+Heap: $[(0,0)]$. Pop $(0,0)$: relax $1$ ($\infty\to4$), $2$
+($\infty\to1$); push both. Heap: $[(1,2),(4,1)]$. Pop $(1,2)$
+(smallest): relax $1$ via $2$ ($4\to1+2=3$, improved); relax $3$ via
+$2$ ($\infty\to1+5=6$); push $(3,1)$ and $(6,3)$. Heap:
+$[(3,1),(4,1)_{\text{stale}},(6,3)]$. Pop $(3,1)$: relax $3$ via $1$
+($6\to3+1=4$, improved); push $(4,3)$. Pop $(4,1)_{\text{stale}}$:
+$4 > \textit{dist}[1]=3$, skip. Pop $(4,3)$: relax $4$ via $3$
+($\infty\to4+3=7$); push. Pop $(6,3)_{\text{stale}}$: $6 >
+\textit{dist}[3]=4$, skip. Pop $(7,4)$: no further relaxation. Final:
+$\textit{dist}=[0,3,1,4,7]$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((V+E)\log V)$ -- each edge can trigger one
+heap push, and each heap operation costs $O(\log V)$.
+\textbf{Space Complexity.} $O(V)$ for \textit{dist}, plus $O(E)$ for
+the heap in the worst case (allowing stale duplicate entries).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Dijkstra's algorithm is BFS's natural generalization to weighted
+graphs: BFS implicitly always expands the nearest unvisited node
+because its queue processes things in arrival order, which only equals
+distance order when every edge costs the same; Dijkstra's makes that
+``always expand the nearest'' rule explicit via a priority queue,
+restoring correctness for arbitrary non-negative weights.
+\end{takeawaybox}

@@ -1,0 +1,208 @@
+\section{Minimum Number of Platforms Required for a Railway}
+\label{sec:minimum-platforms}
+
+\problemstatement{We are given the arrival times $\textit{arr}[0..n-1]$ and
+departure times $\textit{dep}[0..n-1]$ of $n$ trains scheduled at a single
+railway station, where train $i$ occupies a platform from
+$\textit{arr}[i]$ until $\textit{dep}[i]$ (inclusive; if one train departs
+at the exact same time another arrives, they are considered to overlap and
+require separate platforms). We must find the \textbf{minimum number of
+platforms} the station needs so that no train is ever forced to wait for a
+free platform.}
+
+\begin{patternbox}
+\emph{``Minimum number of resources (platforms/rooms/servers) needed so that
+no request ever waits, given many overlapping time intervals''} is the
+classic \emph{maximum overlap / interval point sweep} pattern -- it is
+closely related to, but distinct from, the activity-selection pattern in
+Section~\ref{sec:n-meetings}. There, we had \emph{one} room and asked how
+many of the requests we could serve; here, every request \emph{must} be
+served, and we ask how many rooms that requires. The keyword shift from
+``maximum number you can fit in one resource'' to ``minimum resources needed
+to fit everyone'' is the signal to switch from finish-time-only greedy
+scheduling to a \emph{two-pointer sweep over both arrivals and departures}.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+At any instant in time, the number of platforms required is exactly the
+number of trains whose interval $[\textit{arr}[i], \textit{dep}[i]]$
+currently contains that instant -- i.e., the number of trains
+\emph{simultaneously} present at the station. The answer to the whole
+problem is simply the \textbf{maximum}, over all instants in time, of this
+simultaneous count. So the task reduces to efficiently finding the peak
+number of overlapping intervals.
+
+A direct way to track this is to imagine sweeping a clock forward through
+time. Every arrival event increases the number of trains currently at the
+station by one; every departure event decreases it by one. If we process
+all arrival and departure events in time order, the running count after
+each event tells us exactly how many platforms are occupied at that moment,
+and the maximum value this running count ever reaches is our answer.
+
+\begin{ideabox}[Greedy Choice]
+Sort the arrival times and the departure times \emph{independently} (we do
+not need to keep them paired to the same train -- only the multiset of
+arrival instants and the multiset of departure instants matter for counting
+overlaps). Use two pointers, one walking through sorted arrivals and one
+through sorted departures. At each step, compare the next unprocessed
+arrival to the next unprocessed departure: if the arrival happens at or
+before that departure, a new train has shown up while the previous one has
+not yet left, so increment the platform count needed and advance the
+arrival pointer; otherwise, a train has left before this conflict arises, so
+decrement the platform count and advance the departure pointer. Track the
+maximum platform count seen at any point.
+\end{ideabox}
+
+\subsection*{Why sorting arrivals and departures independently is valid}
+
+It may seem surprising that we are allowed to sort $\textit{arr}$ and
+$\textit{dep}$ separately, losing the information of which arrival belongs
+to which train. But the quantity we are computing -- the number of
+simultaneously occupied platforms at any instant -- depends only on
+\emph{how many} arrival events have occurred and \emph{how many} departure
+events have occurred up to that instant, not on which specific train each
+event belongs to. The running difference (arrivals processed so far minus
+departures processed so far) is precisely the number of trains currently at
+the station, regardless of how we have paired up arrival times with
+departure times internally. This is what justifies treating $\textit{arr}$
+and $\textit{dep}$ as two independent sorted streams of timestamps and
+sweeping through them with two pointers, taking the running difference's
+maximum value.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $\textit{arr}$ in increasing order; sort $\textit{dep}$ in
+        increasing order.
+  \item Initialize $i \gets 0$, $j \gets 0$, $\textit{platforms} \gets 0$,
+        $\textit{maxPlatforms} \gets 0$.
+  \item While $i < n$ and $j < n$:
+  \begin{enumerate}
+    \item If $\textit{arr}[i] \le \textit{dep}[j]$: a new train has
+          arrived while the earliest still-pending train has not yet left.
+          $\textit{platforms} \gets \textit{platforms}+1$;
+          $\textit{maxPlatforms} \gets \max(\textit{maxPlatforms},
+          \textit{platforms})$; $i \gets i+1$.
+    \item Otherwise: a train has departed.
+          $\textit{platforms} \gets \textit{platforms}-1$; $j \gets j+1$.
+  \end{enumerate}
+  \item Return \textit{maxPlatforms}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Minimum Platforms}
+\begin{algorithmic}[1]
+\Procedure{MinPlatforms}{$\textit{arr}, \textit{dep}$}
+  \State sort $\textit{arr}$ in increasing order
+  \State sort $\textit{dep}$ in increasing order
+  \State $i \gets 0$, $j \gets 0$, $\textit{platforms} \gets 0$, $\textit{maxPlatforms} \gets 0$
+  \While{$i < n$ \textbf{and} $j < n$}
+    \If{$\textit{arr}[i] \le \textit{dep}[j]$}
+      \State $\textit{platforms} \gets \textit{platforms} + 1$
+      \State $\textit{maxPlatforms} \gets \max(\textit{maxPlatforms}, \textit{platforms})$
+      \State $i \gets i + 1$
+    \Else
+      \State $\textit{platforms} \gets \textit{platforms} - 1$
+      \State $j \gets j + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{maxPlatforms}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [900, 940, 950, 1100, 1500, 1800]$ and
+$\textit{dep} = [910, 1200, 1120, 1130, 1900, 2000]$.}
+
+Sorted: $\textit{arr} = [900, 940, 950, 1100, 1500, 1800]$ (already sorted),
+$\textit{dep} = [910, 1120, 1130, 1200, 1900, 2000]$ (sorted).
+
+\begin{itemize}
+  \item $\textit{arr}[0]=900 \le \textit{dep}[0]=910$. $\textit{platforms}=1$,
+        $\textit{maxPlatforms}=1$, $i=1$.
+  \item $\textit{arr}[1]=940 \le \textit{dep}[0]=910$? No ($940 > 910$).
+        $\textit{platforms}=0$, $j=1$.
+  \item $\textit{arr}[1]=940 \le \textit{dep}[1]=1120$. $\textit{platforms}=1$,
+        $\textit{maxPlatforms}=1$, $i=2$.
+  \item $\textit{arr}[2]=950 \le \textit{dep}[1]=1120$. $\textit{platforms}=2$,
+        $\textit{maxPlatforms}=2$, $i=3$.
+  \item $\textit{arr}[3]=1100 \le \textit{dep}[1]=1120$. $\textit{platforms}=3$,
+        $\textit{maxPlatforms}=3$, $i=4$.
+  \item $\textit{arr}[4]=1500 \le \textit{dep}[1]=1120$? No.
+        $\textit{platforms}=2$, $j=2$.
+  \item $\textit{arr}[4]=1500 \le \textit{dep}[2]=1130$? No.
+        $\textit{platforms}=1$, $j=3$.
+  \item $\textit{arr}[4]=1500 \le \textit{dep}[3]=1200$? No.
+        $\textit{platforms}=0$, $j=4$.
+  \item $\textit{arr}[4]=1500 \le \textit{dep}[4]=1900$. $\textit{platforms}=1$,
+        $\textit{maxPlatforms}$ stays $3$, $i=5$.
+  \item $\textit{arr}[5]=1800 \le \textit{dep}[4]=1900$. $\textit{platforms}=2$,
+        $\textit{maxPlatforms}$ stays $3$, $i=6$.
+  \item $i = n = 6$, loop ends.
+\end{itemize}
+
+The minimum number of platforms required is $\boxed{3}$, reached around
+time $1100$--$1120$, when three trains are simultaneously at the station.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int minPlatforms(vector<int>& arr, vector<int>& dep) {
+    int n = arr.size();
+    sort(arr.begin(), arr.end());
+    sort(dep.begin(), dep.end());
+
+    int i = 0, j = 0;
+    int platforms = 0, maxPlatforms = 0;
+
+    while (i < n && j < n) {
+        if (arr[i] <= dep[j]) {
+            platforms++;
+            maxPlatforms = max(maxPlatforms, platforms);
+            i++;
+        } else {
+            platforms--;
+            j++;
+        }
+    }
+    return maxPlatforms;
+}
+
+int main() {
+    vector<int> arr = {900, 940, 950, 1100, 1500, 1800};
+    vector<int> dep = {910, 1200, 1120, 1130, 1900, 2000};
+
+    cout << "Minimum platforms required: "
+         << minPlatforms(arr, dep) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting both arrays costs $O(n \log n)$. The
+two-pointer sweep afterward visits each arrival and each departure exactly
+once, costing $O(n)$. The overall time complexity is
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} Sorting can be performed in place (or with
+$O(n)$ auxiliary space depending on the sorting routine), and the sweep
+itself uses only a handful of scalar variables, so the auxiliary space
+complexity is $O(1)$ beyond the input arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem asks for the minimum number of identical resources needed so
+that \emph{every} request can be served without waiting, think in terms of
+the maximum simultaneous overlap of intervals, computed by sweeping sorted
+arrival and departure timestamps with a running counter. This is a different
+flavor of greedy from activity selection: there, sorting by finish time let
+us discard conflicting requests one at a time; here, sorting both endpoints
+lets us measure the peak load directly, with nothing discarded.
+\end{takeawaybox}

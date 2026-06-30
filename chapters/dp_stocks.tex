@@ -1,0 +1,62 @@
+\chapter{Dynamic Programming: DP on Stocks}
+\chapterepigraph{Every stock problem in this chapter asks the same
+question on every day: given whether I am currently holding a share or
+not, should I act today, or wait? Once that one binary state is in the
+recurrence, every variant in this chapter -- a transaction limit, a
+cooldown, a fee -- is a one-line adjustment to the same two equations.}
+
+\section{The Holding-State Template}
+\label{sec:dp-stocks-intro}
+
+Every problem in this chapter shares one underlying state machine: on
+any given day, you are either \textbf{holding} a share (bought earlier,
+not yet sold) or \textbf{not holding} one. The DP state is
+$(\textit{day}, \textit{holding})$, and the recurrence at every day asks
+exactly one question: act (buy, if not holding; sell, if holding), or
+wait and carry the same holding-state into tomorrow?
+
+\begin{ideabox}[The Base Recurrence Every Variant in This Chapter Modifies]
+\begin{gather*}
+  f(\textit{day}, 0) = \max\big(-\textit{price}[\textit{day}] +
+  f(\textit{day}{+}1, 1),\ f(\textit{day}{+}1, 0)\big)
+  \quad \text{(not holding: buy or wait)}, \\
+  f(\textit{day}, 1) = \max\big(\textit{price}[\textit{day}] +
+  f(\textit{day}{+}1, 0),\ f(\textit{day}{+}1, 1)\big)
+  \quad \text{(holding: sell or wait)}.
+\end{gather*}
+Buying subtracts the price (a cost paid now); selling adds it (a
+reward gained now); waiting simply carries the current holding-state
+forward by one day unchanged. The base case is always
+$f(n, \cdot) = 0$ (no days left, no further profit possible).
+\end{ideabox}
+
+\begin{patternbox}[What Changes Between the Six Variants in This Chapter]
+\begin{itemize}
+  \item \textbf{Buy and Sell I (Section~\ref{sec:dp-stock-1})}: only one
+        transaction allowed -- selling transitions to a terminal
+        ``done'' state contributing $0$ further, instead of back to
+        $f(\textit{day}{+}1, 0)$.
+  \item \textbf{Buy and Sell II (Section~\ref{sec:dp-stock-2})}: the
+        base recurrence above, unmodified -- unlimited transactions.
+  \item \textbf{Buy and Sell III/IV (Sections~\ref{sec:dp-stock-3}--\ref{sec:dp-stock-4})}:
+        add a transaction-count dimension to cap the number of
+        buy/sell cycles at $2$ (III) or a general $k$ (IV).
+  \item \textbf{With Cooldown (Section~\ref{sec:dp-stock-5})}: selling
+        jumps two days ahead instead of one, enforcing a mandatory
+        wait before the next buy.
+  \item \textbf{With Transaction Fee (Section~\ref{sec:dp-stock-6})}:
+        selling subtracts a fixed fee from the reward.
+  \end{itemize}
+Every variant is this same two-line recurrence with exactly one clause
+adjusted -- read each section looking specifically for which single
+clause changed, rather than re-deriving the whole table from scratch.
+\end{patternbox}
+
+\newpage
+
+\input{chapters/dp_stocks/01_buy_sell_stock_1.tex}
+\input{chapters/dp_stocks/02_buy_sell_stock_2.tex}
+\input{chapters/dp_stocks/03_buy_sell_stock_3.tex}
+\input{chapters/dp_stocks/04_buy_sell_stock_4.tex}
+\input{chapters/dp_stocks/05_buy_sell_cooldown.tex}
+\input{chapters/dp_stocks/06_buy_sell_fee.tex}

@@ -1,0 +1,122 @@
+\section{Prefix to Infix Conversion}
+\label{sec:sq-prefix-to-infix}
+
+\problemstatement{Given a prefix expression, convert it to infix notation
+(fully parenthesized).}
+
+\begin{patternbox}
+Prefix writes the operator \emph{before} its operands, so by the time we
+encounter an operator while scanning \textbf{left to right}, its operands
+have not been read yet -- the stack-of-sub-expressions trick from
+Sections~\ref{sec:sq-postfix-to-infix}--\ref{sec:sq-postfix-to-prefix}
+only works smoothly when operands are already available \emph{before}
+their operator is seen. The fix: scan \textbf{right to left} instead,
+which makes prefix behave exactly like postfix did under a left-to-right
+scan.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Reading a prefix expression from right to left, an operand is encountered
+\emph{before} the operator that uses it (mirroring how, in postfix read
+left to right, an operand is also encountered before its operator) -- so
+the same stack-of-sub-expressions technique applies, just with the scan
+direction reversed.
+
+\begin{ideabox}[Scan Right to Left, Same Combination Rule]
+Scan from the last character to the first. Push every operand. On an
+operator $\textit{op}$: pop the top sub-expression as $\textit{left}$
+(it was pushed most recently, and since we are scanning backward, ``most
+recent'' corresponds to the operand that appears \emph{first}, i.e.\
+leftmost, after this operator when read normally); pop the next as
+$\textit{right}$. Push $(\textit{left}\ \textit{op}\ \textit{right})$.
+\end{ideabox}
+
+\subsection*{Why the pop order flips relative to postfix}
+
+In postfix, scanning left to right, the operand pushed \emph{last}
+(closest to the operator, on its left in the text) is the \textbf{right}
+operand semantically (e.g.\ in $\texttt{ab+}$, $b$ is pushed right before
+\texttt{+}, and $a+b$ has $b$ as the right operand). In prefix, scanning
+\emph{right to left}, the operand encountered (and pushed) most recently
+before the operator is the one immediately to the operator's right in the
+original text -- which, in prefix's $\textit{op}\ A\ B$ structure, is $A$,
+the \textbf{left} operand. So the pop order is mirrored relative to
+postfix's, which is exactly why $\textit{left}$ is popped first here.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack of strings.
+  \item For each token, scanning from right to left:
+  \begin{enumerate}
+    \item Operand: push it.
+    \item Operator $\textit{op}$: pop $\textit{left}$, pop
+          $\textit{right}$; push $(\textit{left}\ \textit{op}\
+          \textit{right})$.
+  \end{enumerate}
+  \item The stack's single remaining element is the infix result.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\texttt{"*+abc"}$ (representing $(a+b)*c$).}
+
+Scanning right to left: \texttt{c}, \texttt{b}, \texttt{a}, \texttt{+},
+\texttt{*}.
+
+\begin{itemize}
+  \item \texttt{c}: push. Stack $=[\texttt{c}]$.
+  \item \texttt{b}: push. Stack $=[\texttt{c},\texttt{b}]$.
+  \item \texttt{a}: push. Stack $=[\texttt{c},\texttt{b},\texttt{a}]$.
+  \item \texttt{+}: pop left$=\texttt{a}$, pop right$=\texttt{b}$. Push
+        \texttt{(a+b)}. Stack $=[\texttt{c},\texttt{(a+b)}]$.
+  \item \texttt{*}: pop left$=\texttt{(a+b)}$, pop right$=\texttt{c}$.
+        Push \texttt{((a+b)*c)}.
+\end{itemize}
+
+Result: \texttt{((a+b)*c)} -- matching
+Section~\ref{sec:sq-postfix-to-infix}'s result for the same underlying
+expression.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string prefixToInfix(string s) {
+    stack<string> st;
+
+    for (int i = s.size() - 1; i >= 0; i--) {
+        char c = s[i];
+        if (isalnum(c)) {
+            st.push(string(1, c));
+        } else {
+            string left = st.top(); st.pop();
+            string right = st.top(); st.pop();
+            st.push("(" + left + string(1, c) + right + ")");
+        }
+    }
+    return st.top();
+}
+
+int main() {
+    cout << prefixToInfix("*+abc") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ worst case with naive string
+concatenation, $O(n)$ with more careful string building.
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Scanning right to left is to prefix what scanning left to right is to
+postfix -- both make operands available before the operator that needs
+them. Whenever a problem's natural scan direction would otherwise present
+an operator before its operands are ready, check whether reversing the
+scan direction restores the same simple stack technique.
+\end{takeawaybox}

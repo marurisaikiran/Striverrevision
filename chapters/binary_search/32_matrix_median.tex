@@ -1,0 +1,205 @@
+\section{Median of a Row-wise Sorted Matrix}
+\label{sec:bs-matrix-median}
+
+\problemstatement{We are given an $n \times m$ matrix in which every row
+is sorted in increasing order (with no chaining guarantee between rows),
+and $nm$ is odd. Find the median of all $nm$ elements.}
+
+\begin{patternbox}
+This closing problem of the chapter combines two ideas from earlier
+sections: \emph{binary search on the answer}
+(Sections~\ref{sec:bs-sqrt}--\ref{sec:bs-kth-element}), where the
+candidate space is a range of \emph{values} rather than indices, and
+\emph{per-row binary search} (Section~\ref{sec:bs-row-max-ones}), where
+row-sortedness is exploited independently per row inside a helper
+function. The keyword combination \emph{``median''} plus \emph{``each row
+sorted''} plus a request for better than $O(nm \log(nm))$ (which a full
+sort-and-pick would cost) should trigger exactly this combination.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The median of $nm$ elements (with $nm$ odd) is the value $v$ such that
+exactly $(nm-1)/2$ elements are strictly smaller than $v$, and $v$ itself
+is present in the matrix. Equivalently, $v$ is the smallest value for
+which $\textit{countLessOrEqual}(v) \ge \lceil nm/2 \rceil$, where
+$\textit{countLessOrEqual}(v)$ counts how many matrix elements are $\le
+v$. We do not need to merge or sort the matrix to compute this count: for
+each row, since the row is independently sorted, the count of elements
+$\le v$ in that row is exactly $\textit{upperBound}(\text{row}, v)$
+(Section~\ref{sec:bs-upper-bound}, the first index strictly greater than
+$v$, which equals the count of elements $\le v$). Summing this across all
+$n$ rows gives $\textit{countLessOrEqual}(v)$ for the whole matrix in
+$O(n \log m)$.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is integer values in
+$[\min(\textit{matrix}), \max(\textit{matrix})]$ (the minimum and maximum
+single elements across the whole matrix, found by checking the first and
+last elements of each row, since rows are sorted). The predicate is
+$P(v) = (\textit{countLessOrEqual}(v) \ge \lceil nm/2 \rceil)$, and we want
+the smallest $v$ where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why this nested binary search correctly finds the median}
+
+As $v$ increases, $\textit{countLessOrEqual}(v)$ can only increase or stay
+the same (a larger threshold never excludes an element that a smaller
+threshold included), so $P$ is monotonic, justifying the outer binary
+search over $v$. The smallest $v$ satisfying $P$ is, by definition, the
+smallest value such that at least half of the matrix's elements do not
+exceed it -- which is exactly the definition of the median for an odd
+total count. Crucially, $v$ itself does not need to be searched for
+separately within the matrix: because $\textit{countLessOrEqual}$ jumps by
+at least $1$ at $v$ if and only if $v$ is actually present in the matrix
+(if $v$ were absent, the count at $v$ and at $v-1$ would be identical, so
+the crossover could not happen exactly at an absent value), the binary
+search automatically lands on a value that is genuinely in the matrix.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{lo} \gets \min$ over all rows' first elements;
+        $\textit{hi} \gets \max$ over all rows' last elements.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item For each row, add $\textit{upperBound}(\text{row},
+          \textit{mid})$ to get $\textit{count}$.
+    \item If $\textit{count} < \lceil nm/2 \rceil$: $\textit{lo} \gets
+          \textit{mid}+1$.
+    \item Else: $\textit{hi} \gets \textit{mid}-1$.
+  \end{enumerate}
+  \item Return \textit{lo}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Median of a Row-wise Sorted Matrix}
+\begin{algorithmic}[1]
+\Procedure{MatrixMedian}{\textit{matrix}}
+  \State $\textit{lo} \gets \min_i \textit{matrix}[i][0]$, $\textit{hi} \gets \max_i \textit{matrix}[i][m-1]$
+  \State $\textit{half} \gets \lceil nm/2 \rceil$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{count} \gets \sum_i \Call{UpperBound}{\textit{matrix}[i], \textit{mid}}$
+    \If{$\textit{count} < \textit{half}$}
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{lo}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{matrix} = \begin{bmatrix} 1&3&5 \\ 2&6&9 \\
+3&6&9 \end{bmatrix}$ ($n=m=3$, $nm=9$).}
+
+$\textit{half} = \lceil 9/2 \rceil = 5$. $\textit{lo}=\min(1,2,3)=1$,
+$\textit{hi}=\max(5,9,9)=9$.
+
+\begin{itemize}
+  \item $\textit{lo}=1,\textit{hi}=9$: $\textit{mid}=5$. Counts $\le 5$:
+        row $1$: $[1,3,5]$, upper bound of $5$ is index $3$ (all $3$
+        qualify). Row $2$: $[2,6,9]$, upper bound of $5$ is index $1$
+        (just the $2$). Row $3$: $[3,6,9]$, upper bound of $5$ is index
+        $1$ (just the $3$). Total $=3+1+1=5 \ge 5$. $\textit{hi}=4$.
+  \item $\textit{lo}=1,\textit{hi}=4$: $\textit{mid}=2$. Counts $\le 2$:
+        row $1$: upper bound of $2$ is index $1$ (just the $1$). Row $2$:
+        upper bound of $2$ is index $1$ (just the $2$). Row $3$: upper
+        bound of $2$ is index $0$ (none). Total $=1+1+0=2 < 5$.
+        $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=4$: $\textit{mid}=3$. Counts $\le 3$:
+        row $1$: index $2$ (the $1,3$). Row $2$: index $1$ (just the
+        $2$). Row $3$: index $1$ (just the $3$). Total $=2+1+1=4 < 5$.
+        $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=4$: $\textit{mid}=4$. Counts $\le 4$:
+        same as $\le 3$ for these rows (no element equals $4$), so total
+        $=4 < 5$. $\textit{lo}=5$.
+  \item $\textit{lo}=5 > \textit{hi}=4$: loop ends.
+\end{itemize}
+
+The answer is $\textit{lo} = 5$. Checking by hand: sorting all $9$
+elements gives $[1,2,3,3,5,6,6,9,9]$, and the middle ($5$th) element is
+indeed $5$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int upperBoundRow(vector<int>& row, int X) {
+    int lo = 0, hi = row.size() - 1, ans = row.size();
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (row[mid] > X) { ans = mid; hi = mid - 1; }
+        else lo = mid + 1;
+    }
+    return ans;
+}
+
+int matrixMedian(vector<vector<int>>& matrix) {
+    int n = matrix.size(), m = matrix[0].size();
+    int lo = INT_MAX, hi = INT_MIN;
+    for (auto& row : matrix) {
+        lo = min(lo, row[0]);
+        hi = max(hi, row[m - 1]);
+    }
+
+    int half = (n * m) / 2 + 1; // ceil(nm/2) for odd nm
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        int count = 0;
+        for (auto& row : matrix) {
+            count += upperBoundRow(row, mid);
+        }
+
+        if (count < half) {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<vector<int>> matrix = {
+        {1, 3, 5},
+        {2, 6, 9},
+        {3, 6, 9}
+    };
+    cout << "Median: " << matrixMedian(matrix) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The candidate value range halves each iteration
+($O(\log(\max - \min))$ iterations), and each feasibility check sums a
+per-row binary search costing $O(\log m)$ across $n$ rows, giving an
+overall time complexity of
+\[
+  O(n \log m \log(\max-\min)),
+\]
+substantially better than sorting all $nm$ elements directly.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This closing problem is a deliberate capstone: it requires recognizing
+that ``binary search on the answer'' (search over a value range using a
+monotonic count predicate) and ``per-row binary search'' (exploiting
+row-sortedness inside the predicate) are not mutually exclusive
+techniques -- they nest naturally, with the outer search handling
+\emph{which} value to test and the inner per-row searches handling
+\emph{how cheaply} to test it. Recognizing when two patterns from
+different parts of this chapter can be combined, rather than always
+reaching for a single isolated template, is the most advanced skill this
+chapter has to offer.
+\end{takeawaybox}

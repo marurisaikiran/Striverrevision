@@ -1,0 +1,106 @@
+\section{Print the Longest Increasing Subsequence}
+\label{sec:dp-print-lis}
+
+\problemstatement{Given $\textit{arr}$, construct (not just measure the
+length of) one actual longest increasing subsequence.}
+
+\begin{patternbox}
+Exactly as in the DP on Strings chapter's Print LCS section, reconstructing the actual
+solution needs the full tabulation table kept around, plus a
+\textbf{parent pointer} recorded at each index, tracking \emph{which
+earlier index} extended into it -- since the table itself only stores
+chain \emph{lengths}, not which specific chain produced them.
+\end{patternbox}
+
+\subsection*{Understanding the reconstruction}
+
+Alongside $\textit{dp}[i]$ (the LIS length ending at $i$), maintain
+$\textit{parent}[i]$: the index $j<i$ that $\textit{dp}[i]$ was
+extended from (or $i$ itself, if $\textit{dp}[i]=1$ and nothing extends
+it). After filling the table, find the index with the maximum
+$\textit{dp}$ value, then follow $\textit{parent}$ pointers backward
+until reaching an index whose parent is itself, collecting elements
+along the way.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{dp}[i] \gets 1$, $\textit{parent}[i] \gets
+        i$ for all $i$.
+  \item For $i$ from $0$ to $n-1$: for $j$ from $0$ to $i-1$: if
+        $\textit{arr}[j]<\textit{arr}[i]$ and $1+\textit{dp}[j] >
+        \textit{dp}[i]$: update $\textit{dp}[i] \gets 1+\textit{dp}[j]$;
+        $\textit{parent}[i] \gets j$.
+  \item Find $\textit{lastIndex}$ maximizing $\textit{dp}[i]$.
+  \item Walk backward from $\textit{lastIndex}$ via \textit{parent}
+        until $\textit{parent}[i]=i$, collecting each $\textit{arr}[i]$
+        visited; reverse the collected list.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Using Section~\ref{sec:dp-lis}'s table for
+$\textit{arr}=[10,9,2,5,3,7,101,18]$.}
+
+$\textit{dp}=[1,1,1,2,2,3,4,4]$, with $\textit{parent}[3]=2$ (chain
+$5$ extends $2$), $\textit{parent}[5]=3$ (chain $7$ extends $5$),
+$\textit{parent}[6]=5$ (chain $101$ extends $7$). The maximum
+$\textit{dp}$ value is $4$, first achieved at index $6$. Walking
+backward: $6 \to 5 \to 3 \to 2$, collecting $101, 7, 5, 2$; reversing
+gives $[2,5,7,101]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> printLIS(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> dp(n, 1), parent(n);
+    for (int i = 0; i < n; i++) parent[i] = i;
+
+    int lastIndex = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++) {
+            if (arr[j] < arr[i] && 1 + dp[j] > dp[i]) {
+                dp[i] = 1 + dp[j];
+                parent[i] = j;
+            }
+        }
+        if (dp[i] > dp[lastIndex]) lastIndex = i;
+    }
+
+    vector<int> result;
+    int cur = lastIndex;
+    while (parent[cur] != cur) {
+        result.push_back(arr[cur]);
+        cur = parent[cur];
+    }
+    result.push_back(arr[cur]);
+    reverse(result.begin(), result.end());
+    return result;
+}
+
+int main() {
+    vector<int> arr = {10, 9, 2, 5, 3, 7, 101, 18};
+    for (int x : printLIS(arr)) cout << x << " ";
+    cout << endl; // 2 5 7 101
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ to build the table, plus $O(n)$ for
+the backward walk.
+\textbf{Space Complexity.} $O(n)$ for the \textit{dp} and
+\textit{parent} arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Print the actual chain'' problems on an ending-here table always need
+a parent-pointer array recorded \emph{during} the forward fill, then a
+backward walk from whichever index holds the global maximum -- the same
+reconstruction idea as Print LCS, adapted to this chapter's different
+table shape.
+\end{takeawaybox}

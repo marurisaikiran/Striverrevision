@@ -1,0 +1,138 @@
+\section{Recursive Implementation of atoi}
+\label{sec:rec-atoi}
+
+\problemstatement{Implement (recursively) the C-style $\textit{atoi}$
+function: given a string, skip any leading whitespace, then an optional
+$\texttt{+}$ or $\texttt{-}$ sign, then consume as many leading digits as
+possible, and return the resulting integer -- clamped to the 32-bit
+signed integer range $[-2^{31}, 2^{31}-1]$ if it would otherwise
+overflow. If no valid number can be parsed at all, return $0$.}
+
+\begin{patternbox}
+This problem has no clever algorithmic trick -- the difficulty is purely
+in correctly handling several small edge cases (whitespace, sign,
+leading zeros, early non-digit characters, overflow) using recursion
+instead of an iterative loop. The keyword to notice: \emph{``recursive
+implementation of''} an otherwise simple iterative task is an exercise in
+expressing a left-to-right scan as a chain of recursive calls, each
+processing one character and delegating the rest to a sub-call.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The parsing naturally splits into three independent phases, each best
+handled by its own small recursive (or simple iterative) helper: skipping
+whitespace, consuming an optional sign, and then accumulating digits one
+at a time. The digit-accumulation phase is the one most naturally
+expressed recursively: at each step, if the current character is a
+digit, fold it into a running accumulated value and recurse on the rest
+of the string; the moment a non-digit (or the string's end) is reached,
+stop and return the accumulated value so far.
+
+\begin{ideabox}[An Accumulator Passed Down Through the Recursion]
+$\textsc{ParseDigits}(s, i, \textit{acc})$: if $i$ is out of bounds or
+$s[i]$ is not a digit, return $\textit{acc}$ (base case -- nothing more
+to consume). Otherwise, compute $\textit{newAcc} = \textit{acc} \times 10
++ (s[i] - \texttt{'0'})$, clamp $\textit{newAcc}$ immediately if it has
+already exceeded the representable range (to avoid undefined-behavior
+overflow in the accumulator itself), and recurse:
+$\textsc{ParseDigits}(s, i+1, \textit{newAcc})$.
+\end{ideabox}
+
+\subsection*{Why clamping during accumulation, not just at the end, matters}
+
+If the accumulator is allowed to grow without bound while scanning a
+string of many digits (e.g.\ a string of $50$ digits), it can overflow
+even a 64-bit accumulator long before the recursion finishes, leading to
+incorrect (wrapped-around) results rather than a clean clamp. Checking
+and clamping the accumulator the moment it \emph{exceeds} the valid
+32-bit range -- and, once clamped, simply continuing to consume (and
+ignore) any remaining digits so the function still terminates at the
+string's actual end of digits -- avoids this, ensuring the final
+returned value is always either the true parsed integer or correctly
+clamped to $\pm 2^{31}{-}1$ /$-2^{31}$.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Skip leading whitespace characters (advance an index $i$ while
+        $s[i]$ is a space).
+  \item If $s[i]$ is $\texttt{+}$ or $\texttt{-}$: record the sign,
+        advance $i$.
+  \item Call $\textsc{ParseDigits}(s, i, 0)$ to accumulate the digit
+        value, clamping along the way as described above.
+  \item Apply the recorded sign to the result, then clamp the
+        signed result to $[-2^{31}, 2^{31}-1]$ one final time.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"  -042abc"}$.}
+
+\begin{itemize}
+  \item Skip whitespace: $i$ advances past the two leading spaces.
+  \item Sign: $s[i]=\texttt{'-'}$, record negative, advance $i$.
+  \item $\textsc{ParseDigits}$: consume \texttt{0} ($\textit{acc}=0$),
+        \texttt{4} ($\textit{acc}=4$), \texttt{2} ($\textit{acc}=42$);
+        next character is \texttt{a}, not a digit -- stop, return $42$.
+  \item Apply sign: $-42$. Well within range, no clamping needed.
+\end{itemize}
+
+Result: $-42$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+long long parseDigits(const string& s, int i, long long acc) {
+    if (i >= (int)s.size() || !isdigit(s[i])) return acc;
+
+    long long newAcc = acc * 10 + (s[i] - '0');
+    if (newAcc > INT_MAX) newAcc = (long long)INT_MAX + 1; // clamp marker
+    return parseDigits(s, i + 1, newAcc);
+}
+
+int myAtoi(string s) {
+    int i = 0, n = s.size();
+    while (i < n && s[i] == ' ') i++;
+
+    int sign = 1;
+    if (i < n && (s[i] == '+' || s[i] == '-')) {
+        if (s[i] == '-') sign = -1;
+        i++;
+    }
+
+    long long result = parseDigits(s, i, 0) * sign;
+
+    if (result > INT_MAX) return INT_MAX;
+    if (result < INT_MIN) return INT_MIN;
+    return (int)result;
+}
+
+int main() {
+    cout << myAtoi("  -042abc") << endl;          // -42
+    cout << myAtoi("91283472332") << endl;        // 2147483647 (clamped)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(L)$, where $L$ is the length of the input
+string -- each character is examined at most once across the
+whitespace-skip, sign-check, and digit-accumulation phases.
+\textbf{Space Complexity.} $O(L)$ for the digit-accumulation recursion
+stack in the worst case (a string of all digits); this could be reduced
+to $O(1)$ by rewriting the accumulation phase as an iterative loop, which
+is how production implementations typically do it.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Not every recursive exercise hides a deep algorithmic insight -- some, like
+this one, exist purely to practice expressing a sequential scan (skip,
+check, accumulate, stop) as a chain of base-case-and-recurse calls, with
+an accumulator threaded through as an explicit parameter rather than a
+mutable loop variable. This accumulator-passing style is the same
+technique used for tail-recursive functions in functional programming.
+\end{takeawaybox}

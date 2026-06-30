@@ -1,0 +1,189 @@
+\section{Minimum Number of Days to Make M Bouquets}
+\label{sec:bs-bouquets}
+
+\problemstatement{We are given an array $\textit{bloomDay}$ of $n$ flowers,
+where $\textit{bloomDay}[i]$ is the day on which flower $i$ blooms. We need
+to make $m$ bouquets, each requiring exactly $k$ \textbf{adjacent}
+(consecutive in the array) flowers that have \emph{already bloomed}. Find
+the \textbf{minimum day} on which it becomes possible to make all $m$
+bouquets, or $-1$ if it is never possible (e.g.\ if $m \times k > n$).}
+
+\begin{patternbox}
+\emph{``Minimum day on which some condition becomes achievable''} is
+binary search on the answer again, with the candidate now being a
+\emph{day} rather than a speed (Section~\ref{sec:bs-koko}) or a numeric
+root (Sections~\ref{sec:bs-sqrt}--\ref{sec:bs-nth-root}). The keyword
+combination \emph{``minimum day/time such that a task becomes possible''}
+is one of the most common phrasings of this pattern, and the underlying
+monotonicity is intuitive: waiting longer can only help (more flowers have
+bloomed), never hurt.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For a fixed candidate day $d$, a flower $i$ is usable if
+$\textit{bloomDay}[i] \le d$. Walking through the array in order, every
+maximal run of consecutive usable flowers of length $L$ can be split into
+$\lfloor L/k \rfloor$ bouquets (using groups of $k$ adjacent usable flowers
+within that run; any leftover flowers in the run, fewer than $k$, cannot
+form another bouquet). Summing $\lfloor L/k \rfloor$ over every maximal
+usable run gives the total number of bouquets makeable by day $d$. Define
+$\textit{bouquetsPossible}(d)$ as this total. As $d$ increases, no flower
+that was previously usable becomes unusable, and some additional flowers
+may become usable, so usable runs can only grow or merge -- meaning
+$\textit{bouquetsPossible}(d)$ is non-decreasing in $d$.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is days in $[\min(\textit{bloomDay}),
+\max(\textit{bloomDay})]$ (waiting before the earliest bloom or past the
+latest bloom is never useful). The predicate is
+$P(d) = (\textit{bouquetsPossible}(d) \ge m)$, and we want the smallest
+$d$ where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why merging consecutive usable flowers correctly counts bouquets}
+
+The requirement that a bouquet's $k$ flowers be \emph{adjacent} in the
+original array is what makes this feasibility check more than a simple
+count of usable flowers divided by $k$: scattered usable flowers separated
+by an unbloomed flower cannot be combined into one bouquet, even if their
+total count would otherwise suffice. By scanning left to right and
+resetting a running streak counter to $0$ whenever an unusable flower is
+encountered (and incrementing it, and adding to the bouquet count
+whenever the streak count reaches a multiple of $k$, otherwise just
+incrementing), we correctly respect the adjacency constraint while still
+computing $\textit{bouquetsPossible}(d)$ in a single $O(n)$ pass.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If $m \times k > n$: return $-1$ immediately (not enough flowers
+        could ever exist).
+  \item Initialize $\textit{lo} \gets \min(\textit{bloomDay})$,
+        $\textit{hi} \gets \max(\textit{bloomDay})$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Compute $\textit{bouquetsPossible}(\textit{mid})$ via a single
+          linear scan with a streak counter.
+    \item If $\textit{bouquetsPossible}(\textit{mid}) \ge m$: feasible;
+          try earlier: $\textit{hi} \gets \textit{mid}-1$.
+    \item Else: infeasible; try later: $\textit{lo} \gets \textit{mid}+1$.
+  \end{enumerate}
+  \item Return \textit{lo}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Minimum Day for M Bouquets}
+\begin{algorithmic}[1]
+\Procedure{MinDays}{\textit{bloomDay}, $m$, $k$}
+  \If{$m \times k > n$} \Return $-1$ \EndIf
+  \State $\textit{lo} \gets \min(\textit{bloomDay})$, $\textit{hi} \gets \max(\textit{bloomDay})$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{bouquets} \gets \Call{BouquetsPossible}{\textit{bloomDay}, \textit{mid}, k}$
+    \If{$\textit{bouquets} \ge m$}
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{lo}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{bloomDay} = [7,7,7,7,12,7,7]$, $m=2$, $k=3$.}
+
+\begin{itemize}
+  \item $m \times k = 6 \le n = 7$, so an answer may exist.
+  \item Try $d=12$ (the maximum bloom day, as an early sanity check): every
+        flower is usable, giving one run of length $7$, so
+        $\textit{bouquetsPossible}(12) = \lfloor 7/3 \rfloor = 2 \ge 2$.
+        Feasible.
+  \item Try $d=7$ (binary search would reach this candidate): flowers at
+        indices $0,1,2,3,5,6$ are usable (bloom day $7 \le 7$), but index
+        $4$ (bloom day $12$) is not. This splits the array into two runs:
+        indices $[0,3]$ (length $4$) and $[5,6]$ (length $2$). Bouquets:
+        $\lfloor 4/3 \rfloor + \lfloor 2/3 \rfloor = 1 + 0 = 1 < 2$.
+        Infeasible.
+\end{itemize}
+
+The binary search narrows between $7$ and $12$; checking the remaining
+candidates confirms that day $12$ is the earliest day at which $2$
+bouquets become possible (the run of $4$ usable flowers before index $4$
+cannot be split to free up a third group without waiting for the last
+flower to bloom).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int bouquetsPossible(vector<int>& bloomDay, int day, int k) {
+    int n = bloomDay.size();
+    int streak = 0, bouquets = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (bloomDay[i] <= day) {
+            streak++;
+            if (streak == k) {
+                bouquets++;
+                streak = 0;
+            }
+        } else {
+            streak = 0;
+        }
+    }
+    return bouquets;
+}
+
+int minDays(vector<int>& bloomDay, int m, int k) {
+    int n = bloomDay.size();
+    if ((long long)m * k > n) return -1;
+
+    int lo = *min_element(bloomDay.begin(), bloomDay.end());
+    int hi = *max_element(bloomDay.begin(), bloomDay.end());
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (bouquetsPossible(bloomDay, mid, k) >= m) {
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> bloomDay = {7, 7, 7, 7, 12, 7, 7};
+    cout << "Minimum day: " << minDays(bloomDay, 2, 3) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The candidate day range halves each iteration,
+costing $O(\log(\max(\textit{bloomDay}) - \min(\textit{bloomDay})))$
+iterations, and each feasibility check costs $O(n)$, giving an overall
+time complexity of
+\[
+  O(n \log(\max(\textit{bloomDay}))).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a feasibility check involves an \emph{adjacency} or
+\emph{contiguity} requirement (here, $k$ consecutive bloomed flowers),
+the linear-scan feasibility function typically needs a running streak
+counter that resets on disqualification, rather than a simple global
+count. This adjacency-aware counting pattern recurs in
+Section~\ref{sec:bs-painters-partition} and is worth recognizing as its
+own small sub-template within the larger binary-search-on-the-answer
+recipe.
+\end{takeawaybox}

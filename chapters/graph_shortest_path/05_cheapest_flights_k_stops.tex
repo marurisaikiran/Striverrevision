@@ -1,0 +1,110 @@
+\section{Cheapest Flights Within K Stops}
+\label{sec:graph-cheapest-flights-k-stops}
+
+\problemstatement{Given $n$ cities, a list of flights $[from, to,
+price]$, a source, a destination, and an integer $k$, find the
+cheapest price to travel from source to destination using \textbf{at
+most $k$ stops} (i.e.\ at most $k{+}1$ edges). Return $-1$ if no such
+route exists.}
+
+\begin{patternbox}
+\emph{``Shortest path, but bounded by the number of edges used''}
+specifically \textbf{breaks} Dijkstra's greedy frontier-expansion
+property: Dijkstra always finalizes whichever node has the globally
+smallest distance, with no regard for how many edges that path used --
+so it can permanently lock in a cheap-but-too-many-stops path, missing
+a more-expensive-but-within-budget alternative. The fix: relax
+\textbf{every} edge, for exactly $k{+}1$ \textbf{rounds}, copying
+distances between rounds so each round adds at most one new edge to
+every path -- this is a bounded version of Bellman-Ford's relaxation
+strategy (Section~\ref{sec:graph-bellman-ford}).
+\end{patternbox}
+
+\subsection*{Why the copy between rounds is essential}
+
+If edges were relaxed directly into the live $\textit{dist}$ array
+within a single round, a single round could chain multiple
+relaxations together (relax $u\to v$, then immediately use the updated
+$\textit{dist}[v]$ to relax $v \to w$ in the \emph{same} round) --
+silently allowing paths with more edges than the round count intends.
+Using a fresh copy ($\textit{temp}$) as the round's write target, while
+reading from the previous round's frozen $\textit{dist}$, guarantees
+each round contributes \textbf{exactly one} additional edge to every
+path under consideration.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{dist}[\textit{src}]=0$, all others
+        $\infty$.
+  \item Repeat $k{+}1$ times: copy $\textit{dist}$ into
+        $\textit{temp}$; for every flight $(u,v,w)$, if
+        $\textit{dist}[u] + w < \textit{temp}[v]$, update
+        $\textit{temp}[v]$; then set $\textit{dist} \gets \textit{temp}$.
+  \item Return $\textit{dist}[\textit{dst}]$ if finite, else $-1$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
+    vector<int> dist(n, INT_MAX);
+    dist[src] = 0;
+
+    for (int round = 0; round <= k; round++) {
+        vector<int> temp = dist;
+        for (auto& f : flights) {
+            int u = f[0], v = f[1], w = f[2];
+            if (dist[u] != INT_MAX && dist[u] + w < temp[v]) {
+                temp[v] = dist[u] + w;
+            }
+        }
+        dist = temp;
+    }
+    return dist[dst] == INT_MAX ? -1 : dist[dst];
+}
+
+int main() {
+    vector<vector<int>> flights = {{0,1,100},{1,2,100},{0,2,500}};
+    cout << findCheapestPrice(3, flights, 0, 2, 1) << endl; // 200
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{flights}=[[0,1,100],[1,2,100],[0,2,500]]$,
+$\textit{src}=0$, $\textit{dst}=2$, $k=1$ (at most $1$ stop, i.e.\ at
+most $2$ edges).}
+
+$\textit{dist}=[0,\infty,\infty]$. Round $0$ ($k{+}1=2$ rounds total):
+$\textit{temp}=[0,\infty,\infty]$; relax $0{\to}1$:
+$0+100=100<\infty$, $\textit{temp}[1]=100$; relax $1{\to}2$:
+$\textit{dist}[1]=\infty$ still (reading the \emph{frozen} pre-round
+value), skip; relax $0{\to}2$: $0+500=500<\infty$,
+$\textit{temp}[2]=500$. $\textit{dist}=[0,100,500]$. Round $1$:
+$\textit{temp}=[0,100,500]$; relax $0{\to}1$: $100$ not $<100$, no
+change; relax $1{\to}2$: $\textit{dist}[1]+100=100+100=200<500$,
+$\textit{temp}[2]=200$; relax $0{\to}2$: $500$ not $<200$, no change.
+$\textit{dist}=[0,100,200]$. Final answer: $\textit{dist}[2]=200$ --
+the path $0{\to}1{\to}2$ (one stop, total $200$), correctly preferred
+over the direct $0{\to}2$ edge costing $500$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(k \cdot E)$ -- $k{+}1$ rounds, each
+scanning every flight once.
+\textbf{Space Complexity.} $O(V)$ for \textit{dist} and \textit{temp}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This problem is a useful warning against reaching for Dijkstra
+reflexively on every ``cheapest path'' phrasing: the moment a
+constraint couples the answer to \emph{how the path is structured}
+(here, edge count) rather than purely to its total weight, Dijkstra's
+greedy finalization can be provably wrong, and a bounded, round-based
+relaxation (Bellman-Ford's core idea, capped early) becomes the correct
+tool.
+\end{takeawaybox}

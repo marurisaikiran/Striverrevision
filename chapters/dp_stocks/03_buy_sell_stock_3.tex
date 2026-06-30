@@ -1,0 +1,187 @@
+\section{Best Time to Buy and Sell Stock III}
+\label{sec:dp-stock-3}
+
+\problemstatement{Given $\textit{price}$, find the maximum profit from
+\textbf{at most 2} transactions.}
+
+\begin{patternbox}
+\emph{``At most $2$ transactions''} requires a \textbf{new dimension}
+added to Section~\ref{sec:dp-stocks-intro}'s template: a single
+\textit{holding} bit can no longer distinguish ``this is my first
+buy/sell cycle'' from ``this is my second,'' so we add a
+\textit{transactionState} counter tracking exactly which of the four
+actions (buy$1$, sell$1$, buy$2$, sell$2$) comes next.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Encode $\textit{cap} \in \{1,2,3,4\}$: $\textit{cap}=1$ means ``next
+action is buy $1$,'' $2$ means ``next is sell $1$,'' $3$ means ``next is
+buy $2$,'' $4$ means ``next is sell $2$.'' Odd \textit{cap} values are
+buy-turns; even values are sell-turns:
+\[
+  f(i, \textit{cap}) =
+  \begin{cases}
+    \max\big(-\textit{price}[i] + f(i{+}1, \textit{cap}{+}1),\
+    f(i{+}1, \textit{cap})\big) & \textit{cap} \text{ odd (buy turn)}, \\
+    \max\big(\textit{price}[i] + f(i{+}1, \textit{cap}{+}1),\
+    f(i{+}1, \textit{cap})\big) & \textit{cap} \text{ even (sell turn)}.
+  \end{cases}
+\]
+Base case: $f(n, \cdot) = 0$, and also $f(i, 5) = 0$ for any $i$ (both
+transactions already used up; no further action is possible, regardless
+of how many days remain).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock3Recursive(int i, int cap, vector<int>& price) {
+    int n = price.size();
+    if (cap == 5 || i == n) return 0;
+
+    if (cap % 2 == 1) { // buy turn
+        return max(-price[i] + stock3Recursive(i + 1, cap + 1, price),
+                   stock3Recursive(i + 1, cap, price));
+    }
+    return max(price[i] + stock3Recursive(i + 1, cap + 1, price),
+               stock3Recursive(i + 1, cap, price));
+}
+
+int main() {
+    vector<int> price = {3, 3, 5, 0, 0, 3, 1, 4};
+    cout << stock3Recursive(0, 1, price) << endl; // 6
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock3Memo(int i, int cap, vector<int>& price, vector<vector<int>>& memo) {
+    int n = price.size();
+    if (cap == 5 || i == n) return 0;
+    if (memo[i][cap] != -1) return memo[i][cap];
+
+    int result;
+    if (cap % 2 == 1) {
+        result = max(-price[i] + stock3Memo(i + 1, cap + 1, price, memo),
+                      stock3Memo(i + 1, cap, price, memo));
+    } else {
+        result = max(price[i] + stock3Memo(i + 1, cap + 1, price, memo),
+                      stock3Memo(i + 1, cap, price, memo));
+    }
+    return memo[i][cap] = result;
+}
+
+int main() {
+    vector<int> price = {3, 3, 5, 0, 0, 3, 1, 4};
+    int n = price.size();
+    vector<vector<int>> memo(n, vector<int>(6, -1));
+    cout << stock3Memo(0, 1, price, memo) << endl; // 6
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot 4) = O(n)$.
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock3Tabulation(vector<int>& price) {
+    int n = price.size();
+    vector<vector<int>> dp(n + 1, vector<int>(6, 0));
+
+    for (int i = n - 1; i >= 0; i--) {
+        for (int cap = 4; cap >= 1; cap--) {
+            if (cap % 2 == 1) {
+                dp[i][cap] = max(-price[i] + dp[i + 1][cap + 1], dp[i + 1][cap]);
+            } else {
+                dp[i][cap] = max(price[i] + dp[i + 1][cap + 1], dp[i + 1][cap]);
+            }
+        }
+    }
+    return dp[0][1];
+}
+
+int main() {
+    vector<int> price = {3, 3, 5, 0, 0, 3, 1, 4};
+    cout << stock3Tabulation(price) << endl; // 6
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{price} = [3,3,5,0,0,3,1,4]$.}
+
+The optimal two transactions: buy at price $0$ (day $3$ or $4$), sell
+at price $3$ (day $5$, profit $3$), buy at price $1$ (day $6$), sell at
+price $4$ (day $7$, profit $3$): total $3+3=6$, matching
+$\textit{dp}[0][1]=6$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$ ($4$ cap values per day).
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock3SpaceOptimized(vector<int>& price) {
+    int n = price.size();
+    vector<int> next(6, 0), current(6, 0);
+
+    for (int i = n - 1; i >= 0; i--) {
+        for (int cap = 4; cap >= 1; cap--) {
+            if (cap % 2 == 1) {
+                current[cap] = max(-price[i] + next[cap + 1], next[cap]);
+            } else {
+                current[cap] = max(price[i] + next[cap + 1], next[cap]);
+            }
+        }
+        next = current;
+    }
+    return next[1];
+}
+
+int main() {
+    vector<int> price = {3, 3, 5, 0, 0, 3, 1, 4};
+    cout << stock3SpaceOptimized(price) << endl; // 6
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$ -- a fixed-size array of $6$ entries per day.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Capping the number of transactions adds exactly one new state dimension
+(here, $4$ values, encoding ``which of the $4$ actions comes next''),
+with the buy/sell branching logic itself unchanged from
+Section~\ref{sec:dp-stocks-intro}'s template -- only which array slot
+each branch writes into and reads from has shifted. This same
+``add a counter dimension to cap a repeated action'' idea generalizes
+directly to Stock IV's arbitrary $k$.
+\end{takeawaybox}

@@ -1,0 +1,232 @@
+\section{Lemonade Change}
+\label{sec:lemonade-change}
+
+\problemstatement{Customers stand in a queue to buy lemonade, and each glass
+costs exactly \$5. We are given an array \textit{bills}, where
+$\textit{bills}[i]$ is the bill the $i$-th customer pays with -- always a
+\$5, \$10, or \$20 note. We start with no change at all. For every customer,
+\textbf{immediately} after they pay, we must hand back the correct change
+using bills we are currently holding (we cannot use a bill the same customer
+just gave us as their own change). We must process customers strictly in the
+given order and decide whether it is possible to give correct change to
+\emph{every} customer; return \texttt{true} if so, and \texttt{false} the
+moment it becomes impossible.}
+
+\begin{patternbox}
+Two phrases give this one away. First, \emph{``customers in a queue,
+processed one at a time, in order''} tells us this is an \emph{online
+simulation} -- we are never allowed to look ahead or rearrange the input, so
+any algorithm that tries to plan globally (sort, search over future choices)
+is solving the wrong problem. Second, \emph{``immediately give change''}
+combined with only three possible bill values means that at any moment the
+entire relevant state of the world is just two small counters: how many \$5
+notes and how many \$10 notes we are holding (\$20 notes are never given as
+change, so we never need to count them). Whenever a problem reduces to
+``maintain a couple of counters and react instantly to each new input,'' it
+is a simulation problem with, at most, one local greedy decision per step --
+not a search problem.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Since lemonade costs \$5, the change owed depends only on what the customer
+pays with:
+
+\begin{itemize}
+  \item paying with \$5 $\Rightarrow$ no change owed;
+  \item paying with \$10 $\Rightarrow$ owe \$5;
+  \item paying with \$20 $\Rightarrow$ owe \$15.
+\end{itemize}
+
+A \$5 note can only ever be used to pay back \$5 of change, never \$15
+worth by itself, so it has exactly one job: covering a \$10 customer, or
+participating in the \$15 change for a \$20 customer. A \$10 note is even
+more restricted: it is completely useless for a \$10 customer (we cannot
+give a customer back their own denomination as part of correct change
+composition here -- effectively, the only practical use of a \$10 note as
+change is as part of the \$15 owed to a \$20 customer, paired with one \$5
+note). This asymmetry is the heart of the problem: \textbf{\$5 notes are
+strictly more flexible than \$10 notes}, because a \$5 note can help pay
+back a \$10 customer \emph{or} a \$20 customer, while a \$10 note can only
+ever help pay back a \$20 customer.
+
+\subsection*{The only real decision point}
+
+Customers paying with \$5 require no decision -- we simply keep the note.
+Customers paying with \$10 also require no decision -- if we have a \$5 note
+we must use it (it is the only way to make \$5 change), and if we do not,
+failure is immediate and unavoidable, since no other combination of notes we
+might be holding sums to exactly \$5 with the unit notes available.
+
+The only point where two different valid strategies exist is a customer
+paying with \$20, who is owed \$15. There are exactly two ways to assemble
+\$15 from the notes we hold:
+
+\[
+  \$10 + \$5 \qquad \text{or} \qquad \$5 + \$5 + \$5.
+\]
+
+\begin{ideabox}[Greedy Choice]
+At a \$20 customer, if we hold at least one \$10 note and at least one \$5
+note, prefer to give \textbf{\$10 + \$5} over \textbf{\$5 + \$5 + \$5}. Only
+fall back to spending three \$5 notes if we do not have a spare \$10 note
+available.
+\end{ideabox}
+
+\subsection*{Why this greedy choice is safe}
+
+Both options return exactly \$15, so the customer is equally satisfied
+either way; the difference is entirely in what we are left holding
+afterwards. Giving \$10+\$5 costs us one \$5 note. Giving \$5+\$5+\$5 costs
+us three \$5 notes. Since \$5 notes are the more broadly useful resource --
+the \emph{only} resource capable of covering a future \$10 customer, and a
+necessary ingredient (alongside a \$10 note) for covering a future \$20
+customer -- depleting three of them at once when we could have depleted only
+one is never better for the future, and is sometimes strictly worse: it
+might leave us without enough \$5 notes to cover a \$10 customer who arrives
+later. Formally, suppose an alternative strategy chooses \$5+\$5+\$5 for some
+\$20 customer while a \$10 note sits unused in hand. We can always replace
+that choice with \$10+\$5 instead, ending with two extra \$5 notes in hand
+compared to the alternative strategy at every subsequent point in the queue,
+and strictly more \$5 notes in hand can never cause a future failure that
+would not also have occurred with fewer -- so the greedy choice dominates.
+\$10 notes, by contrast, have no other use, so spending one whenever
+possible is pure upside.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{five} \gets 0$, $\textit{ten} \gets 0$.
+  \item For each bill $b$ in \textit{bills}, in order:
+  \begin{enumerate}
+    \item If $b = 5$: $\textit{five} \gets \textit{five} + 1$.
+    \item If $b = 10$: if $\textit{five} = 0$, return \texttt{false};
+          otherwise $\textit{five} \gets \textit{five} - 1$ and
+          $\textit{ten} \gets \textit{ten} + 1$.
+    \item If $b = 20$:
+    \begin{itemize}
+      \item if $\textit{ten} \ge 1$ and $\textit{five} \ge 1$: subtract one
+            from each;
+      \item else if $\textit{five} \ge 3$: subtract three from
+            \textit{five};
+      \item else: return \texttt{false}.
+    \end{itemize}
+  \end{enumerate}
+  \item If every customer was processed without returning \texttt{false},
+        return \texttt{true}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Lemonade Change}
+\begin{algorithmic}[1]
+\Procedure{LemonadeChange}{\textit{bills}}
+  \State $\textit{five} \gets 0$, $\textit{ten} \gets 0$
+  \For{each $b$ in \textit{bills}}
+    \If{$b = 5$}
+      \State $\textit{five} \gets \textit{five} + 1$
+    \ElsIf{$b = 10$}
+      \If{$\textit{five} = 0$} \Return \textbf{false} \EndIf
+      \State $\textit{five} \gets \textit{five} - 1$
+      \State $\textit{ten} \gets \textit{ten} + 1$
+    \Else \Comment{$b = 20$}
+      \If{$\textit{ten} \ge 1$ \textbf{and} $\textit{five} \ge 1$}
+        \State $\textit{ten} \gets \textit{ten} - 1$
+        \State $\textit{five} \gets \textit{five} - 1$
+      \ElsIf{$\textit{five} \ge 3$}
+        \State $\textit{five} \gets \textit{five} - 3$
+      \Else
+        \State \Return \textbf{false}
+      \EndIf
+    \EndIf
+  \EndFor
+  \State \Return \textbf{true}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{bills} = [5, 5, 5, 10, 20]$.}
+
+Start with $\textit{five}=0$, $\textit{ten}=0$.
+
+\begin{itemize}
+  \item Bill $5$: $\textit{five}=1$.
+  \item Bill $5$: $\textit{five}=2$.
+  \item Bill $5$: $\textit{five}=3$.
+  \item Bill $10$: $\textit{five} > 0$, so give one \$5. $\textit{five}=2$,
+        $\textit{ten}=1$.
+  \item Bill $20$: $\textit{ten}\ge1$ and $\textit{five}\ge1$, so give
+        \$10+\$5. $\textit{five}=1$, $\textit{ten}=0$.
+\end{itemize}
+
+All five customers are served, so the answer is \texttt{true}.
+
+Now take $\textit{bills} = [5, 5, 10, 10, 20]$.
+
+\begin{itemize}
+  \item Bill $5$: $\textit{five}=1$.
+  \item Bill $5$: $\textit{five}=2$.
+  \item Bill $10$: give one \$5. $\textit{five}=1$, $\textit{ten}=1$.
+  \item Bill $10$: give one \$5. $\textit{five}=0$, $\textit{ten}=2$.
+  \item Bill $20$: need $\textit{ten}\ge1$ and $\textit{five}\ge1$, but
+        $\textit{five}=0$. Fall back to $\textit{five}\ge3$, but again
+        $\textit{five}=0$. Neither option works, so return \texttt{false}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool lemonadeChange(vector<int>& bills) {
+    int five = 0, ten = 0;
+
+    for (int bill : bills) {
+        if (bill == 5) {
+            five++;
+        } else if (bill == 10) {
+            if (five == 0) return false;
+            five--;
+            ten++;
+        } else { // bill == 20
+            if (ten >= 1 && five >= 1) {
+                ten--;
+                five--;
+            } else if (five >= 3) {
+                five -= 3;
+            } else {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+int main() {
+    vector<int> bills = {5, 5, 5, 10, 20};
+    cout << (lemonadeChange(bills) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each of the $n$ customers is processed exactly
+once, with only constant work (a couple of comparisons and increments) per
+customer, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} We track only the two counters \textit{five} and
+\textit{ten}, so the space complexity is $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When several local choices return the same immediate result (here, both
+change-giving options return exactly \$15), break the tie by asking which
+choice preserves the resource that is more broadly useful for the future.
+Here, \$5 notes serve two future needs while \$10 notes serve only one, so
+spending a \$10 note whenever possible is always at least as good, and
+sometimes strictly necessary, for surviving the rest of the queue.
+\end{takeawaybox}

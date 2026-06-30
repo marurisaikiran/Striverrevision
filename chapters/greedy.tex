@@ -1,0 +1,101 @@
+\chapter{Greedy Algorithms}
+\chapterepigraph{A greedy algorithm never looks back. At every step it makes the choice that
+looks best at that instant, and trusts -- or, better, proves -- that this sequence
+of locally best choices assembles itself into a globally best solution.}
+
+\section{What Is a Greedy Algorithm?}
+
+A \textbf{greedy algorithm} builds up a solution piece by piece, and at every step
+it commits, without revision, to whichever available choice looks most
+favourable \emph{right now}. It never reconsiders an earlier decision, and it
+never explores alternative branches the way recursion or dynamic programming
+would. This makes greedy algorithms extremely fast and extremely simple to
+code -- usually a single pass over the input, sometimes after a sort -- but it
+also means that greedy is dangerous to apply carelessly. A locally best choice
+is only safe if it can be \emph{proved} never to block a globally best
+solution. When that proof exists, greedy is the right tool, and it is almost
+always the most elegant one. When that proof does not exist, a greedy-looking
+shortcut will quietly produce wrong answers on some hidden test case, while
+looking completely correct on the examples you tried by hand.
+
+\begin{ideabox}[When Is Greedy Safe to Use?]
+A problem is a good candidate for a greedy algorithm when it has two
+properties.
+\begin{enumerate}
+  \item \textbf{Greedy choice property.} There is a way to pick, at each step,
+        a single locally optimal choice such that some globally optimal
+        solution is consistent with that choice -- i.e.\ making the greedy
+        choice never rules out the best possible final answer.
+  \item \textbf{Optimal substructure.} Once the greedy choice is made, what
+        remains is a smaller version of the same problem, and an optimal
+        solution to the whole problem is built from the greedy choice plus an
+        optimal solution to this smaller remaining problem.
+\end{enumerate}
+Contrast this with dynamic programming, which is needed precisely when the
+greedy choice property \emph{fails} -- when the locally best choice at a step
+can depend on, or conflict with, choices made elsewhere, forcing us to compare
+many overlapping subproblems instead of committing to one path.
+\end{ideabox}
+
+\subsection*{How to Recognise a Greedy Problem from Its Wording}
+
+Across the problems in this chapter, certain words and phrases recur whenever
+greedy is the intended technique. Training yourself to notice them is the
+fastest way to identify the right pattern within seconds of reading a problem
+statement.
+
+\begin{patternbox}[Recurring Greedy Keywords]
+\begin{itemize}
+  \item \textbf{``Maximum number of non-overlapping ...''} / \textbf{``minimum
+        number of ... to remove''} -- classic interval scheduling; sort by end
+        time or by a similar criterion and sweep once.
+  \item \textbf{``Assign / allocate / distribute to satisfy as many as
+        possible''} -- two-pointer style matching after sorting both sides
+        (e.g.\ Assign Cookies).
+  \item \textbf{``In order'' / ``queue'' / ``one at a time, immediately''} --
+        signals that decisions must be made online, in a fixed order, with no
+        ability to rearrange (e.g.\ Lemonade Change).
+  \item \textbf{``Maximize profit/value subject to a capacity/weight/time
+        limit'' with divisible items} -- Fractional Knapsack: take by best
+        ratio of value to cost.
+  \item \textbf{``Reach the last index'' / ``minimum jumps''} -- range/horizon
+        extension greedy (Jump Game family).
+  \item \textbf{``Schedule jobs with deadlines and profits''} -- Job
+        Sequencing: sort by profit, place as late as possible before the
+        deadline.
+  \item \textbf{``Neighbouring elements must be strictly greater/smaller''} --
+        local comparison greedy done in two directional passes (Candy).
+\end{itemize}
+Whenever you see sorting followed by a single linear sweep with no
+backtracking, and the problem asks for an optimum count, profit, or
+feasibility, greedy should be the first technique you test -- and you should
+immediately try to articulate \emph{why} the locally best choice cannot hurt
+the global answer, since that argument is the real content of a greedy
+solution, not just the code.
+\end{patternbox}
+
+Each section in this chapter follows the same five-part structure: first we
+restate the problem precisely and identify the keywords that flag it as
+greedy; then we reason our way, case by case, to the greedy choice and argue
+informally why it is safe; then we write the algorithm as a numbered
+procedure and as formal pseudocode; then we trace the algorithm by hand on a
+concrete example; and finally we give complete, compilable C++ code together
+with a careful time and space complexity analysis.
+
+\newpage
+
+\input{chapters/greedy/01_assign_cookies.tex}
+\input{chapters/greedy/02_fractional_knapsack.tex}
+\input{chapters/greedy/03_minimum_coins.tex}
+\input{chapters/greedy/04_lemonade_change.tex}
+\input{chapters/greedy/05_valid_parenthesis_string.tex}
+\input{chapters/greedy/06_n_meetings.tex}
+\input{chapters/greedy/07_jump_game.tex}
+\input{chapters/greedy/08_jump_game_2.tex}
+\input{chapters/greedy/09_minimum_platforms.tex}
+\input{chapters/greedy/10_job_sequencing.tex}
+\input{chapters/greedy/11_candy.tex}
+\input{chapters/greedy/12_shortest_job_first.tex}
+\input{chapters/greedy/13_insert_interval.tex}
+\input{chapters/greedy/14_merge_intervals.tex}
+\input{chapters/greedy/15_non_overlapping_intervals.tex}

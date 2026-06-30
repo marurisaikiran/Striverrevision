@@ -1,0 +1,132 @@
+\section{Longest Increasing Subsequence using Binary Search}
+\label{sec:dp-lis-binary-search}
+
+\problemstatement{Solve Section~\ref{sec:dp-lis} (find the length of the
+LIS) in $O(n \log n)$ instead of $O(n^2)$.}
+
+\begin{patternbox}
+\emph{``Find the length of the LIS, faster than $O(n^2)$''} is solved
+not by a better DP table, but by an entirely different technique:
+maintain a single array $\textit{tails}$, where $\textit{tails}[k]$ is
+the \textbf{smallest possible value} that can end an increasing
+subsequence of length $k+1$, discovered so far -- and update it for
+each new element using \textbf{binary search} (the Binary Search chapter's
+lower bound) instead of scanning all previous elements.
+\end{patternbox}
+
+\subsection*{Understanding why \textit{tails} is always sorted}
+
+The key invariant: $\textit{tails}$ is always kept sorted in increasing
+order. This is not obvious at first, but follows by induction: a longer
+increasing subsequence's smallest possible tail value can never be
+smaller than a shorter one's smallest possible tail value (if it were,
+that shorter prefix of the longer subsequence would itself be a
+counterexample to the shorter subsequence's tail already being
+minimal). Because $\textit{tails}$ stays sorted, we can binary search it.
+
+\begin{ideabox}[Update Rule for Each New Element]
+For each $x = \textit{arr}[i]$, in order: binary search $\textit{tails}$
+for the leftmost position $\textit{pos}$ where $\textit{tails}[\textit{pos}]
+\ge x$ (this is exactly the Binary Search chapter's lower bound technique).
+If no such position exists ($x$ is larger than every current tail),
+append $x$ (a new, longer subsequence is now possible). Otherwise,
+replace $\textit{tails}[\textit{pos}] \gets x$ ($x$ is a \emph{smaller}
+valid tail for a subsequence of that same length, strictly improving
+future extension possibilities, without changing the \emph{count} of
+distinct lengths discovered).
+\end{ideabox}
+
+\subsection*{Why replacing (not just appending) preserves correctness}
+
+$\textit{tails}$'s length, at any point, equals the LIS length found so
+far among the elements processed -- but the actual \emph{values} stored
+are not necessarily a real subsequence from the array; they are simply
+the best (smallest) tail achievable for each length. Replacing
+$\textit{tails}[\textit{pos}]$ with a smaller value $x$ never decreases
+$\textit{tails}$'s length (we are not removing entries, only improving
+one in place), and it can only ever \emph{help} future elements extend a
+chain of that length, since a smaller tail is easier for a later,
+possibly-not-much-larger element to exceed. The final length of
+$\textit{tails}$ is therefore exactly the LIS length.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty array \textit{tails}.
+  \item For each $x$ in $\textit{arr}$: binary search for the lower
+        bound of $x$ in \textit{tails}. If found at the end (no entry
+        $\ge x$): append $x$. Else: overwrite that entry with $x$.
+  \item Return $|\textit{tails}|$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [10,9,2,5,3,7,101,18]$.}
+
+\begin{itemize}
+  \item $x=10$: \textit{tails} empty, append. $\textit{tails}=[10]$.
+  \item $x=9$: lower bound of $9$ in $[10]$ is index $0$. Overwrite.
+        $\textit{tails}=[9]$.
+  \item $x=2$: lower bound of $2$ in $[9]$ is index $0$. Overwrite.
+        $\textit{tails}=[2]$.
+  \item $x=5$: lower bound of $5$ in $[2]$: none $\ge5$, append.
+        $\textit{tails}=[2,5]$.
+  \item $x=3$: lower bound of $3$ in $[2,5]$ is index $1$ (value $5$).
+        Overwrite. $\textit{tails}=[2,3]$.
+  \item $x=7$: lower bound of $7$ in $[2,3]$: none $\ge7$, append.
+        $\textit{tails}=[2,3,7]$.
+  \item $x=101$: append. $\textit{tails}=[2,3,7,101]$.
+  \item $x=18$: lower bound of $18$ in $[2,3,7,101]$ is index $3$
+        (value $101$). Overwrite. $\textit{tails}=[2,3,7,18]$.
+\end{itemize}
+
+Final length: $4$ -- matching Section~\ref{sec:dp-lis}'s answer
+(note $\textit{tails}=[2,3,7,18]$ is not necessarily a real
+subsequence of $\textit{arr}$, but its \emph{length} is correctly the
+LIS length).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lisBinarySearch(vector<int>& arr) {
+    vector<int> tails;
+
+    for (int x : arr) {
+        int pos = lower_bound(tails.begin(), tails.end(), x) - tails.begin();
+        if (pos == (int)tails.size()) {
+            tails.push_back(x);
+        } else {
+            tails[pos] = x;
+        }
+    }
+    return tails.size();
+}
+
+int main() {
+    vector<int> arr = {10, 9, 2, 5, 3, 7, 101, 18};
+    cout << lisBinarySearch(arr) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each of the $n$ elements performs one binary
+search over \textit{tails} (size at most $n$), giving
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the \textit{tails} array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Not every problem's fastest solution is a bigger or cleverer DP table --
+sometimes, as here, an entirely different paradigm (greedy maintenance
+of a sorted auxiliary array, queried by binary search) beats DP's
+polynomial bound outright. Keep this $O(n \log n)$ technique available
+specifically for when a problem only needs the LIS \emph{length}; it
+does not directly reconstruct the actual subsequence the way
+Section~\ref{sec:dp-print-lis}'s parent-pointer approach does.
+\end{takeawaybox}

@@ -1,0 +1,110 @@
+\section{Number of Ways to Arrive at Destination}
+\label{sec:graph-number-of-ways-arrive}
+
+\problemstatement{Given $n$ cities and a list of bidirectional roads
+with travel times, count the number of \textbf{distinct shortest-time}
+ways to travel from city $0$ to city $n{-}1$, modulo $10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count the number of ways to achieve the shortest distance''}
+pairs Section~\ref{sec:graph-dijkstra}'s \textit{dist} array with a
+parallel \textit{ways} array, updated by the identical
+reset-on-improvement, accumulate-on-tie rule the DP on LIS chapter's
+Number of LIS used for counting longest chains -- here applied to
+Dijkstra's relaxation instead of an array-indexed DP recurrence.
+\end{patternbox}
+
+\subsection*{The counting rule, adapted to relaxation}
+
+When relaxing edge $u \to v$ with weight $w$, alongside the usual
+distance check:
+\begin{itemize}
+  \item If $\textit{dist}[u] + w < \textit{dist}[v]$: a
+        \textbf{strictly shorter} path to $v$ was just found through
+        $u$. Update $\textit{dist}[v]$, and \textbf{reset}
+        $\textit{ways}[v] \gets \textit{ways}[u]$ (every previously
+        counted way to $v$ used a now-suboptimal distance).
+  \item If $\textit{dist}[u] + w = \textit{dist}[v]$: this is
+        \textbf{another equally short} path to $v$. \textbf{Accumulate}:
+        $\textit{ways}[v] \mathrel{+}= \textit{ways}[u]$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+int countPaths(int n, vector<vector<int>>& roads) {
+    vector<vector<pair<long long,long long>>> adj(n); // {neighbor, weight}
+    for (auto& r : roads) {
+        adj[r[0]].push_back({r[1], r[2]});
+        adj[r[1]].push_back({r[0], r[2]});
+    }
+
+    vector<long long> dist(n, LLONG_MAX), ways(n, 0);
+    dist[0] = 0;
+    ways[0] = 1;
+    priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<>> pq;
+    pq.push({0, 0});
+
+    while (!pq.empty()) {
+        auto [d, node] = pq.top();
+        pq.pop();
+        if (d > dist[node]) continue;
+
+        for (auto& [neighbor, weight] : adj[node]) {
+            if (dist[node] + weight < dist[neighbor]) {
+                dist[neighbor] = dist[node] + weight;
+                ways[neighbor] = ways[node];
+                pq.push({dist[neighbor], neighbor});
+            } else if (dist[node] + weight == dist[neighbor]) {
+                ways[neighbor] = (ways[neighbor] + ways[node]) % MOD;
+            }
+        }
+    }
+    return (int)(ways[n - 1] % MOD);
+}
+
+int main() {
+    vector<vector<int>> roads = {{0,6,7},{0,1,2},{1,2,3},{1,3,3},
+                                  {6,3,3},{3,5,1},{6,5,1},{2,5,1},{0,4,5},{4,6,2}};
+    cout << countPaths(7, roads) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take a small graph: $0{-}1$ (weight $1$), $0{-}2$ (weight
+$1$), $1{-}3$ (weight $1$), $2{-}3$ (weight $1$) -- two equally short
+paths from $0$ to $3$.}
+
+$\textit{dist}=[0,\infty,\infty,\infty]$, $\textit{ways}=[1,0,0,0]$.
+Pop $0$: relax $1$ ($\infty\to1$, reset $\textit{ways}[1]=1$); relax
+$2$ ($\infty\to1$, reset $\textit{ways}[2]=1$). Pop $1$ (dist $1$):
+relax $3$ ($\infty\to2$, reset $\textit{ways}[3]=\textit{ways}[1]=1$).
+Pop $2$ (dist $1$): relax $3$ -- $\textit{dist}[2]+1=2=\textit{dist}[3]$,
+\textbf{tie}, accumulate $\textit{ways}[3] \mathrel{+}=
+\textit{ways}[2]=1$, giving $\textit{ways}[3]=2$. Pop $3$: no further
+relaxation. Final: $2$ shortest paths to node $3$ (via $1$, and via
+$2$), correctly counted.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((V+E)\log V)$, identical to plain
+Dijkstra -- the \textit{ways} bookkeeping adds only $O(1)$ work per
+relaxation.
+\textbf{Space Complexity.} $O(V+E)$ for the adjacency list, plus
+$O(V)$ for \textit{dist} and \textit{ways}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The ``exists / count / optimize'' framing introduced in the DP on
+Subsequences chapter, and reused for counting longest chains in the DP
+on LIS chapter, extends naturally beyond dynamic programming tables --
+any algorithm computing an optimum via relaxation or comparison (here,
+Dijkstra's distance updates) can be paired with a parallel counting
+array using the exact same reset-on-improvement,
+accumulate-on-tie rule.
+\end{takeawaybox}

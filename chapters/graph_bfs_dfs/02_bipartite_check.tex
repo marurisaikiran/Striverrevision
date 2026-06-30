@@ -1,0 +1,144 @@
+\section{Bipartite Graph Check}
+\label{sec:graph-bipartite}
+
+\problemstatement{Given a graph, determine whether its nodes can be
+colored using exactly \textbf{two} colors such that no two adjacent
+nodes share the same color (such a graph is called \textbf{bipartite}).}
+
+\begin{patternbox}
+\emph{``Can this be split into two groups with no same-group edges''}
+is a traversal that carries a \textbf{color} along: color the start
+node $0$, every neighbor the \textbf{opposite} color, and so on
+outward. The graph is bipartite exactly when this coloring never
+forces a conflict -- an already-colored neighbor found to share the
+current node's color.
+\end{patternbox}
+
+\subsection*{Why a conflict means \emph{not} bipartite}
+
+If traversal reaches a node $v$ that already has a color, and that
+color matches the current node $u$'s color, it means two different
+paths from the start assigned $u$ and $v$ the \emph{same} color despite
+$u$ and $v$ being directly connected -- which is only possible if the
+cycle formed by those two paths plus the edge $u{-}v$ has \textbf{odd}
+length (an even-length cycle alternates colors consistently all the
+way around; an odd-length cycle cannot). So this check is, in effect,
+testing for the absence of odd-length cycles.
+
+\subsection*{Approach 1: BFS}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool bfsCheckBipartite(int src, vector<vector<int>>& adj, vector<int>& color) {
+    queue<int> q;
+    color[src] = 0;
+    q.push(src);
+
+    while (!q.empty()) {
+        int node = q.front();
+        q.pop();
+
+        for (int neighbor : adj[node]) {
+            if (color[neighbor] == -1) {
+                color[neighbor] = 1 - color[node];
+                q.push(neighbor);
+            } else if (color[neighbor] == color[node]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool isBipartite(int n, vector<vector<int>>& adj) {
+    vector<int> color(n, -1);
+    for (int i = 0; i < n; i++) {
+        if (color[i] == -1 && !bfsCheckBipartite(i, adj, color)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int main() {
+    int n = 4;
+    vector<vector<int>> adj(n);
+    auto addEdge = [&](int u, int v) { adj[u].push_back(v); adj[v].push_back(u); };
+    addEdge(0, 1); addEdge(1, 2); addEdge(2, 3); addEdge(3, 0);
+
+    cout << (isBipartite(n, adj) ? "true" : "false") << endl; // true (even cycle)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(V+E)$.
+\textbf{Space.} $O(V)$ for \textit{color} and the queue.
+\end{complexitybox}
+
+\subsection*{Approach 2: DFS}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool dfsCheckBipartite(int node, int c, vector<vector<int>>& adj, vector<int>& color) {
+    color[node] = c;
+
+    for (int neighbor : adj[node]) {
+        if (color[neighbor] == -1) {
+            if (!dfsCheckBipartite(neighbor, 1 - c, adj, color)) return false;
+        } else if (color[neighbor] == c) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isBipartiteDFS(int n, vector<vector<int>>& adj) {
+    vector<int> color(n, -1);
+    for (int i = 0; i < n; i++) {
+        if (color[i] == -1 && !dfsCheckBipartite(i, 0, adj, color)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int main() {
+    int n = 3;
+    vector<vector<int>> adj(n);
+    auto addEdge = [&](int u, int v) { adj[u].push_back(v); adj[v].push_back(u); };
+    addEdge(0, 1); addEdge(1, 2); addEdge(2, 0);
+
+    cout << (isBipartiteDFS(n, adj) ? "true" : "false") << endl; // false (odd cycle, triangle)
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the triangle $0{-}1{-}2{-}0$ (a $3$-cycle), DFS from $0$.}
+
+$\textit{dfs}(0,0)$: color $0$ with $0$. Neighbor $1$: uncolored,
+recurse $\textit{dfs}(1,1)$: color $1$ with $1$. Neighbor $0$: colored
+$0 \neq 1$, fine (it's the parent direction, naturally opposite).
+Neighbor $2$: uncolored, recurse $\textit{dfs}(2,0)$: color $2$ with
+$0$. Neighbor $1$: colored $1 \neq 0$, fine. Neighbor $0$: colored
+$0$, and current color is also $0$ -- \textbf{conflict}, return
+\texttt{false}. The odd cycle cannot be properly $2$-colored.
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(V+E)$.
+\textbf{Space.} $O(V)$ for \textit{color} and the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Carrying a small piece of alternating state (a color, a parity bit)
+through a traversal is a general technique for detecting structural
+properties tied to path \textbf{parity} -- odd cycles here, and the
+same idea extends to any problem phrased as ``can these be split into
+two groups with no same-group connections.''
+\end{takeawaybox}

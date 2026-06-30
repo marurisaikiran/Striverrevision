@@ -1,0 +1,149 @@
+\section{Kth Largest Element in an Array}
+\label{sec:heap-kth-largest}
+
+\problemstatement{Given an array $\textit{nums}$ of $n$ integers and an
+integer $k$, find the $k$-th largest element in the array (the element
+that would be at index $n-k$ if the array were sorted in increasing
+order). Note this is the $k$-th largest \emph{value}, counting duplicates
+by position, not the $k$-th distinct value.}
+
+\begin{patternbox}
+\emph{``Kth largest''} is the single most direct trigger for the
+size-bounded heap technique introduced in
+Section~\ref{sec:heap-intro}'s keyword list. The key (and slightly
+counter-intuitive) design choice: to find the $k$-th \textbf{largest}
+element efficiently, maintain a \textbf{min}-heap, not a max-heap -- the
+min-heap's root is the \emph{worst} element among your current best-$k$
+candidates, which is exactly the one you want instant access to evict.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Sorting the whole array and reading off index $n-k$ costs
+$O(n \log n)$ and uses the full order of all $n$ elements, even though we
+only care about one specific rank. A heap lets us track only the $k$
+largest elements seen so far, discarding everything else immediately.
+
+\begin{ideabox}[Why a Min-Heap, not a Max-Heap]
+Maintain a min-heap that never holds more than $k$ elements -- think of it
+as ``the best $k$ candidates for being among the $k$ largest, with the
+\emph{worst} of those $k$ candidates sitting at the root, ready to be
+evicted.'' Process the array one element at a time: push the new element,
+then if the heap's size exceeds $k$, pop the root (the smallest among the
+current top-$k$ candidates, which is therefore the easiest one to safely
+discard). After processing every element, the heap holds exactly the $k$
+largest elements of the whole array, and its root -- the smallest of
+those $k$ -- is precisely the $k$-th largest element overall.
+\end{ideabox}
+
+\subsection*{Why evicting the heap's root is always a safe discard}
+
+At any point during the scan, the min-heap holds some $k$ candidates for
+``currently in the top $k$.'' When a new element arrives and the heap
+already has $k$ elements, we must decide: is the new element large enough
+to belong in the top $k$, displacing the current weakest member? Pushing
+the new element first and then popping the minimum handles both cases
+uniformly without an explicit if-statement: if the new element is smaller
+than everything already in the heap, it becomes the new minimum and is
+immediately popped right back out, leaving the heap unchanged in effect;
+if the new element is larger than the current minimum, that old minimum
+(now provably not among the true top $k$, since at least $k$ other
+elements, including the new one, are now known to be at least as large)
+is correctly evicted instead. Either way, the heap always ends each step
+holding the $k$ largest elements seen \emph{so far}, by induction.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty min-heap.
+  \item For each element $x$ in $\textit{nums}$:
+  \begin{enumerate}
+    \item Push $x$ onto the heap.
+    \item If the heap's size exceeds $k$: pop the minimum.
+  \end{enumerate}
+  \item Return the heap's current minimum (its root).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Kth Largest Element}
+\begin{algorithmic}[1]
+\Procedure{KthLargest}{\textit{nums}, $k$}
+  \State $\textit{heap} \gets$ empty min-heap
+  \For{each $x$ in \textit{nums}}
+    \State push $x$ onto \textit{heap}
+    \If{$|\textit{heap}| > k$}
+      \State pop the minimum from \textit{heap}
+    \EndIf
+  \EndFor
+  \State \Return top of \textit{heap}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [3,2,1,5,6,4]$, $k = 2$.}
+
+\begin{itemize}
+  \item Push $3$: heap $=\{3\}$. Size $1 \le 2$.
+  \item Push $2$: heap $=\{2,3\}$. Size $2 \le 2$.
+  \item Push $1$: heap $=\{1,2,3\}$. Size $3>2$: pop min ($1$). Heap
+        $=\{2,3\}$.
+  \item Push $5$: heap $=\{2,3,5\}$. Size $3>2$: pop min ($2$). Heap
+        $=\{3,5\}$.
+  \item Push $6$: heap $=\{3,5,6\}$. Size $3>2$: pop min ($3$). Heap
+        $=\{5,6\}$.
+  \item Push $4$: heap $=\{4,5,6\}$. Size $3>2$: pop min ($4$). Heap
+        $=\{5,6\}$.
+\end{itemize}
+
+The final heap holds $\{5,6\}$, the two largest elements; its root
+(minimum of these two) is $5$, the $2$nd largest element overall. Sorting
+$[1,2,3,4,5,6]$ confirms index $n-k=4$ holds $5$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int kthLargest(vector<int>& nums, int k) {
+    priority_queue<int, vector<int>, greater<int>> minHeap; // min-heap
+
+    for (int x : nums) {
+        minHeap.push(x);
+        if ((int)minHeap.size() > k) {
+            minHeap.pop();
+        }
+    }
+    return minHeap.top();
+}
+
+int main() {
+    vector<int> nums = {3, 2, 1, 5, 6, 4};
+    cout << "2nd largest: " << kthLargest(nums, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each of the $n$ elements triggers one push, and
+at most one pop, each costing $O(\log k)$ since the heap never exceeds
+size $k$, giving an overall time complexity of
+\[
+  O(n \log k),
+\]
+a clear improvement over $O(n \log n)$ when $k \ll n$.
+\textbf{Space Complexity.} $O(k)$, since the heap never holds more than
+$k$ elements.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The ``opposite polarity'' rule is worth memorizing precisely because it
+feels backward at first: for \emph{largest}-$k$ problems, use a
+\emph{min}-heap of size $k$ (so the easiest-to-discard candidate is always
+at the root); for \emph{smallest}-$k$ problems
+(Section~\ref{sec:heap-kth-smallest}), use a \emph{max}-heap of size $k$.
+The heap's root is always the \emph{boundary} element of your current
+best-$k$ set -- the one you're most willing to give up.
+\end{takeawaybox}

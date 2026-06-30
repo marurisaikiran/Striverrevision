@@ -1,0 +1,67 @@
+\chapter{Dynamic Programming: DP on Subsequences (Knapsack Family)}
+\chapterepigraph{Almost every problem in this chapter is the same
+question asked three different ways: does a subset with property $X$
+exist, how many subsets have property $X$, or what is the best value
+achievable subject to property $X$. Settle which of the three you are
+answering before writing a single line of recurrence.}
+
+\section{The Knapsack Family, and Why It All Starts with Subset Sum}
+\label{sec:dp-subseq-intro}
+
+The Recursion chapter's Power Set section's pick/not-pick backtracking tree
+generates every subsequence of an array in $O(2^n)$. This chapter asks
+DP's defining question about that same tree: \emph{do many different
+pick/not-pick paths reach the same $(\textit{index}, \textit{target})$
+state}, and if so, can we cache by that state to collapse the
+exponential tree into a polynomial DP table? For every problem in this
+chapter, the answer is yes, and the state is almost always
+$(\textit{index}, \textit{remainingTarget})$ -- the same two parameters
+the Recursion chapter's Combination Sum section already recursed on, now with a
+memo table layered underneath.
+
+\begin{patternbox}[The Three Questions, and the 0/1 vs.\ Unbounded Distinction]
+\begin{itemize}
+  \item \textbf{``Does a subset summing to $K$ exist?''} -- a
+        \textbf{boolean} DP table, $\textit{dp}[\textit{index}][\textit{target}]$,
+        combining the pick and not-pick branches with a logical OR.
+  \item \textbf{``How many subsets sum to $K$?''} -- the same table,
+        but combining pick and not-pick with \textbf{addition} (their
+        counts are disjoint and exhaustive, exactly as in
+        the Recursion chapter's Count Subsequences with Sum K section).
+  \item \textbf{``What is the maximum value achievable, subject to a
+        capacity constraint?''} -- the same table shape, combining pick
+        and not-pick with \textbf{maximum} instead of OR or addition --
+        this is the 0/1 Knapsack problem, the family's namesake.
+\end{itemize}
+A second, independent axis determines whether the \textbf{pick} branch
+advances to $\textit{index}+1$ (each item usable \textbf{once} -- ``0/1''
+knapsack, as in the Recursion chapter's Subset Sum II section) or stays at
+$\textit{index}$ (each item usable \textbf{unlimited} times --
+``unbounded'' knapsack, as in the Recursion chapter's Combination Sum section).
+This chapter covers the 0/1 family first (Sections~\ref{sec:dp-subset-sum-target}--\ref{sec:dp-01-knapsack})
+before the unbounded family
+(Sections~\ref{sec:dp-coin-change}--\ref{sec:dp-rod-cutting}).
+\end{patternbox}
+
+Every problem here is carried through the same four stages as every
+earlier DP chapter -- recursion, memoization, tabulation, space
+optimization -- with one new wrinkle in the tabulation stage: because the
+state has \emph{two} dimensions (index and target/capacity), the table
+is genuinely 2D, and space optimization (when the recurrence only reads
+the immediately previous index's row) reduces it to a single rolling 1D
+array, exactly as grid DP's rolling-row trick did in the previous
+chapter -- just with ``target/capacity'' playing the role ``column''
+played there.
+
+\newpage
+
+\input{chapters/dp_subsequences/01_subset_sum_target.tex}
+\input{chapters/dp_subsequences/02_partition_equal_subset_sum.tex}
+\input{chapters/dp_subsequences/03_count_subsets_sum_k.tex}
+\input{chapters/dp_subsequences/04_count_partitions_given_diff.tex}
+\input{chapters/dp_subsequences/05_assign_cookies_note.tex}
+\input{chapters/dp_subsequences/06_target_sum.tex}
+\input{chapters/dp_subsequences/07_01_knapsack.tex}
+\input{chapters/dp_subsequences/08_coin_change.tex}
+\input{chapters/dp_subsequences/09_coin_change_2.tex}
+\input{chapters/dp_subsequences/10_rod_cutting.tex}

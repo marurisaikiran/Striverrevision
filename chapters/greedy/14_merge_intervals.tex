@@ -1,0 +1,174 @@
+\section{Merge Intervals}
+\label{sec:merge-intervals}
+
+\problemstatement{We are given an array of intervals
+$\textit{intervals}[i] = [\textit{start}_i, \textit{end}_i]$, in no
+particular order, and possibly overlapping with one another. We must merge
+all overlapping intervals and return an array of the resulting
+non-overlapping intervals that together cover exactly the same set of
+points as the original collection.}
+
+\begin{patternbox}
+\emph{``Merge all overlapping intervals''} with \textbf{no} guarantee that
+the input is already sorted is the unsorted counterpart of
+Section~\ref{sec:insert-interval}. The keyword shift -- the absence of a
+sortedness guarantee -- is the signal that we must add a sorting step
+ourselves before the same kind of single linear merge pass can apply.
+Whenever you see ``merge/combine all overlapping intervals'' with arbitrary
+input order, the standard recipe is always: \emph{sort by start time, then
+sweep once, extending or closing off a current ``running'' merged
+interval}.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Once the intervals are sorted by start time, two consecutive intervals (in
+this sorted order) either overlap or they do not. Crucially, after sorting
+by start time, if interval $j$ does not overlap the currently-growing merged
+interval, no interval appearing even later (with an even larger start time)
+can overlap it either, \emph{unless} merging interval $j$ itself first
+extended the running interval far enough to reach that later interval --
+but if $j$ did not overlap and was therefore not merged, the running
+interval's end did not change, so this concern does not arise. This
+guarantees that a single forward sweep, maintaining only the one
+currently-open merged interval, is sufficient; we never need to revisit an
+interval once we have moved past it.
+
+\begin{ideabox}[Greedy Choice]
+Sort all intervals by start time. Initialize the answer with the first
+interval as the current ``running'' interval. For each subsequent interval,
+in sorted order, check whether its start is at most the end of the running
+interval. If so, it overlaps: extend the running interval's end to the
+maximum of the two ends. If not, the running interval is finished growing:
+push it into the answer, and start a new running interval from the current
+one.
+\end{ideabox}
+
+\subsection*{Why sorting first makes the greedy sweep correct}
+
+This is, in essence, the merging phase of Section~\ref{sec:insert-interval}
+applied repeatedly, once for every interval, rather than just once for a
+single new interval. The correctness argument is the same: because we
+process intervals in increasing order of start time, the moment an interval
+fails to overlap the current running interval, every future interval also
+has a start time at least as large, hence also cannot reach backward to
+overlap the running interval -- so the running interval can be safely
+finalized and emitted. This sequential, never-look-back property is exactly
+what makes a single $O(n)$ sweep (after the $O(n \log n)$ sort) sufficient,
+with no need for any kind of nested loop checking all pairs of intervals
+for overlap.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $\textit{intervals}$ by start time, increasing.
+  \item Initialize the result list with the first interval as the current
+        running interval.
+  \item For each subsequent interval $[\textit{s}, \textit{e}]$ in sorted
+        order:
+  \begin{enumerate}
+    \item If $s \le \textit{lastEnd}$ (the end of the last interval placed
+          in the result): extend that last interval's end to
+          $\max(\textit{lastEnd}, e)$.
+    \item Otherwise: append $[s, e]$ as a new entry in the result.
+  \end{enumerate}
+  \item Return the result.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Merge Intervals}
+\begin{algorithmic}[1]
+\Procedure{MergeIntervals}{\textit{intervals}}
+  \State sort \textit{intervals} by start time, increasing
+  \State $\textit{result} \gets [\textit{intervals}[0]]$
+  \For{$i \gets 1$ to $n-1$}
+    \State $\textit{last} \gets \textit{result}[\text{length}(\textit{result})-1]$
+    \If{$\textit{intervals}[i].\textit{start} \le \textit{last}.\textit{end}$}
+      \State $\textit{last}.\textit{end} \gets \max(\textit{last}.\textit{end}, \textit{intervals}[i].\textit{end})$
+    \Else
+      \State append $\textit{intervals}[i]$ to \textit{result}
+    \EndIf
+  \EndFor
+  \State \Return \textit{result}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{intervals} = [[1,3],[2,6],[8,10],[15,18]]$.}
+
+Sorted by start time, the order is already
+$[1,3],[2,6],[8,10],[15,18]$.
+
+\begin{itemize}
+  \item Initialize result $= [[1,3]]$.
+  \item Process $[2,6]$: last in result is $[1,3]$, and $2 \le 3$, so
+        overlap. Extend: $[1, \max(3,6)] = [1,6]$. Result $= [[1,6]]$.
+  \item Process $[8,10]$: last in result is $[1,6]$, and $8 \le 6$? No.
+        Append. Result $= [[1,6],[8,10]]$.
+  \item Process $[15,18]$: last in result is $[8,10]$, and $15 \le 10$?
+        No. Append. Result $= [[1,6],[8,10],[15,18]]$.
+\end{itemize}
+
+The final merged set is $[[1,6],[8,10],[15,18]]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<vector<int>> mergeIntervals(vector<vector<int>>& intervals) {
+    if (intervals.empty()) return {};
+
+    sort(intervals.begin(), intervals.end());
+
+    vector<vector<int>> result;
+    result.push_back(intervals[0]);
+
+    for (int i = 1; i < (int)intervals.size(); i++) {
+        if (intervals[i][0] <= result.back()[1]) {
+            result.back()[1] = max(result.back()[1], intervals[i][1]);
+        } else {
+            result.push_back(intervals[i]);
+        }
+    }
+    return result;
+}
+
+int main() {
+    vector<vector<int>> intervals = {{1,3},{2,6},{8,10},{15,18}};
+    auto merged = mergeIntervals(intervals);
+
+    for (auto& iv : merged) {
+        cout << "[" << iv[0] << "," << iv[1] << "] ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting the $n$ intervals by start time costs
+$O(n \log n)$. The subsequent single sweep costs $O(n)$. The overall time
+complexity is
+\[
+  O(n \log n).
+\]
+\textbf{Space Complexity.} The result list holds at most $n$ intervals, so
+the space complexity is $O(n)$. If in-place sorting is used and we are
+allowed to modify the input, no further auxiliary space beyond the output
+is required.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Merge overlapping intervals'' and ``insert one interval into an
+already-sorted, non-overlapping set'' (Section~\ref{sec:insert-interval})
+are really the same merging logic at two different scales. Once you notice
+that a single new interval inserted into a sorted list is structurally
+identical to a sorted list being built up one interval at a time, both
+problems collapse into the same primitive: maintain one ``currently open''
+interval and only close it off when the next candidate's start exceeds its
+end.
+\end{takeawaybox}

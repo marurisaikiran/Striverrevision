@@ -1,0 +1,161 @@
+\section{Climbing Stairs}
+\label{sec:dp-climbing-stairs}
+
+\problemstatement{A staircase has $n$ steps. From any step, you may
+climb either $1$ or $2$ steps at a time. Count the number of distinct
+ways to reach the top (step $n$), starting from step $0$.}
+
+\begin{patternbox}
+\emph{``Number of distinct ways to reach step $n$, taking $1$ or $2$
+steps at a time''} is the direct counting analogue of
+Section~\ref{sec:dp-fibonacci}'s recurrence: the last move to reach step
+$n$ was either a single step from $n-1$, or a double step from $n-2$ --
+so every way of reaching $n$ is exactly one way of reaching $n-1$,
+extended by one step, \emph{or} one way of reaching $n-2$, extended by
+two steps, and these two groups are disjoint and exhaustive.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $\textit{ways}(i)$ be the number of distinct ways to reach step $i$.
+Since the only moves are $+1$ and $+2$, the last move into step $i$ came
+from step $i-1$ or step $i-2$ -- so $\textit{ways}(i) =
+\textit{ways}(i-1) + \textit{ways}(i-2)$. Base cases:
+$\textit{ways}(0)=1$ (one way to be at the start: do nothing), and
+$\textit{ways}(1)=1$ (only one way to reach step $1$: a single step from
+$0$). This is exactly Fibonacci's recurrence, shifted by one index, with
+different base cases.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int climbStairsRecursive(int n) {
+    if (n <= 1) return 1;
+    return climbStairsRecursive(n - 1) + climbStairsRecursive(n - 2);
+}
+
+int main() {
+    cout << climbStairsRecursive(5) << endl; // 8
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$ -- identical overlapping-subproblem blowup as
+plain Fibonacci.
+\textbf{Space.} $O(n)$ for the recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int climbStairsMemo(int n, vector<int>& memo) {
+    if (n <= 1) return 1;
+    if (memo[n] != -1) return memo[n];
+
+    memo[n] = climbStairsMemo(n - 1, memo) + climbStairsMemo(n - 2, memo);
+    return memo[n];
+}
+
+int main() {
+    int n = 5;
+    vector<int> memo(n + 1, -1);
+    cout << climbStairsMemo(n, memo) << endl; // 8
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ memo array $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int climbStairsTabulation(int n) {
+    if (n <= 1) return 1;
+
+    vector<int> dp(n + 1);
+    dp[0] = 1;
+    dp[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        dp[i] = dp[i - 1] + dp[i - 2];
+    }
+    return dp[n];
+}
+
+int main() {
+    cout << climbStairsTabulation(5) << endl; // 8
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $n=5$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c|c|c}
+$i$ & 0 & 1 & 2 & 3 & 4 & 5 \\ \hline
+$\textit{dp}[i]$ & 1 & 1 & 2 & 3 & 5 & 8
+\end{tabular}
+\end{center}
+
+$\textit{dp}[5]=8$: indeed, there are $8$ distinct ways to climb $5$
+steps using moves of size $1$ or $2$ (e.g.\ $1{+}1{+}1{+}1{+}1$,
+$2{+}1{+}1{+}1$ in every position, $2{+}2{+}1$ in every order, and so
+on).
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ for the table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int climbStairsSpaceOptimized(int n) {
+    if (n <= 1) return 1;
+
+    int prev2 = 1, prev1 = 1;
+    for (int i = 2; i <= n; i++) {
+        int current = prev1 + prev2;
+        prev2 = prev1;
+        prev1 = current;
+    }
+    return prev1;
+}
+
+int main() {
+    cout << climbStairsSpaceOptimized(5) << endl; // 8
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Recognizing that ``count the ways to reach $n$ via moves from a small
+fixed set'' always produces a recurrence that \textbf{sums} the way-counts
+of the positions those moves originate from is the key insight -- the
+specific move set (here, $\{1,2\}$) only determines \emph{how many}
+earlier terms the recurrence sums, and which ones. Section~\ref{sec:dp-frog-jump}
+generalizes this from counting ways to minimizing cost, with the sum
+replaced by a minimum.
+\end{takeawaybox}

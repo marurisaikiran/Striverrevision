@@ -1,0 +1,205 @@
+\section{Subset Sum Equal to Target}
+\label{sec:dp-subset-sum-target}
+
+\problemstatement{Given an array $\textit{arr}$ of $n$ non-negative
+integers and a target $k$, determine whether \textbf{some} subset of
+$\textit{arr}$ sums to exactly $k$.}
+
+\begin{patternbox}
+This is the Recursion chapter's ``does a
+subsequence with sum $K$ exist'' recursion, revisited now that we know
+to look for overlapping subproblems: the state
+$(\textit{index}, \textit{remaining})$ is reached along many different
+pick/not-pick paths, so caching by that pair of parameters converts the
+$O(2^n)$ recursion into an $O(n \cdot k)$ DP.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(\textit{index}, \textit{target})$ be \texttt{true} if some subset
+of $\textit{arr}[0..\textit{index}]$ sums to exactly $\textit{target}$.
+At index $\textit{index}$, either this element is excluded
+($f(\textit{index}-1, \textit{target})$ must hold), or it is included
+(requiring $\textit{arr}[\textit{index}] \le \textit{target}$, and
+$f(\textit{index}-1, \textit{target}-\textit{arr}[\textit{index}])$ must
+hold):
+\[
+  f(\textit{index}, \textit{target}) = f(\textit{index}{-}1, \textit{target})
+  \ \lor\ \big(\textit{arr}[\textit{index}] \le \textit{target} \ \land\
+  f(\textit{index}{-}1, \textit{target}-\textit{arr}[\textit{index}])\big).
+\]
+Base case: $f(0, \textit{target}) = (\textit{target}=0) \lor
+(\textit{target} = \textit{arr}[0])$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool subsetSumRecursive(int index, int target, vector<int>& arr) {
+    if (target == 0) return true;
+    if (index == 0) return arr[0] == target;
+
+    bool notPick = subsetSumRecursive(index - 1, target, arr);
+    bool pick = false;
+    if (arr[index] <= target) {
+        pick = subsetSumRecursive(index - 1, target - arr[index], arr);
+    }
+    return notPick || pick;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 3, 4};
+    int n = arr.size();
+    cout << (subsetSumRecursive(n - 1, 6, arr) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool subsetSumMemo(int index, int target, vector<int>& arr,
+                    vector<vector<int>>& memo) {
+    if (target == 0) return true;
+    if (index == 0) return arr[0] == target;
+    if (memo[index][target] != -1) return memo[index][target];
+
+    bool notPick = subsetSumMemo(index - 1, target, arr, memo);
+    bool pick = false;
+    if (arr[index] <= target) {
+        pick = subsetSumMemo(index - 1, target - arr[index], arr, memo);
+    }
+    return memo[index][target] = (notPick || pick);
+}
+
+int main() {
+    vector<int> arr = {1, 2, 3, 4};
+    int n = arr.size(), k = 6;
+    vector<vector<int>> memo(n, vector<int>(k + 1, -1));
+    cout << (subsetSumMemo(n - 1, k, arr, memo) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n \cdot k)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool subsetSumTabulation(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<vector<bool>> dp(n, vector<bool>(k + 1, false));
+
+    for (int index = 0; index < n; index++) dp[index][0] = true;
+    if (arr[0] <= k) dp[0][arr[0]] = true;
+
+    for (int index = 1; index < n; index++) {
+        for (int target = 1; target <= k; target++) {
+            bool notPick = dp[index - 1][target];
+            bool pick = false;
+            if (arr[index] <= target) {
+                pick = dp[index - 1][target - arr[index]];
+            }
+            dp[index][target] = notPick || pick;
+        }
+    }
+    return dp[n - 1][k];
+}
+
+int main() {
+    vector<int> arr = {1, 2, 3, 4};
+    cout << (subsetSumTabulation(arr, 6) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{arr} = [1,2,3,4]$, $k=6$.}
+
+\begin{center}
+\begin{tabular}{c|ccccccc}
+$\textit{index}\backslash\textit{target}$ & 0 & 1 & 2 & 3 & 4 & 5 & 6 \\ \hline
+$0$ (val $1$) & T & T & F & F & F & F & F \\
+$1$ (val $2$) & T & T & T & T & F & F & F \\
+$2$ (val $3$) & T & T & T & T & T & T & T \\
+$3$ (val $4$) & T & T & T & T & T & T & T
+\end{tabular}
+\end{center}
+
+At $\textit{index}=2$ ($\textit{arr}[2]=3$), $\textit{target}=6$:
+not-pick gives $\textit{dp}[1][6]=\text{F}$; pick gives
+$\textit{dp}[1][3]=\text{T}$ (since $3\le6$). So
+$\textit{dp}[2][6]=\text{T}$, already confirming a subset exists
+($\{2,4\}$ sums to $6$, found even before considering index $3$). The
+final answer, $\textit{dp}[3][6]=\text{T}$, confirms it.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n \cdot k)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool subsetSumSpaceOptimized(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<bool> prev(k + 1, false);
+
+    prev[0] = true;
+    if (arr[0] <= k) prev[arr[0]] = true;
+
+    for (int index = 1; index < n; index++) {
+        vector<bool> current(k + 1, false);
+        current[0] = true;
+        for (int target = 1; target <= k; target++) {
+            bool notPick = prev[target];
+            bool pick = (arr[index] <= target) ? prev[target - arr[index]] : false;
+            current[target] = notPick || pick;
+        }
+        prev = current;
+    }
+    return prev[k];
+}
+
+int main() {
+    vector<int> arr = {1, 2, 3, 4};
+    cout << (subsetSumSpaceOptimized(arr, 6) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(k)$ for the rolling row, instead of $O(n \cdot k)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This boolean-OR recurrence, indexed by $(\textit{index},
+\textit{target})$, is the foundation of every 0/1-knapsack-family
+problem in this chapter -- Partition Equal Subset Sum, Count Subsets
+with Sum K, and Count Partitions with a Given Difference are all this
+\emph{exact} table, either queried at a derived target or with the OR
+replaced by addition for counting. Internalize this one table fully
+before moving on, since nothing new is derived from here through
+Section~\ref{sec:dp-count-partitions-diff}.
+\end{takeawaybox}

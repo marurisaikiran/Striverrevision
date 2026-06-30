@@ -1,0 +1,170 @@
+\section{Trapping Rain Water}
+\label{sec:sq-trapping-rain-water}
+
+\problemstatement{We are given $n$ non-negative integers $\textit{height}$
+representing an elevation map, where $\textit{height}[i]$ is the height of
+a bar of width $1$ at position $i$. Compute how much water is trapped
+after raining, assuming water can only be held between bars and runs off
+at either open end.}
+
+\begin{patternbox}
+\emph{``Water trapped between bars of varying heights''} is a problem
+about \textbf{valleys bounded by two walls}: water above any single
+position is limited by the \emph{shorter} of the nearest wall to its left
+and the nearest wall to its right. Whenever a problem's answer at each
+position depends on ``the nearest taller boundary on each side,'' a
+monotonic stack -- which is precisely a stack of candidate boundaries,
+each taller than the one below it -- is a natural fit, processing the
+array once and resolving each ``valley'' as soon as a wall tall enough to
+close it off arrives.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Maintain a stack of indices whose heights are non-increasing from bottom
+to top (each new index pushed is no taller than the one below it,
+otherwise it would immediately start resolving valleys). When we
+encounter a bar taller than the index on top of the stack, that means we
+have just found a \textbf{right wall} for a valley whose floor is the
+popped index, and whose \textbf{left wall} is whatever index remains below
+it on the stack. The water trapped above that floor, between the two
+walls, is determined by the \emph{shorter} of the two walls (water cannot
+rise above the shorter wall without spilling over it) minus the floor's
+own height, multiplied by the horizontal distance between the two walls.
+
+\begin{ideabox}[Resolve One Valley Floor per Pop]
+Scan left to right. While the current bar is taller than the stack's top:
+pop that top index as the \textit{valley floor}. If the stack is now
+empty, there is no left wall, so this floor traps no water (stop popping
+for this bar). Otherwise, the new stack top is the \textit{left wall}, and
+the current index is the \textit{right wall}. The trapped water above the
+floor is
+\[
+  (\min(\textit{height}[\textit{leftWall}],
+  \textit{height}[\textit{rightWall}]) - \textit{height}[\textit{floor}])
+  \times (\textit{rightWall} - \textit{leftWall} - 1).
+\]
+Add this to the running total, then continue popping (the same right wall
+might close off multiple successively higher floors). Finally, push the
+current index.
+\end{ideabox}
+
+\subsection*{Why resolving level by level, floor by floor, correctly sums all trapped water}
+
+Every unit of trapped water sits directly above some specific bar (the
+``floor'') and below the line connecting the nearest sufficiently tall
+walls on either side. By processing each floor exactly once -- the moment
+a right wall taller than it is found, with whatever remains on the stack
+serving as the left wall -- we account for the entire water column above
+that floor in one $O(1)$ computation. Because indices are only ever pushed
+once and popped at most once, every floor's contribution is computed
+exactly once, and the total accumulated is exactly the total trapped
+water, with no double-counting and no gaps.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack and $\textit{totalWater} \gets 0$.
+  \item For $i$ from $0$ to $n-1$:
+  \begin{enumerate}
+    \item While the stack is not empty and $\textit{height}[i] >
+          \textit{height}[\text{stack's top}]$:
+    \begin{enumerate}
+      \item Pop the top as $\textit{floor}$.
+      \item If the stack is now empty: break (no left wall).
+      \item $\textit{leftWall} \gets$ the new top; $\textit{width}
+            \gets i - \textit{leftWall} - 1$;
+            $\textit{boundedHeight} \gets
+            \min(\textit{height}[\textit{leftWall}],
+            \textit{height}[i]) - \textit{height}[\textit{floor}]$.
+      \item $\textit{totalWater} \gets \textit{totalWater} +
+            \textit{width} \times \textit{boundedHeight}$.
+    \end{enumerate}
+    \item Push $i$.
+  \end{enumerate}
+  \item Return \textit{totalWater}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{height} = [3,0,2,0,4]$.}
+
+\begin{itemize}
+  \item $i=0$ ($h=3$): stack empty. Push $0$. Stack $=[0]$.
+  \item $i=1$ ($h=0$): $0 \le \textit{height}[0]=3$, no pop. Push $1$.
+        Stack $=[0,1]$.
+  \item $i=2$ ($h=2$): $2 > \textit{height}[1]=0$, pop floor $=1$. Stack
+        $=[0]$, not empty: leftWall$=0$. Width $=2-0-1=1$.
+        boundedHeight $=\min(3,2)-0=2$. Water $+=1\times2=2$.
+        $\textit{totalWater}=2$. Now $2 \le \textit{height}[0]=3$, stop
+        popping. Push $2$. Stack $=[0,2]$.
+  \item $i=3$ ($h=0$): $0\le \textit{height}[2]=2$, no pop. Push $3$.
+        Stack $=[0,2,3]$.
+  \item $i=4$ ($h=4$): $4>\textit{height}[3]=0$, pop floor$=3$. Left
+        wall $=2$. Width $=4-2-1=1$. boundedHeight
+        $=\min(2,4)-0=2$. Water $+=1\times2=2$. Total$=4$. Continue:
+        $4>\textit{height}[2]=2$, pop floor$=2$. Left wall$=0$. Width
+        $=4-0-1=3$. boundedHeight $=\min(3,4)-2=1$. Water
+        $+=3\times1=3$. Total$=7$. Now $4>\textit{height}[0]=3$, pop
+        floor$=0$. Stack empty -- break (no left wall). Push $4$.
+\end{itemize}
+
+Total trapped water: $7$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int trapRainWater(vector<int>& height) {
+    int n = height.size();
+    stack<int> st;
+    long long totalWater = 0;
+
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && height[i] > height[st.top()]) {
+            int floorIdx = st.top();
+            st.pop();
+            if (st.empty()) break;
+
+            int leftWall = st.top();
+            int width = i - leftWall - 1;
+            int boundedHeight = min(height[leftWall], height[i]) - height[floorIdx];
+            totalWater += (long long)width * boundedHeight;
+        }
+        st.push(i);
+    }
+    return totalWater;
+}
+
+int main() {
+    vector<int> height = {3, 0, 2, 0, 4};
+    cout << "Trapped water: " << trapRainWater(height) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each index is pushed once and popped at most
+once, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack in the worst case. (A
+two-pointer technique solves this same problem in $O(1)$ extra space, by
+tracking running left-max and right-max boundaries directly -- worth
+knowing as a further optimization, though the stack-based derivation here
+is the one that generalizes most directly to the histogram-area problems
+in Sections~\ref{sec:sq-largest-rectangle-histogram}--\ref{sec:sq-maximal-rectangle}.)
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Water/area bounded by the nearest sufficiently tall walls on both
+sides'' is solved by a monotonic stack that resolves one bounded region
+per pop, the instant a wall tall enough to close it off arrives. This same
+skeleton -- pop a floor, look at what remains as the left boundary, the
+trigger as the right boundary, compute a bounded quantity, accumulate --
+reappears in Largest Rectangle in Histogram
+(Section~\ref{sec:sq-largest-rectangle-histogram}).
+\end{takeawaybox}

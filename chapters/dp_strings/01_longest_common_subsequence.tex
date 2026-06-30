@@ -1,0 +1,197 @@
+\section{Longest Common Subsequence}
+\label{sec:dp-lcs}
+
+\problemstatement{Given two strings $s_1$ (length $n$) and $s_2$ (length
+$m$), find the length of their \textbf{longest common subsequence}
+(LCS): the longest sequence of characters that appears, in order but not
+necessarily contiguously, in both strings.}
+
+\begin{patternbox}
+This is the chapter's foundational recurrence, established in its
+cleanest form: \emph{``longest sequence appearing in order in both
+strings''} is answered by comparing characters one pair at a time from
+the end (or start) of each string, branching on whether they match.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+It is conventional in string DP to use a \textbf{1-indexed} table, where
+$f(i,j)$ denotes the answer for the prefixes $s_1[0..i-1]$ (length $i$)
+and $s_2[0..j-1]$ (length $j$) -- this lets $f(0,j)$ and $f(i,0)$ cleanly
+represent ``one of the strings is empty,'' whose LCS length is trivially
+$0$, without needing special-case index arithmetic for negative indices.
+
+\[
+  f(i,j) =
+  \begin{cases}
+    0 & \text{if } i=0 \text{ or } j=0, \\
+    1 + f(i{-}1,j{-}1) & \text{if } s_1[i{-}1] = s_2[j{-}1], \\
+    \max(f(i{-}1,j),\ f(i,j{-}1)) & \text{otherwise.}
+  \end{cases}
+\]
+
+If the last characters of both prefixes match, that character is part of
+some longest common subsequence, so we credit it and recurse on both
+prefixes shortened by one. If they don't match, the last character of
+\emph{at least one} prefix is not part of the LCS (it cannot be part of
+\emph{both} prefixes' contribution simultaneously, since they disagree),
+so we try discarding each one in turn and take the better result.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lcsRecursive(int i, int j, string& s1, string& s2) {
+    if (i == 0 || j == 0) return 0;
+
+    if (s1[i - 1] == s2[j - 1]) {
+        return 1 + lcsRecursive(i - 1, j - 1, s1, s2);
+    }
+    return max(lcsRecursive(i - 1, j, s1, s2), lcsRecursive(i, j - 1, s1, s2));
+}
+
+int main() {
+    string s1 = "abcde", s2 = "ace";
+    cout << lcsRecursive(s1.size(), s2.size(), s1, s2) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^{n+m})$ -- two branches per mismatch, depth up to
+$n+m$.
+\textbf{Space.} $O(n+m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lcsMemo(int i, int j, string& s1, string& s2, vector<vector<int>>& memo) {
+    if (i == 0 || j == 0) return 0;
+    if (memo[i][j] != -1) return memo[i][j];
+
+    if (s1[i - 1] == s2[j - 1]) {
+        return memo[i][j] = 1 + lcsMemo(i - 1, j - 1, s1, s2, memo);
+    }
+    return memo[i][j] = max(lcsMemo(i - 1, j, s1, s2, memo),
+                             lcsMemo(i, j - 1, s1, s2, memo));
+}
+
+int main() {
+    string s1 = "abcde", s2 = "ace";
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> memo(n + 1, vector<int>(m + 1, -1));
+    cout << lcsMemo(n, m, s1, s2, memo) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ memo $+$ $O(n+m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lcsTabulation(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                dp[i][j] = 1 + dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+    return dp[n][m];
+}
+
+int main() {
+    string s1 = "abcde", s2 = "ace";
+    cout << lcsTabulation(s1, s2) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $s_1 = \texttt{"abcde"}$, $s_2 = \texttt{"ace"}$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c|c|c}
+ & \texttt{""} & \texttt{a} & \texttt{c} & \texttt{e} \\ \hline
+\texttt{""} & 0 & 0 & 0 & 0 \\ \hline
+\texttt{a} & 0 & 1 & 1 & 1 \\ \hline
+\texttt{b} & 0 & 1 & 1 & 1 \\ \hline
+\texttt{c} & 0 & 1 & 2 & 2 \\ \hline
+\texttt{d} & 0 & 1 & 2 & 2 \\ \hline
+\texttt{e} & 0 & 1 & 2 & 3
+\end{tabular}
+\end{center}
+
+At $(i,j)$ corresponding to \texttt{c} (row) and \texttt{c} (column):
+match, so $\textit{dp}=1+\textit{dp}[\text{prev row}][\text{prev col}]=1+1=2$.
+At the final cell (\texttt{e}, \texttt{e}): match, $\textit{dp}=1+2=3$.
+The LCS length is $3$ (the subsequence \texttt{"ace"} itself).
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lcsSpaceOptimized(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<int> prev(m + 1, 0), current(m + 1, 0);
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                current[j] = 1 + prev[j - 1];
+            } else {
+                current[j] = max(prev[j], current[j - 1]);
+            }
+        }
+        prev = current;
+    }
+    return prev[m];
+}
+
+int main() {
+    string s1 = "abcde", s2 = "ace";
+    cout << lcsSpaceOptimized(s1, s2) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(m)$ for two rolling rows.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This match/mismatch recurrence -- credit a match and advance both
+pointers, or try discarding one character from each side on a mismatch
+-- is the single template the rest of this chapter builds from. Memorize
+its shape (not just its code) before moving on, since every later
+section either reuses it verbatim on a transformed input (reversing one
+string, concatenating two strings) or extends its mismatch case with
+extra operations.
+\end{takeawaybox}

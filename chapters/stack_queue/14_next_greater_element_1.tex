@@ -1,0 +1,164 @@
+\section{Next Greater Element I}
+\label{sec:sq-next-greater-1}
+
+\noindent We now turn to the second major group of problems in this
+chapter: the \textbf{monotonic stack}, introduced in
+Section~\ref{sec:sq-intro}. This first problem is the purest possible
+instance of the pattern, and every later monotonic-stack problem in this
+chapter is a variation or extension of the technique derived here.
+
+\problemstatement{We are given two arrays, $\textit{nums1}$ and
+$\textit{nums2}$, both containing distinct integers, where every element
+of $\textit{nums1}$ is also present somewhere in $\textit{nums2}$. For
+each element of $\textit{nums1}$, find its \textbf{next greater element}
+in $\textit{nums2}$: the first element to its right, within
+$\textit{nums2}$, that is strictly greater than it. If no such element
+exists, the answer for that element is $-1$.}
+
+\begin{patternbox}
+\emph{``Next greater element''} is, almost word for word, the keyword
+from Section~\ref{sec:sq-intro}'s pattern list. The structure here is
+two-part: first solve ``next greater element, for every position, within
+\textit{nums2}'' (a self-contained monotonic-stack problem), then a simple
+hash-map lookup translates that solved array into answers for
+$\textit{nums1}$.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The core sub-problem is: for every index $i$ in $\textit{nums2}$, find the
+nearest index $j>i$ with $\textit{nums2}[j] > \textit{nums2}[i]$, or
+report none exists. A brute-force solution checks every pair, costing
+$O(n^2)$. The monotonic stack from Section~\ref{sec:sq-intro} solves this
+in $O(n)$ by scanning right to left and maintaining a stack that is always
+strictly decreasing from bottom to top.
+
+\begin{ideabox}[Monotonic Decreasing Stack, Scanned Right to Left]
+Scan $\textit{nums2}$ from right to left. Before processing
+$\textit{nums2}[i]$, pop every stack element $\le \textit{nums2}[i]$
+(they can never be the answer for anything still to the left, since
+$\textit{nums2}[i]$ is closer and at least as large). Whatever remains on
+top of the stack after this popping (if anything) is exactly
+$i$'s next greater element. Then push $\textit{nums2}[i]$.
+\end{ideabox}
+
+\subsection*{Why this gives the correct next greater element for every index}
+
+After popping every $\le \textit{nums2}[i]$ value, the stack's remaining
+top -- if any -- is the \emph{nearest} value to the right of $i$ that
+exceeds $\textit{nums2}[i]$. This holds because the stack only ever
+contains values in decreasing order from bottom to top, and every value
+currently on the stack represents some index to the right of $i$ that has
+not yet been ``defeated'' by anything closer and at least as large; the
+topmost (most recently pushed, hence nearest) surviving value is therefore
+guaranteed to be the closest qualifying greater value. Once computed for
+every index of $\textit{nums2}$, store the results in a hash map keyed by
+value (values are distinct, so this is unambiguous), and answer each
+query for $\textit{nums1}$ with a single $O(1)$ lookup.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack and an empty hash map
+        $\textit{nextGreater}$.
+  \item For $i$ from $n-1$ down to $0$ (scanning $\textit{nums2}$ right
+        to left):
+  \begin{enumerate}
+    \item While the stack is not empty and its top $\le
+          \textit{nums2}[i]$: pop.
+    \item $\textit{nextGreater}[\textit{nums2}[i]] \gets$ the stack's top
+          if non-empty, else $-1$.
+    \item Push $\textit{nums2}[i]$.
+  \end{enumerate}
+  \item For each query value in $\textit{nums1}$: look up
+        $\textit{nextGreater}[\textit{value}]$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Next Greater Element I}
+\begin{algorithmic}[1]
+\Procedure{NextGreaterElement}{\textit{nums1}, \textit{nums2}}
+  \State $\textit{stack} \gets$ empty, $\textit{nextGreater} \gets$ empty map
+  \For{$i \gets n-1$ \textbf{down to} $0$}
+    \While{\textit{stack} not empty \textbf{and} top $\le \textit{nums2}[i]$}
+      \State pop
+    \EndWhile
+    \State $\textit{nextGreater}[\textit{nums2}[i]] \gets$ (\textit{stack} empty $? -1 :$ top)
+    \State push $\textit{nums2}[i]$
+  \EndFor
+  \State \Return $[\textit{nextGreater}[x]$ for each $x$ in $\textit{nums1}]$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums2} = [1,3,4,2]$, $\textit{nums1} = [4,1,2]$.}
+
+Scanning right to left:
+
+\begin{itemize}
+  \item $i=3$ (value $2$): stack empty. $\textit{nextGreater}[2]=-1$.
+        Push $2$. Stack $=[2]$.
+  \item $i=2$ (value $4$): top is $2 \le 4$, pop. Stack empty.
+        $\textit{nextGreater}[4]=-1$. Push $4$. Stack $=[4]$.
+  \item $i=1$ (value $3$): top is $4 > 3$, no pop.
+        $\textit{nextGreater}[3]=4$. Push $3$. Stack $=[4,3]$.
+  \item $i=0$ (value $1$): top is $3 > 1$, no pop.
+        $\textit{nextGreater}[1]=3$. Push $1$. Stack $=[4,3,1]$.
+\end{itemize}
+
+Map: $\{2{:}{-1}, 4{:}{-1}, 3{:}4, 1{:}3\}$. Querying $\textit{nums1} =
+[4,1,2]$: answers $[-1, 3, -1]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
+    unordered_map<int,int> nextGreater;
+    stack<int> st;
+
+    for (int i = nums2.size() - 1; i >= 0; i--) {
+        while (!st.empty() && st.top() <= nums2[i]) {
+            st.pop();
+        }
+        nextGreater[nums2[i]] = st.empty() ? -1 : st.top();
+        st.push(nums2[i]);
+    }
+
+    vector<int> result;
+    for (int x : nums1) result.push_back(nextGreater[x]);
+    return result;
+}
+
+int main() {
+    vector<int> nums2 = {1, 3, 4, 2};
+    vector<int> nums1 = {4, 1, 2};
+    for (int x : nextGreaterElement(nums1, nums2)) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each element of $\textit{nums2}$ is pushed once
+and popped at most once across the entire scan, giving $O(n)$ for the
+preprocessing; each of the $m$ queries is an $O(1)$ map lookup, giving an
+overall time complexity of
+\[
+  O(n + m).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack and hash map.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The monotonic stack derived here -- scan right to left, pop everything
+$\le$ the current element, the survivor on top is the answer, then push
+-- is the master template for this entire sub-chapter. Every remaining
+monotonic-stack section either applies this template directly (next
+smaller, previous greater/smaller) or builds one more layer on top of it
+(histogram area, trapping rain water, subarray sums).
+\end{takeawaybox}

@@ -1,0 +1,193 @@
+\section{Floor and Ceil in a Sorted Array}
+\label{sec:bs-floor-ceil}
+
+\problemstatement{We are given a sorted array $\textit{arr}$ of $n$
+elements and a value $X$. We must find the \textbf{floor} of $X$ -- the
+largest element in $\textit{arr}$ that is $\le X$ -- and the
+\textbf{ceil} of $X$ -- the smallest element in $\textit{arr}$ that is
+$\ge X$. If no floor (resp.\ ceil) exists, report $-1$.}
+
+\begin{patternbox}
+\emph{``Floor''} and \emph{``ceil''} are simply ``largest $\le X$'' and
+``smallest $\ge X$'' -- and ``smallest $\ge X$'' is, value-for-value, the
+\emph{value} sitting at the lower-bound index from
+Section~\ref{sec:bs-lower-bound}. ``Largest $\le X$'' is its mirror image,
+and is found with the symmetric boundary-search template, narrowing toward
+the right instead of the left. Whenever a problem uses the words
+\emph{``floor''} or \emph{``ceil''} (or, equivalently, \emph{``closest
+element not exceeding''} / \emph{``closest element not less than''}),
+translate it immediately into a boundary search.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+\textbf{Ceil} of $X$: define $P(i) = (\textit{arr}[i] \ge X)$. As in lower
+bound, find the smallest index where $P$ holds; the ceil is the value at
+that index (or $-1$ if no such index exists, i.e.\ $X$ exceeds every
+element).
+
+\textbf{Floor} of $X$: define $Q(i) = (\textit{arr}[i] \le X)$. This
+predicate is \texttt{true} for a \emph{prefix} of the array and
+\texttt{false} for the remaining suffix -- the mirror image of $P$. We want
+the \emph{largest} index where $Q$ holds, so instead of narrowing left
+after a success (as in lower/upper bound), we narrow \emph{right} after a
+success, since we are now searching for the rightmost true position rather
+than the leftmost one.
+
+\begin{ideabox}[Candidate Space and Predicate]
+For ceil: candidate space is indices $0,\dots,n-1$ (or ``not found''),
+predicate $P(i) = (\textit{arr}[i] \ge X)$, want smallest true index.
+For floor: same candidate space, predicate $Q(i) = (\textit{arr}[i] \le X)$,
+want \emph{largest} true index.
+\end{ideabox}
+
+\subsection*{Why floor needs the mirrored template}
+
+In every boundary search so far (lower bound, upper bound), we wanted the
+\emph{leftmost} index satisfying a predicate that becomes true only after
+some crossover point, so a successful check let us narrow the window to the
+\emph{left}, hunting for an even earlier success. Floor flips this: the
+predicate $\textit{arr}[i] \le X$ is true \emph{before} the crossover and
+false after, so we want the \emph{rightmost} successful index, meaning a
+successful check should narrow the window to the \emph{right}, hunting for
+an even later success that is still within the true region. This mirrored
+narrowing direction is the only structural change; everything else about
+the binary search skeleton is identical.
+
+\subsection*{Algorithm}
+
+\textbf{Ceil:}
+\begin{enumerate}
+  \item $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$,
+        $\textit{ceil} \gets -1$.
+  \item While $\textit{lo} \le \textit{hi}$: $\textit{mid} \gets
+        \textit{lo}+(\textit{hi}-\textit{lo})/2$. If
+        $\textit{arr}[\textit{mid}] \ge X$: $\textit{ceil} \gets
+        \textit{arr}[\textit{mid}]$, $\textit{hi} \gets \textit{mid}-1$.
+        Else: $\textit{lo} \gets \textit{mid}+1$.
+  \item Return \textit{ceil}.
+\end{enumerate}
+
+\textbf{Floor:}
+\begin{enumerate}
+  \item $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$,
+        $\textit{floor} \gets -1$.
+  \item While $\textit{lo} \le \textit{hi}$: $\textit{mid} \gets
+        \textit{lo}+(\textit{hi}-\textit{lo})/2$. If
+        $\textit{arr}[\textit{mid}] \le X$: $\textit{floor} \gets
+        \textit{arr}[\textit{mid}]$, $\textit{lo} \gets \textit{mid}+1$.
+        Else: $\textit{hi} \gets \textit{mid}-1$.
+  \item Return \textit{floor}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Floor and Ceil}
+\begin{algorithmic}[1]
+\Procedure{FloorCeil}{$\textit{arr}, X$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$
+  \State $\textit{floor} \gets -1$, $\textit{ceil} \gets -1$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo} + (\textit{hi}-\textit{lo})/2$
+    \If{$\textit{arr}[\textit{mid}] \le X$}
+      \State $\textit{floor} \gets \textit{arr}[\textit{mid}]$, $\textit{lo} \gets \textit{mid}+1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid}-1$
+    \EndIf
+  \EndWhile
+  \State (reset $\textit{lo}, \textit{hi}$ and repeat symmetrically for ceil)
+  \State \Return $(\textit{floor}, \textit{ceil})$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [3, 4, 4, 7, 8, 10]$, $X = 5$.}
+
+\textbf{Ceil} (smallest $\ge 5$):
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=5$: $\textit{mid}=2$,
+        $\textit{arr}[2]=4 \ge 5$? No. $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=5$: $\textit{mid}=4$,
+        $\textit{arr}[4]=8 \ge 5$? Yes. $\textit{ceil}=8$, $\textit{hi}=3$.
+  \item $\textit{lo}=3,\textit{hi}=3$: $\textit{mid}=3$,
+        $\textit{arr}[3]=7 \ge 5$? Yes. $\textit{ceil}=7$, $\textit{hi}=2$.
+  \item $\textit{lo}=3 > \textit{hi}=2$: loop ends. $\textit{ceil}=7$.
+\end{itemize}
+
+\textbf{Floor} (largest $\le 5$):
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=5$: $\textit{mid}=2$,
+        $\textit{arr}[2]=4 \le 5$? Yes. $\textit{floor}=4$, $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=5$: $\textit{mid}=4$,
+        $\textit{arr}[4]=8 \le 5$? No. $\textit{hi}=3$.
+  \item $\textit{lo}=3,\textit{hi}=3$: $\textit{mid}=3$,
+        $\textit{arr}[3]=7 \le 5$? No. $\textit{hi}=2$.
+  \item $\textit{lo}=3 > \textit{hi}=2$: loop ends. $\textit{floor}=4$.
+\end{itemize}
+
+So floor$(5) = 4$ and ceil$(5) = 7$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+pair<int,int> floorCeil(vector<int>& arr, int X) {
+    int n = arr.size();
+    int floorVal = -1, ceilVal = -1;
+
+    // Floor: largest element <= X
+    int lo = 0, hi = n - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] <= X) {
+            floorVal = arr[mid];
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    // Ceil: smallest element >= X
+    lo = 0; hi = n - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] >= X) {
+            ceilVal = arr[mid];
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+
+    return {floorVal, ceilVal};
+}
+
+int main() {
+    vector<int> arr = {3, 4, 4, 7, 8, 10};
+    auto [floorVal, ceilVal] = floorCeil(arr, 5);
+    cout << "Floor: " << floorVal << ", Ceil: " << ceilVal << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Two independent binary searches, each
+$O(\log n)$, giving an overall time complexity of
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Floor and ceil are the value-returning siblings of lower and upper bound.
+Whichever direction the predicate's ``true'' region lies in (a prefix or a
+suffix of the sorted array) tells you which direction to narrow the search
+window after a successful check: narrow toward the \emph{far} end of the
+true region if you want its near boundary, or keep the running answer
+updated while narrowing toward the \emph{near} end if you want the boundary
+closest to where you started.
+\end{takeawaybox}

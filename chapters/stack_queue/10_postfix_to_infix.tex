@@ -1,0 +1,128 @@
+\section{Postfix to Infix Conversion}
+\label{sec:sq-postfix-to-infix}
+
+\problemstatement{Given a postfix expression, convert it to infix
+notation (fully parenthesized, to remove any ambiguity).}
+
+\begin{patternbox}
+Converting \emph{from} postfix or prefix is structurally easier than
+converting \emph{from} infix (Sections~\ref{sec:sq-infix-to-postfix}--\ref{sec:sq-infix-to-prefix}),
+because postfix and prefix already encode the expression tree's structure
+unambiguously through ordering alone -- there is no precedence or
+associativity to resolve. The keyword shift to notice: when the
+\emph{source} notation is postfix or prefix, the stack holds
+\textbf{partially built sub-expressions} (strings), not raw operators, and
+every operator immediately and unambiguously tells you which two
+sub-expressions to combine.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In postfix, by the time we encounter an operator while scanning left to
+right, both of its operands have already been fully read and are sitting
+on top of the stack (the most recent two pushes) -- there is never any
+ambiguity about which sub-expressions an operator applies to, unlike
+infix where precedence must be consulted.
+
+\begin{ideabox}[Stack of Sub-expressions]
+Scan left to right. Push every operand as a (string) sub-expression. On
+an operator: pop the top two sub-expressions -- call the first popped
+$\textit{right}$ and the second popped $\textit{left}$ (since
+$\textit{left}$ was pushed earlier and so sits one level deeper). Combine
+them as $(\textit{left}\ \textit{op}\ \textit{right})$, fully
+parenthesized, and push this combined string back as a single
+sub-expression.
+\end{ideabox}
+
+\subsection*{Why the most recent two pushes are always the correct operands}
+
+Postfix notation guarantees that an operator always immediately follows
+the complete sub-expressions it operates on -- this is precisely what
+``postfix'' (operator \emph{after} operands) means. So whatever is on top
+of the stack at the moment we read an operator must be its right operand
+(read most recently), and whatever is just below that must be its left
+operand, with no possibility of some other, older sub-expression
+interfering, because every operator so far has already fully consumed and
+replaced its own operands before we reach this point.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack of strings.
+  \item For each token in the postfix expression:
+  \begin{enumerate}
+    \item Operand: push it as a one-character string.
+    \item Operator $\textit{op}$: pop $\textit{right}$, pop
+          $\textit{left}$; push $(\textit{left}\ \textit{op}\
+          \textit{right})$.
+  \end{enumerate}
+  \item The stack's single remaining element is the infix result.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\texttt{"ab+c*"}$.}
+
+\begin{itemize}
+  \item \texttt{a}: push. Stack $=[\texttt{a}]$.
+  \item \texttt{b}: push. Stack $=[\texttt{a},\texttt{b}]$.
+  \item \texttt{+}: pop right$=\texttt{b}$, pop left$=\texttt{a}$. Push
+        \texttt{(a+b)}. Stack $=[\texttt{(a+b)}]$.
+  \item \texttt{c}: push. Stack $=[\texttt{(a+b)},\texttt{c}]$.
+  \item \texttt{*}: pop right$=\texttt{c}$, pop left$=\texttt{(a+b)}$.
+        Push \texttt{((a+b)*c)}.
+\end{itemize}
+
+Result: \texttt{((a+b)*c)}.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string postfixToInfix(string s) {
+    stack<string> st;
+
+    for (char c : s) {
+        if (isalnum(c)) {
+            st.push(string(1, c));
+        } else {
+            string right = st.top(); st.pop();
+            string left = st.top(); st.pop();
+            st.push("(" + left + string(1, c) + right + ")");
+        }
+    }
+    return st.top();
+}
+
+int main() {
+    cout << postfixToInfix("ab+c*") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each token triggers $O(1)$ stack operations,
+but string concatenation can cost up to $O(n)$ per operator in the worst
+case (building progressively longer strings), giving an overall worst
+case of
+\[
+  O(n^2)
+\]
+for naive string concatenation (this can be improved to $O(n)$ with more
+careful string-building techniques, but $O(n^2)$ is what the straightforward
+implementation above gives).
+\textbf{Space Complexity.} $O(n)$ for the stack of sub-expressions.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When converting \emph{from} postfix or prefix, the stack holds
+sub-expressions (strings), not bare operators -- every operator
+encountered has an unambiguous, immediate pair of operands to combine,
+with no precedence comparison ever needed. This is structurally simpler
+than converting \emph{from} infix, and the same ``stack of
+sub-expressions'' idea reused, with only the combination format
+(parenthesized infix here, vs.\ prefix or postfix in the next few
+sections) changing.
+\end{takeawaybox}

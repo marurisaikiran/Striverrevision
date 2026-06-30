@@ -1,0 +1,104 @@
+\section{Prefix to Postfix Conversion}
+\label{sec:sq-prefix-to-postfix}
+
+\problemstatement{Given a prefix expression, convert it to postfix
+notation.}
+
+\begin{patternbox}
+The last of the six conversions, and by now a pure exercise in combining
+two already-derived ideas: scan \textbf{right to left} (as in
+Section~\ref{sec:sq-prefix-to-infix}, since the source is prefix), and
+combine each pair as $\textit{left} + \textit{right} + \textit{op}$ (as in
+Section~\ref{sec:sq-postfix-to-prefix}'s combination style, just operator
+\emph{last} instead of first, and no parentheses needed).
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+No new idea is required: take the right-to-left scan direction from
+Section~\ref{sec:sq-prefix-to-infix} (because the source is prefix) and
+the parenthesis-free, operator-position-only combination style appropriate
+for postfix output (operator written last).
+
+\begin{ideabox}[Combine as Postfix Instead of Infix]
+Scan right to left. Push every operand. On operator $\textit{op}$: pop
+$\textit{left}$, pop $\textit{right}$ (same pop order as
+Section~\ref{sec:sq-prefix-to-infix}, since the source notation and scan
+direction are unchanged); push $\textit{left} + \textit{right} +
+\textit{op}$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack of strings.
+  \item For each token, scanning right to left: operand $\to$ push.
+        Operator $\textit{op}$ $\to$ pop $\textit{left}$, pop
+        $\textit{right}$; push $\textit{left} + \textit{right} +
+        \textit{op}$.
+  \item The stack's single remaining element is the postfix result.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\texttt{"*+abc"}$.}
+
+Scanning right to left: \texttt{c}, \texttt{b}, \texttt{a}, \texttt{+},
+\texttt{*}.
+
+\begin{itemize}
+  \item \texttt{c}: push. Stack $=[\texttt{c}]$.
+  \item \texttt{b}: push. Stack $=[\texttt{c},\texttt{b}]$.
+  \item \texttt{a}: push. Stack $=[\texttt{c},\texttt{b},\texttt{a}]$.
+  \item \texttt{+}: pop left$=\texttt{a}$, pop right$=\texttt{b}$. Push
+        \texttt{ab+}. Stack $=[\texttt{c},\texttt{ab+}]$.
+  \item \texttt{*}: pop left$=\texttt{ab+}$, pop right$=\texttt{c}$.
+        Push \texttt{ab+c*}.
+\end{itemize}
+
+Result: \texttt{ab+c*} -- exactly the postfix expression we started from
+back in Section~\ref{sec:sq-postfix-to-infix}, confirming the whole
+six-conversion group is internally consistent.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string prefixToPostfix(string s) {
+    stack<string> st;
+
+    for (int i = s.size() - 1; i >= 0; i--) {
+        char c = s[i];
+        if (isalnum(c)) {
+            st.push(string(1, c));
+        } else {
+            string left = st.top(); st.pop();
+            string right = st.top(); st.pop();
+            st.push(left + right + string(1, c));
+        }
+    }
+    return st.top();
+}
+
+int main() {
+    cout << prefixToPostfix("*+abc") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ worst case with naive string
+concatenation, $O(n)$ with more careful string building.
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Across all six conversions in this group, there are really only two
+independent decisions: \emph{which direction to scan} (left to right if
+the source is postfix or plain infix; right to left if the source is
+prefix) and \emph{how to format the combination step} (parenthesized
+infix, operator-first prefix, or operator-last postfix). Every one of the
+six problems is a different combination of these same two choices.
+\end{takeawaybox}

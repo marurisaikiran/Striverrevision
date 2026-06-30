@@ -1,0 +1,136 @@
+\section{Rotten Oranges}
+\label{sec:graph-rotten-oranges}
+
+\problemstatement{Given a grid where each cell is $0$ (empty), $1$
+(fresh orange), or $2$ (rotten orange), every minute any fresh orange
+\textbf{4-directionally adjacent} to a rotten orange becomes rotten.
+Find the minimum number of minutes until no fresh orange remains, or
+$-1$ if some fresh orange can never be reached.}
+
+\begin{patternbox}
+\emph{``Multiple sources spread outward simultaneously, find the time
+for the spread to finish''} is solved by \textbf{multi-source BFS}: push
+\textbf{every} initially rotten orange into the queue at the start
+(not just one), then run ordinary BFS -- the key realization is that
+BFS already processes nodes in order of distance from \emph{whichever}
+source is nearest, automatically, when all sources start in the queue
+together at time $0$.
+\end{patternbox}
+
+\subsection*{Why starting from all sources at once is correct}
+
+If BFS were run separately from each rotten orange one at a time, the
+correctness would still hold but the bookkeeping (combining several
+separate distance computations, taking a minimum over all of them)
+would be needlessly complex. Pushing every source into the \emph{same}
+queue at the very start works because BFS's queue already guarantees
+nodes are processed in non-decreasing distance order \emph{from
+whichever source reaches them first} -- exactly the quantity this
+problem wants (a fresh orange rots at the minute the \emph{nearest}
+rotten orange's spread reaches it).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Scan the grid: push every rotten orange's coordinates into a
+        queue, and count the total number of fresh oranges.
+  \item Run BFS level by level (processing the entire current queue
+        before moving to the next level represents one minute
+        passing): for each rotten orange popped, check its $4$
+        neighbors; any fresh neighbor becomes rotten, decrement the
+        fresh count, and push it for the next level.
+  \item Track the number of levels (minutes) processed. After BFS
+        completes, if any fresh oranges remain uncounted, return $-1$;
+        otherwise return the number of minutes elapsed.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int orangesRotting(vector<vector<int>>& grid) {
+    int rows = grid.size(), cols = grid[0].size();
+    queue<pair<int,int>> q;
+    int freshCount = 0;
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (grid[r][c] == 2) q.push({r, c});
+            else if (grid[r][c] == 1) freshCount++;
+        }
+    }
+
+    int minutes = 0;
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    while (!q.empty() && freshCount > 0) {
+        int levelSize = q.size();
+        bool rottedThisLevel = false;
+
+        for (int i = 0; i < levelSize; i++) {
+            auto [r, c] = q.front();
+            q.pop();
+
+            for (int dir = 0; dir < 4; dir++) {
+                int nr = r + dr[dir], nc = c + dc[dir];
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols &&
+                    grid[nr][nc] == 1) {
+                    grid[nr][nc] = 2;
+                    freshCount--;
+                    q.push({nr, nc});
+                    rottedThisLevel = true;
+                }
+            }
+        }
+        if (rottedThisLevel) minutes++;
+    }
+    return freshCount == 0 ? minutes : -1;
+}
+
+int main() {
+    vector<vector<int>> grid = {
+        {2, 1, 1},
+        {1, 1, 0},
+        {0, 1, 1}
+    };
+    cout << orangesRotting(grid) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $3\times3$ grid above (one rotten orange at
+$(0,0)$).}
+
+Initial queue: $[(0,0)]$, $\textit{freshCount}=6$. Minute $1$: pop
+$(0,0)$, rot neighbors $(1,0)$ and $(0,1)$ (both fresh); push both;
+$\textit{freshCount}=4$. Minute $2$: pop $(1,0)$, rot $(1,1)$; pop
+$(0,1)$, rot $(0,2)$ ($(1,1)$ is already rotten by this point, so
+$(0,1)$'s other neighbor is skipped); $\textit{freshCount}=2$. Minute
+$3$: pop $(1,1)$, rot $(2,1)$; pop $(0,2)$, no fresh neighbors;
+$\textit{freshCount}=1$. Minute $4$: pop $(2,1)$, rot $(2,2)$;
+$\textit{freshCount}=0$. The queue still holds $(2,2)$, but the loop
+exits immediately since $\textit{freshCount}=0$ -- final answer: $4$
+minutes.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\textit{rows} \times \textit{cols})$ --
+every cell is pushed onto the queue and processed at most once.
+\textbf{Space Complexity.} $O(\textit{rows} \times \textit{cols})$ for
+the queue in the worst case (a grid that is entirely rotten oranges
+initially).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Multi-source BFS -- seeding the queue with every source simultaneously
+rather than running BFS once per source -- is the standard technique
+whenever a problem describes several things spreading or growing
+outward at the same rate and asks for the time until the spread
+finishes or the distance to the nearest source. The very next section,
+01 Matrix, applies this exact same technique to a differently-phrased
+problem.
+\end{takeawaybox}

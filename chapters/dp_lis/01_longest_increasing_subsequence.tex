@@ -1,0 +1,176 @@
+\section{Longest Increasing Subsequence}
+\label{sec:dp-lis}
+
+\problemstatement{Given an array $\textit{arr}$ of $n$ integers, find
+the length of the \textbf{longest strictly increasing subsequence}
+(elements in order, but not necessarily contiguous).}
+
+\begin{patternbox}
+\emph{``Longest increasing subsequence''} is the chapter's foundational
+problem: at every index, the question is whether it can \textbf{extend}
+some earlier subsequence -- which depends on what the \emph{previous
+chosen element's value} was, not just which index we're at.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence (pick/not-pick formulation)}
+
+Let $f(\textit{ind}, \textit{prevIndex})$ be the length of the longest
+increasing subsequence achievable from index $\textit{ind}$ onward,
+given that the most recently \emph{included} element (if any) is at
+index $\textit{prevIndex}$ (or $-1$ if nothing has been included yet).
+At each index, either skip it ($f(\textit{ind}{+}1, \textit{prevIndex})$),
+or include it -- only valid if $\textit{prevIndex}=-1$ or
+$\textit{arr}[\textit{prevIndex}] < \textit{arr}[\textit{ind}]$ -- gaining
+$1 + f(\textit{ind}{+}1, \textit{ind})$:
+\[
+  f(\textit{ind}, \textit{prevIndex}) = \max\Big(
+  f(\textit{ind}{+}1, \textit{prevIndex}),\ \textit{canTake} \Big), \quad
+  \textit{canTake} = 1 + f(\textit{ind}{+}1, \textit{ind})\ \text{(if valid)}.
+\]
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lisRecursive(int ind, int prevIndex, vector<int>& arr) {
+    int n = arr.size();
+    if (ind == n) return 0;
+
+    int notTake = lisRecursive(ind + 1, prevIndex, arr);
+    int take = 0;
+    if (prevIndex == -1 || arr[prevIndex] < arr[ind]) {
+        take = 1 + lisRecursive(ind + 1, ind, arr);
+    }
+    return max(notTake, take);
+}
+
+int main() {
+    vector<int> arr = {10, 9, 2, 5, 3, 7, 101, 18};
+    cout << lisRecursive(0, -1, arr) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lisMemo(int ind, int prevIndex, vector<int>& arr, vector<vector<int>>& memo) {
+    int n = arr.size();
+    if (ind == n) return 0;
+    int prevShift = prevIndex + 1; // shift by 1 so -1 maps to 0
+    if (memo[ind][prevShift] != -1) return memo[ind][prevShift];
+
+    int notTake = lisMemo(ind + 1, prevIndex, arr, memo);
+    int take = 0;
+    if (prevIndex == -1 || arr[prevIndex] < arr[ind]) {
+        take = 1 + lisMemo(ind + 1, ind, arr, memo);
+    }
+    return memo[ind][prevShift] = max(notTake, take);
+}
+
+int main() {
+    vector<int> arr = {10, 9, 2, 5, 3, 7, 101, 18};
+    int n = arr.size();
+    vector<vector<int>> memo(n, vector<int>(n + 1, -1));
+    cout << lisMemo(0, -1, arr, memo) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n^2)$.
+\textbf{Space.} $O(n^2)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation (Ending-Here Reformulation)}
+
+\begin{ideabox}[Why Tabulation Uses a Cleaner, Different-Looking Table]
+Directly tabulating the $(\textit{ind}, \textit{prevIndex})$ recursion
+is awkward (the shifted-index bookkeeping is unpleasant to iterate over
+bottom-up). The standard simplification: define
+$\textit{dp}[i]$ = length of the LIS \emph{ending exactly at} index $i$.
+This is mathematically equivalent information, just reorganized; it
+gives a much cleaner loop and is how this problem is conventionally
+tabulated.
+\end{ideabox}
+
+\[
+  \textit{dp}[i] = 1 + \max_{j<i,\ \textit{arr}[j]<\textit{arr}[i]}
+  \textit{dp}[j] \quad (\text{or } 1 \text{ if no such } j \text{ exists}).
+\]
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lisTabulation(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> dp(n, 1); // every element alone is an LIS of length 1
+
+    int best = 1;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++) {
+            if (arr[j] < arr[i]) {
+                dp[i] = max(dp[i], 1 + dp[j]);
+            }
+        }
+        best = max(best, dp[i]);
+    }
+    return best;
+}
+
+int main() {
+    vector<int> arr = {10, 9, 2, 5, 3, 7, 101, 18};
+    cout << lisTabulation(arr) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{arr} = [10,9,2,5,3,7,101,18]$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c|c|c|c|c}
+$i$ & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+$\textit{arr}[i]$ & 10 & 9 & 2 & 5 & 3 & 7 & 101 & 18 \\ \hline
+$\textit{dp}[i]$ & 1 & 1 & 1 & 2 & 2 & 3 & 4 & 4
+\end{tabular}
+\end{center}
+
+$\textit{dp}[5]=3$ comes from extending the chain ending at index $3$
+(value $5$, $\textit{dp}=2$): $2,5,7$. $\textit{dp}[6]=4$ extends that
+same chain with $101$: $2,5,7,101$. The maximum over the whole table is
+$4$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n^2)$ -- a nested loop comparing every pair.
+\textbf{Space.} $O(n)$ for the \textit{dp} array -- already minimal;
+this problem's natural tabulated form has no further space reduction
+the way 2D-table problems in earlier chapters did.
+\end{complexitybox}
+
+\begin{ideabox}[A Faster $O(n \log n)$ Algorithm Exists]
+Section~\ref{sec:dp-lis-binary-search} develops a completely different
+$O(n \log n)$ technique for this same problem, using binary search
+instead of dynamic programming's pairwise comparison -- worth knowing
+as the production-quality solution once the $O(n^2)$ DP version here is
+understood.
+\end{ideabox}
+
+\begin{takeawaybox}
+``Ending-here'' tables answer their question with a \textbf{maximum
+over the entire filled table}, not a single corner cell -- the first
+new structural lesson of this chapter, and the one to watch for in
+every section that follows.
+\end{takeawaybox}

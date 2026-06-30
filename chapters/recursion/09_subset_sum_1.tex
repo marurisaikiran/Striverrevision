@@ -1,0 +1,128 @@
+\section{Subset Sums I (Print All Subset Sums)}
+\label{sec:rec-subset-sum-1}
+
+\problemstatement{Given an array $\textit{arr}$ of $n$ integers, compute
+the \textbf{sum} of every one of its $2^n$ subsets, and return the list
+of all such sums (typically in sorted order).}
+
+\begin{patternbox}
+A direct simplification of Section~\ref{sec:rec-power-set}'s
+pick/not-pick tree: instead of recording the entire subsequence at each
+leaf, we only need to record its \textbf{sum} -- a single number threaded
+through the recursion as a running total, rather than a list that must
+be built and torn down at every level.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Exactly as in Section~\ref{sec:rec-power-set}, every element independently
+contributes a pick/not-pick decision. The only change is what we choose
+to track: instead of appending the picked element to a growing list (and
+later removing it on backtrack), we simply add its value to a running
+sum parameter (and, since this is passed by value rather than by
+reference, there is nothing to explicitly undo -- each recursive call
+gets its own independent copy of the sum).
+
+\begin{ideabox}[Thread a Running Sum Instead of a List]
+$\textsc{Solve}(\textit{index}, \textit{sum})$: if
+$\textit{index} = n$: record $\textit{sum}$ as one subset's total;
+return. Otherwise: $\textsc{Solve}(\textit{index}+1, \textit{sum} +
+\textit{arr}[\textit{index}])$ (pick), then
+$\textsc{Solve}(\textit{index}+1, \textit{sum})$ (not-pick).
+\end{ideabox}
+
+\subsection*{Why no explicit undo step is needed here}
+
+In Section~\ref{sec:rec-power-set}, $\textit{current}$ was a single
+shared, mutated list, so the pick branch's append had to be explicitly
+undone before exploring the not-pick branch. Here, $\textit{sum}$ is
+passed \textbf{by value} (a plain number, copied into each recursive
+call rather than referenced and mutated in place), so the pick branch's
+modified sum simply ceases to exist once that branch's call returns --
+the not-pick branch automatically continues with the original,
+unmodified sum from this level, with no explicit ``undo'' arithmetic
+required. This is a useful general lesson: whether backtracking needs an
+explicit undo step depends entirely on whether the state being threaded
+through is mutated in place (needing undo) or passed by value
+(automatically restored).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Solve}(\textit{index}, \textit{sum})$:
+  \begin{enumerate}
+    \item If $\textit{index}=n$: append $\textit{sum}$ to the result
+          list; return.
+    \item $\textsc{Solve}(\textit{index}+1, \textit{sum} +
+          \textit{arr}[\textit{index}])$.
+    \item $\textsc{Solve}(\textit{index}+1, \textit{sum})$.
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0,0)$; sort the result list before
+        returning (if sorted output is required).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [2,3]$.}
+
+\begin{itemize}
+  \item $\textsc{Solve}(0,0)$: pick $2$: $\textsc{Solve}(1,2)$.
+  \begin{itemize}
+    \item Pick $3$: $\textsc{Solve}(2,5)$: base, record $5$.
+    \item Not-pick $3$: $\textsc{Solve}(2,2)$: base, record $2$.
+  \end{itemize}
+  \item Not-pick $2$: $\textsc{Solve}(1,0)$.
+  \begin{itemize}
+    \item Pick $3$: $\textsc{Solve}(2,3)$: base, record $3$.
+    \item Not-pick $3$: $\textsc{Solve}(2,0)$: base, record $0$.
+  \end{itemize}
+\end{itemize}
+
+Recorded sums: $5,2,3,0$; sorted: $0,2,3,5$ -- matching the four subsets
+$\{\}, \{2\}, \{3\}, \{2,3\}$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(int index, int sum, vector<int>& arr, vector<int>& result) {
+    if (index == (int)arr.size()) {
+        result.push_back(sum);
+        return;
+    }
+    solve(index + 1, sum + arr[index], arr, result);
+    solve(index + 1, sum, arr, result);
+}
+
+vector<int> subsetSums(vector<int>& arr) {
+    vector<int> result;
+    solve(0, 0, arr, result);
+    sort(result.begin(), result.end());
+    return result;
+}
+
+int main() {
+    vector<int> arr = {2, 3};
+    for (int s : subsetSums(arr)) cout << s << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n)$ to generate all sums, plus
+$O(2^n \log(2^n)) = O(n \cdot 2^n)$ if sorting the output is required.
+\textbf{Space Complexity.} $O(n)$ for the recursion stack, plus
+$O(2^n)$ for the output.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whether a backtracking branch needs an explicit ``undo'' depends on
+whether its state is mutated in place (a shared list, needing an undo)
+or passed by value (a plain number or immutable structure, automatically
+restored when the branch returns). Recognizing which kind of state a
+problem needs is often the deciding factor in how cleanly the recursion
+can be written.
+\end{takeawaybox}

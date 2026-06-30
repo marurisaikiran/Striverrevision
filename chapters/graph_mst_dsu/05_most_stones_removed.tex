@@ -1,0 +1,110 @@
+\section{Most Stones Removed with Same Row or Column}
+\label{sec:graph-most-stones-removed}
+
+\problemstatement{Given the coordinates of $n$ stones on a 2D plane, a
+stone can be \textbf{removed} if some \textbf{other}, not-yet-removed
+stone shares its row or its column. Find the maximum number of stones
+that can be removed.}
+
+\begin{patternbox}
+\emph{``Stones connected by shared rows/columns''} is a Disjoint Set
+grouping problem in disguise: union every pair of stones sharing a row
+or column, then within each resulting connected group, \textbf{every
+stone but one} can always be removed (remove them one at a time,
+always leaving at least one survivor in the group to justify removing
+the next). The answer is simply
+$\textit{totalStones} - \textit{numberOfGroups}$.
+\end{patternbox}
+
+\subsection*{Why one survivor per group is always achievable}
+
+Within a connected group of stones (connected via a chain of shared
+rows/columns), pick any spanning tree of that connectivity (exactly
+as in Section~\ref{sec:graph-kruskal}'s spanning tree idea) and remove
+stones as \textbf{leaves} of that tree, working inward: a leaf stone
+always shares its row or column with its tree-parent, which is
+guaranteed not yet removed (it's deeper in the removal order), so the
+removal condition is always satisfiable until only the root remains.
+This is why the answer doesn't depend on \emph{how} stones happen to
+connect within a group -- only on \emph{how many} groups there are.
+
+\subsection*{Building the Disjoint Set over rows and columns}
+
+Rather than unioning stones pairwise directly (which would need
+checking every pair, $O(n^2)$), union each stone's \textbf{row} and
+\textbf{column} together in a combined coordinate space: treat row
+indices and column indices as Disjoint Set elements in two disjoint
+ranges (e.g., column $c$ mapped to $c + 10001$ to avoid colliding with
+row indices). Two stones sharing a row or column end up in the same
+Disjoint Set group automatically, transitively, without ever comparing
+stones to each other directly.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    unordered_map<int,int> parent;
+public:
+    int find(int x) {
+        if (parent.find(x) == parent.end()) parent[x] = x;
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(int x, int y) {
+        parent[find(x)] = find(y);
+    }
+};
+
+int removeStones(vector<vector<int>>& stones) {
+    DisjointSet ds;
+    for (auto& s : stones) {
+        ds.unite(s[0], s[1] + 10001); // column shifted into a separate range
+    }
+
+    unordered_set<int> roots;
+    for (auto& s : stones) {
+        roots.insert(ds.find(s[0]));
+    }
+    return (int)stones.size() - (int)roots.size();
+}
+
+int main() {
+    vector<vector<int>> stones = {{0,0},{0,1},{1,0},{1,2},{2,1},{2,2}};
+    cout << removeStones(stones) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{stones}=[(0,0),(0,1),(1,0),(1,2),(2,1),(2,2)]$.}
+
+Union (row $0$, col $0{+}10001$), (row $0$, col $1{+}10001$), (row
+$1$, col $0{+}10001$), (row $1$, col $2{+}10001$), (row $2$, col
+$1{+}10001$), (row $2$, col $2{+}10001$). Tracing connectivity: stone
+$(0,0)$ links row $0$ and col $10001$; stone $(1,0)$ links row $1$ and
+col $10001$ -- so row $0$ and row $1$ end up in the \emph{same} group
+via shared column $0$. Continuing, every row and column index here
+ends up merged into a \textbf{single} group (rows $0,1,2$ and columns
+$0,1,2$ all connected through the chain of shared coordinates). All
+$6$ stones' row-roots resolve to this one group: $\textit{roots}$ has
+size $1$. Answer: $6 - 1 = 5$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot \alpha(n))$ -- unioning and
+finding over $n$ stones.
+\textbf{Space Complexity.} $O(n)$ for the Disjoint Set's hash-map-based
+parent storage (rows and columns are sparse, so a hash map avoids
+allocating a dense array over the full coordinate range).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Mapping two conceptually different categories (rows and columns) into
+a single Disjoint Set by shifting one category's indices into a
+disjoint numeric range is a general technique whenever ``connected
+through a shared attribute'' needs to be modeled without explicitly
+enumerating every pairwise connection.
+\end{takeawaybox}

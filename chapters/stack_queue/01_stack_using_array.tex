@@ -1,0 +1,109 @@
+\section{Implement a Stack using an Array}
+\label{sec:sq-stack-array}
+
+\problemstatement{Implement a stack supporting $\textit{push}(x)$,
+$\textit{pop}()$, $\textit{top}()$, and $\textit{isEmpty}()$, backed by a
+fixed-size array, each operation running in $O(1)$.}
+
+\begin{patternbox}
+No pattern recognition is needed here -- this is foundational machinery.
+The only idea worth internalizing is that a stack needs just \textbf{one}
+extra piece of state beyond the array itself: an index, conventionally
+called \textit{top}, pointing at the most recently pushed element.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Since a stack only ever adds or removes from one end (the ``top''), an
+array can simulate it perfectly by treating one end (conventionally the
+highest used index) as that top, and tracking that index explicitly. No
+shifting of other elements is ever required, which is exactly what keeps
+every operation $O(1)$.
+
+\begin{ideabox}[The Single Pointer Invariant]
+Maintain $\textit{top}$ as the index of the most recently pushed element
+($-1$ when empty). $\textit{push}(x)$ writes $x$ at index $\textit{top}+1$
+and increments \textit{top}. $\textit{pop}()$ reads $\textit{arr}
+[\textit{top}]$ and decrements \textit{top} (the old value is left in
+place but is considered logically removed, since future pushes will
+overwrite it).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textit{top} $\gets -1$ initially.
+  \item $\textit{push}(x)$: increment \textit{top}; set
+        $\textit{arr}[\textit{top}] \gets x$.
+  \item $\textit{pop}()$: read $\textit{arr}[\textit{top}]$; decrement
+        \textit{top}; return the read value.
+  \item $\textit{top}()$: return $\textit{arr}[\textit{top}]$.
+  \item $\textit{isEmpty}()$: return $(\textit{top} = -1)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Push $10, 20, 30$; pop once; push $40$.}
+
+\begin{itemize}
+  \item Push $10$: \textit{top}$=0$, $\textit{arr}=[10]$.
+  \item Push $20$: \textit{top}$=1$, $\textit{arr}=[10,20]$.
+  \item Push $30$: \textit{top}$=2$, $\textit{arr}=[10,20,30]$.
+  \item Pop: returns $30$; \textit{top}$=1$.
+  \item Push $40$: \textit{top}$=2$, $\textit{arr}=[10,20,40]$ (index $2$
+        is overwritten).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Stack {
+    vector<int> arr;
+    int topIdx;
+
+public:
+    Stack(int capacity) : arr(capacity), topIdx(-1) {}
+
+    void push(int x) {
+        arr[++topIdx] = x;
+    }
+
+    int pop() {
+        return arr[topIdx--];
+    }
+
+    int top() {
+        return arr[topIdx];
+    }
+
+    bool isEmpty() {
+        return topIdx == -1;
+    }
+};
+
+int main() {
+    Stack s(10);
+    s.push(10); s.push(20); s.push(30);
+    cout << "Popped: " << s.pop() << endl;
+    s.push(40);
+    cout << "Top: " << s.top() << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ for every operation -- only a single
+index update and a single array access are involved.
+\textbf{Space Complexity.} $O(\textit{capacity})$ for the underlying
+array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A stack needs exactly one pointer into a contiguous array. Compare this to
+Section~\ref{sec:sq-queue-linked-list}, where a queue's two-ended access
+pattern makes a plain array awkward (without wraparound) and motivates a
+linked-list-based implementation instead.
+\end{takeawaybox}

@@ -1,0 +1,154 @@
+\section{Find Square Root of a Number using Binary Search}
+\label{sec:bs-sqrt}
+
+\noindent We now begin the second major group of problems in this chapter:
+\textbf{binary search on the answer}. In every problem so far, the
+candidate space was a set of array indices. From here on, there is often no
+array at all -- the candidate space is a range of numbers that could be the
+\emph{answer itself}, and we binary search directly over that range,
+checking feasibility of each candidate with a helper function.
+
+\problemstatement{Given a non-negative integer $n$, find $\lfloor
+\sqrt{n} \rfloor$, the floor of its square root, without using a built-in
+square root function -- and ideally without testing every integer from $1$
+to $n$ one at a time.}
+
+\begin{patternbox}
+\emph{``Find the floor of the square root''} doesn't mention an array at
+all, which is exactly the point: the phrase to watch for is \emph{``find
+the largest/smallest value such that some computable condition holds.''}
+Here, the condition is $\textit{candidate}^2 \le n$. This condition is
+monotonic in \textit{candidate} -- true for small candidates, false for
+large ones, with exactly one crossover -- which is all binary search ever
+needed in the first place. The array, in earlier sections, was just one
+particular way of presenting a monotonic candidate space; an integer range
+works just as well.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Define $P(\textit{candidate}) = (\textit{candidate}^2 \le n)$ for
+candidates ranging over $0, 1, 2, \dots, n$. As \textit{candidate}
+increases, $\textit{candidate}^2$ increases too (squaring is monotonic for
+non-negative numbers), so $P$ is \texttt{true} for every candidate up to
+$\lfloor \sqrt{n} \rfloor$ and \texttt{false} for every candidate beyond
+it. The floor of the square root is exactly the \emph{largest} candidate
+for which $P$ holds.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is the integer range $[0, n]$ (or, more tightly,
+$[1, n]$ for $n \ge 1$). The predicate is
+$P(\textit{candidate}) = (\textit{candidate}^2 \le n)$, and we want the
+largest candidate where $P$ holds -- the same ``find the rightmost true
+position'' template used for floor in Section~\ref{sec:bs-floor-ceil},
+just applied to a numeric range instead of array values.
+\end{ideabox}
+
+\subsection*{Why binary searching the answer directly is valid}
+
+There is nothing conceptually new here beyond recognizing that the
+candidate space need not be array indices. The monotonicity of $P$ is
+guaranteed by basic algebra ($x \le y \Rightarrow x^2 \le y^2$ for
+non-negative $x, y$), which plays exactly the role that array sortedness
+played in earlier sections: it guarantees a single, well-defined crossover
+point that binary search can locate in logarithmically many evaluations of
+$P$, each evaluation costing only $O(1)$ (a single multiplication).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n$,
+        $\textit{ans} \gets 0$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item If $\textit{mid} \times \textit{mid} \le n$: record
+          $\textit{ans} \gets \textit{mid}$; search right:
+          $\textit{lo} \gets \textit{mid}+1$.
+    \item Else: search left: $\textit{hi} \gets \textit{mid}-1$.
+  \end{enumerate}
+  \item Return \textit{ans}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Floor of Square Root}
+\begin{algorithmic}[1]
+\Procedure{FloorSqrt}{$n$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n$, $\textit{ans} \gets 0$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \If{$\textit{mid} \times \textit{mid} \le n$}
+      \State $\textit{ans} \gets \textit{mid}$
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{ans}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n = 28$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=28$: $\textit{mid}=14$, $14^2=196 \le
+        28$? No. $\textit{hi}=13$.
+  \item $\textit{lo}=0,\textit{hi}=13$: $\textit{mid}=6$, $6^2=36 \le 28$?
+        No. $\textit{hi}=5$.
+  \item $\textit{lo}=0,\textit{hi}=5$: $\textit{mid}=2$, $2^2=4 \le 28$?
+        Yes. $\textit{ans}=2$, $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=5$: $\textit{mid}=4$, $4^2=16 \le 28$?
+        Yes. $\textit{ans}=4$, $\textit{lo}=5$.
+  \item $\textit{lo}=5,\textit{hi}=5$: $\textit{mid}=5$, $5^2=25 \le 28$?
+        Yes. $\textit{ans}=5$, $\textit{lo}=6$.
+  \item $\textit{lo}=6 > \textit{hi}=5$: loop ends.
+\end{itemize}
+
+The answer is $5$, and indeed $5^2 = 25 \le 28 < 36 = 6^2$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int floorSqrt(int n) {
+    int lo = 0, hi = n, ans = 0;
+
+    while (lo <= hi) {
+        long long mid = lo + (hi - lo) / 2;
+        if (mid * mid <= n) {
+            ans = mid;
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return ans;
+}
+
+int main() {
+    cout << "Floor sqrt of 28: " << floorSqrt(28) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The candidate range $[0, n]$ halves each
+iteration, giving
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Binary search on the answer requires exactly two ingredients: a numeric
+candidate range, and a feasibility predicate that is monotonic across that
+range. Once both exist, the same \texttt{while(lo <= hi)} skeleton from
+array-based binary search applies verbatim -- only the meaning of
+\textit{lo}, \textit{hi}, and the predicate check change.
+\end{takeawaybox}

@@ -1,0 +1,149 @@
+\section{Detect Cycle in an Undirected Graph}
+\label{sec:graph-cycle-undirected}
+
+\problemstatement{Given an undirected graph, determine whether it
+contains a \textbf{cycle}.}
+
+\begin{patternbox}
+\emph{``Does a cycle exist''} is a traversal that carries one extra
+piece of state along: the \textbf{parent} node (the node the current
+node was reached from). Reaching an already-visited neighbor that is
+\textbf{not} the parent means there are two distinct paths to that
+neighbor -- which is exactly what a cycle is.
+\end{patternbox}
+
+\subsection*{Why checking against the parent specifically is necessary}
+
+In an \emph{undirected} graph, every edge $(u,v)$ is stored twice: once
+as $u \to v$ and once as $v \to u$. So when DFS or BFS moves from $u$
+to $v$, $v$'s neighbor list contains $u$ again -- without excluding the
+parent, this single edge would be misreported as a cycle every time.
+Excluding only the \emph{immediate} parent (not all previously visited
+nodes in general) is correct because any \emph{other} already-visited
+neighbor reached again is a genuinely different path back to that
+node, while the parent connection is simply the edge just traversed in
+reverse.
+
+\subsection*{Approach 1: DFS}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool dfsHasCycle(int node, int parent, vector<vector<int>>& adj, vector<bool>& visited) {
+    visited[node] = true;
+
+    for (int neighbor : adj[node]) {
+        if (!visited[neighbor]) {
+            if (dfsHasCycle(neighbor, node, adj, visited)) return true;
+        } else if (neighbor != parent) {
+            return true; // visited, and not the edge we just came from
+        }
+    }
+    return false;
+}
+
+bool hasCycleDFS(int n, vector<vector<int>>& adj) {
+    vector<bool> visited(n, false);
+    for (int i = 0; i < n; i++) {
+        if (!visited[i] && dfsHasCycle(i, -1, adj, visited)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int main() {
+    int n = 4;
+    vector<vector<int>> adj(n);
+    auto addEdge = [&](int u, int v) { adj[u].push_back(v); adj[v].push_back(u); };
+    addEdge(0, 1); addEdge(1, 2); addEdge(2, 3); addEdge(3, 0);
+
+    cout << (hasCycleDFS(n, adj) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(V+E)$.
+\textbf{Space.} $O(V)$ for \textit{visited} and the recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: BFS}
+
+The same parent-tracking idea, carried in the queue as a
+$(\textit{node}, \textit{parent})$ pair instead of as a recursion
+argument.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool bfsHasCycle(int src, vector<vector<int>>& adj, vector<bool>& visited) {
+    queue<pair<int,int>> q; // {node, parent}
+    visited[src] = true;
+    q.push({src, -1});
+
+    while (!q.empty()) {
+        auto [node, parent] = q.front();
+        q.pop();
+
+        for (int neighbor : adj[node]) {
+            if (!visited[neighbor]) {
+                visited[neighbor] = true;
+                q.push({neighbor, node});
+            } else if (neighbor != parent) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool hasCycleBFS(int n, vector<vector<int>>& adj) {
+    vector<bool> visited(n, false);
+    for (int i = 0; i < n; i++) {
+        if (!visited[i] && bfsHasCycle(i, adj, visited)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int main() {
+    int n = 4;
+    vector<vector<int>> adj(n);
+    auto addEdge = [&](int u, int v) { adj[u].push_back(v); adj[v].push_back(u); };
+    addEdge(0, 1); addEdge(1, 2); addEdge(2, 3); addEdge(3, 0);
+
+    cout << (hasCycleBFS(n, adj) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $4$-cycle $0{-}1{-}2{-}3{-}0$, DFS starting at $0$.}
+
+$\textit{dfs}(0,-1)$: visit $0$. Neighbor $1$: unvisited, recurse
+$\textit{dfs}(1,0)$: visit $1$. Neighbor $0$: visited, but
+$0=\textit{parent}$, skip. Neighbor $2$: unvisited, recurse
+$\textit{dfs}(2,1)$: visit $2$. Neighbor $1$: visited, $=\textit{parent}$,
+skip. Neighbor $3$: unvisited, recurse $\textit{dfs}(3,2)$: visit $3$.
+Neighbor $2$: visited, $=\textit{parent}$, skip. Neighbor $0$: visited,
+and $0 \neq \textit{parent}(=2)$ -- \textbf{cycle detected}, return
+\texttt{true} all the way up.
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(V+E)$.
+\textbf{Space.} $O(V)$ for \textit{visited} and the queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Both traversals solve this with the identical idea -- carry the parent
+along, flag any visited non-parent neighbor as a cycle -- differing
+only in whether that extra state rides on the recursion stack (DFS) or
+in the queue alongside each node (BFS). This same parent-carrying
+trick reappears, adapted, in the Topological Sort chapter's directed-graph
+cycle detection.
+\end{takeawaybox}

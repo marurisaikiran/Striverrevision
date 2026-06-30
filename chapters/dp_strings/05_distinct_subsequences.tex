@@ -1,0 +1,203 @@
+\section{Distinct Subsequences}
+\label{sec:dp-distinct-subsequences}
+
+\problemstatement{Given strings $s$ (length $n$) and $t$ (length $m$),
+count the number of distinct ways $t$ can be formed as a subsequence of
+$s$ (counting different choices of \emph{positions} in $s$ as distinct,
+even if they spell the same characters).}
+
+\begin{patternbox}
+\emph{``Count the number of ways one string appears as a subsequence of
+another''} reuses Section~\ref{sec:dp-lcs}'s match/mismatch branching,
+but on a \textbf{match}, there are now \textbf{two} valid choices to
+\emph{sum} rather than one branch to take unconditionally: use the
+current character of $s$ to match $t$, \emph{or} skip it and hope a
+later character of $s$ matches instead -- both contribute to the count,
+since $s$ may contain the needed character multiple times.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(i,j)$ be the number of ways $t[0..j-1]$ (length $j$) can be
+formed as a subsequence of $s[0..i-1]$ (length $i$).
+
+\[
+  f(i,j) =
+  \begin{cases}
+    f(i{-}1,j{-}1) + f(i{-}1,j) & \text{if } s[i{-}1]=t[j{-}1], \\
+    f(i{-}1,j) & \text{otherwise.}
+  \end{cases}
+\]
+
+If the characters match, we may either \textbf{use} this occurrence in
+$s$ to match $t$'s current character (advancing both, $f(i{-}1,j{-}1)$),
+\emph{or} \textbf{skip} it, leaving $t$'s current character to be
+matched by some earlier-yet-unconsidered part of $s$ ($f(i{-}1,j)$) --
+both possibilities lead to valid, distinct subsequence selections, so
+their counts are summed. If the characters don't match, this position
+in $s$ cannot contribute to matching $t[j-1]$ at all, so only the skip
+option remains.
+
+Base cases: $f(i,0)=1$ for every $i$ (the empty string is a subsequence
+of anything, in exactly one way -- selecting nothing). $f(0,j)=0$ for
+every $j>0$ (a non-empty $t$ cannot be a subsequence of an empty $s$).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int distinctSubsequencesRecursive(int i, int j, string& s, string& t) {
+    if (j == 0) return 1;
+    if (i == 0) return 0;
+
+    if (s[i - 1] == t[j - 1]) {
+        return distinctSubsequencesRecursive(i - 1, j - 1, s, t) +
+               distinctSubsequencesRecursive(i - 1, j, s, t);
+    }
+    return distinctSubsequencesRecursive(i - 1, j, s, t);
+}
+
+int main() {
+    string s = "babgbag", t = "bag";
+    cout << distinctSubsequencesRecursive(s.size(), t.size(), s, t) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$ in the worst case.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int distinctSubsequencesMemo(int i, int j, string& s, string& t,
+                              vector<vector<long long>>& memo) {
+    if (j == 0) return 1;
+    if (i == 0) return 0;
+    if (memo[i][j] != -1) return memo[i][j];
+
+    long long result;
+    if (s[i - 1] == t[j - 1]) {
+        result = distinctSubsequencesMemo(i - 1, j - 1, s, t, memo) +
+                 distinctSubsequencesMemo(i - 1, j, s, t, memo);
+    } else {
+        result = distinctSubsequencesMemo(i - 1, j, s, t, memo);
+    }
+    return memo[i][j] = result;
+}
+
+int main() {
+    string s = "babgbag", t = "bag";
+    int n = s.size(), m = t.size();
+    vector<vector<long long>> memo(n + 1, vector<long long>(m + 1, -1));
+    cout << distinctSubsequencesMemo(n, m, s, t, memo) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+long long distinctSubsequencesTabulation(string& s, string& t) {
+    int n = s.size(), m = t.size();
+    vector<vector<long long>> dp(n + 1, vector<long long>(m + 1, 0));
+
+    for (int i = 0; i <= n; i++) dp[i][0] = 1;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s[i - 1] == t[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j];
+            } else {
+                dp[i][j] = dp[i - 1][j];
+            }
+        }
+    }
+    return dp[n][m];
+}
+
+int main() {
+    string s = "babgbag", t = "bag";
+    cout << distinctSubsequencesTabulation(s, t) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $s=\texttt{"babgbag"}$, $t=\texttt{"bag"}$.}
+
+The five ways \texttt{"bag"} appears as a subsequence of
+\texttt{"babgbag"} correspond to choosing one of the two \texttt{'b'}s
+(positions $0,2,4$... specifically $3$ valid \texttt{'b'} positions
+combined with valid later \texttt{'a'},\texttt{'g'} pairs) in
+combination with the available \texttt{'a'} and \texttt{'g'}
+occurrences after it; building the table row by row accumulates these
+combinations automatically via the sum rule, reaching
+$\textit{dp}[7][3]=5$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+long long distinctSubsequencesSpaceOptimized(string& s, string& t) {
+    int n = s.size(), m = t.size();
+    vector<long long> prev(m + 1, 0), current(m + 1, 0);
+    prev[0] = current[0] = 1;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s[i - 1] == t[j - 1]) {
+                current[j] = prev[j - 1] + prev[j];
+            } else {
+                current[j] = prev[j];
+            }
+        }
+        prev = current;
+    }
+    return prev[m];
+}
+
+int main() {
+    string s = "babgbag", t = "bag";
+    cout << distinctSubsequencesSpaceOptimized(s, t) << endl; // 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(m)$ for two rolling rows.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A character match does not always mean ``take it unconditionally and
+advance both pointers'' -- when the same character could plausibly be
+matched by \emph{several} different positions in the longer string (as
+here, where $s$ may contain repeats), a match should branch into
+\textbf{both} ``use it'' and ``save it for later, skip for now,''
+summing their counts. This is a subtler version of the match case than
+Section~\ref{sec:dp-lcs}'s, worth contrasting carefully.
+\end{takeawaybox}

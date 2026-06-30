@@ -1,0 +1,117 @@
+\section{Number of Longest Increasing Subsequences}
+\label{sec:dp-number-of-lis}
+
+\problemstatement{Given $\textit{arr}$, find the \textbf{number of
+distinct} longest increasing subsequences (not just their shared
+maximum length).}
+
+\begin{patternbox}
+This closing problem of the chapter pairs Section~\ref{sec:dp-lis}'s
+ending-here \textit{dp} table with a second, parallel table
+$\textit{count}[i]$: \textbf{how many} subsequences of the maximum
+length achieve $\textit{dp}[i]$ -- updated using the same
+``exists / count'' duality first introduced in the DP on Subsequences
+chapter (there distinguishing whether a target sum is
+\emph{achievable} versus \emph{how many ways} achieve it).
+\end{patternbox}
+
+\subsection*{Deriving the count update rule}
+
+While filling $\textit{dp}[i]$ in the usual way, also track
+$\textit{count}[i]$, initialized to $1$ (every index is trivially one
+subsequence of length $1$, by itself). For each $j<i$ with
+$\textit{arr}[j]<\textit{arr}[i]$:
+\begin{itemize}
+  \item If $\textit{dp}[j]+1 > \textit{dp}[i]$: a \textbf{strictly
+        longer} chain through $j$ has just been discovered. Update
+        $\textit{dp}[i] \gets \textit{dp}[j]+1$ and \textbf{reset}
+        $\textit{count}[i] \gets \textit{count}[j]$ (every previous,
+        shorter-chain count at $i$ is now obsolete -- it counted chains
+        of a length that's no longer the best).
+  \item If $\textit{dp}[j]+1 = \textit{dp}[i]$: this is \textbf{another
+        equally good} way to reach the current best length at $i$.
+        \textbf{Accumulate}: $\textit{count}[i] \mathrel{+}=
+        \textit{count}[j]$.
+\end{itemize}
+After filling both tables, let $\textit{maxLen} = \max_i \textit{dp}[i]$.
+The answer is $\sum_{i:\ \textit{dp}[i]=\textit{maxLen}}
+\textit{count}[i]$ (every index whose best chain achieves the global
+maximum length contributes its count).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int numberOfLIS(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> dp(n, 1), count(n, 1);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++) {
+            if (arr[j] < arr[i]) {
+                if (dp[j] + 1 > dp[i]) {
+                    dp[i] = dp[j] + 1;
+                    count[i] = count[j];
+                } else if (dp[j] + 1 == dp[i]) {
+                    count[i] += count[j];
+                }
+            }
+        }
+    }
+
+    int maxLen = *max_element(dp.begin(), dp.end());
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        if (dp[i] == maxLen) total += count[i];
+    }
+    return total;
+}
+
+int main() {
+    vector<int> arr = {1, 3, 5, 4, 7};
+    cout << numberOfLIS(arr) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,3,5,4,7]$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c|c}
+$i$ & 0 & 1 & 2 & 3 & 4 \\ \hline
+$\textit{arr}[i]$ & 1 & 3 & 5 & 4 & 7 \\ \hline
+$\textit{dp}[i]$ & 1 & 2 & 3 & 3 & 4 \\ \hline
+$\textit{count}[i]$ & 1 & 1 & 1 & 1 & 2
+\end{tabular}
+\end{center}
+
+At $i=3$ (value $4$): only $j=0,1$ qualify ($1<4$, $3<4$); the best is
+through $j=1$ ($\textit{dp}[1]+1=3$), giving $\textit{dp}[3]=3$,
+$\textit{count}[3]=\textit{count}[1]=1$. At $i=4$ (value $7$):
+$j=2$ gives $\textit{dp}[2]+1=4$ (new max, reset
+$\textit{count}[4]=\textit{count}[2]=1$); then $j=3$ \emph{also} gives
+$\textit{dp}[3]+1=4$ (ties the current best, accumulate:
+$\textit{count}[4] \mathrel{+}= \textit{count}[3] = 1+1=2$).
+$\textit{maxLen}=4$, achieved only at $i=4$, contributing
+$\textit{count}[4]=2$: the two LIS of length $4$ are $1,3,5,7$ and
+$1,3,4,7$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$.
+\textbf{Space Complexity.} $O(n)$ for \textit{dp} and \textit{count}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This chapter closes exactly where the DP on Subsequences chapter's
+``exists / count / optimize'' framing predicted it would: once a
+length-optimizing ending-here table exists, a parallel counting table
+updated by the same reset-on-strict-improvement,
+accumulate-on-tie rule answers ``how many'' for free. The same two-table
+pairing pattern is worth trying on any optimization DP whenever a
+follow-up problem asks for a count instead of (or in addition to) the
+optimum itself.
+\end{takeawaybox}

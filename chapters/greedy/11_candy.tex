@@ -1,0 +1,220 @@
+\section{Candy}
+\label{sec:candy}
+
+\problemstatement{There are $n$ children standing in a line, and the $i$-th
+child has a rating $\textit{ratings}[i]$. We must give each child at least
+one candy, subject to the rule that any child with a strictly higher rating
+than an \textbf{immediate neighbor} (the child directly to the left or
+directly to the right) must receive strictly more candies than that
+neighbor. We must find the \textbf{minimum total number of candies}
+required to satisfy all of these constraints.}
+
+\begin{patternbox}
+\emph{``Each element must be strictly greater than its immediate neighbor
+whenever its value is strictly greater''} -- a constraint defined purely in
+terms of comparisons with the elements directly to the left and right -- is
+the signature of a \emph{two-pass directional greedy}. Whenever a problem
+states a rule of the form ``compare element $i$ only to $i-1$ and $i+1$, and
+the rule is not symmetric (higher rating needs strictly more, but the rule
+says nothing directly about how much more when ratings are equal or lower),''
+the standard technique is to satisfy the left-neighbor rule and the
+right-neighbor rule in two completely separate linear passes, then combine
+the two results -- rather than trying to track both directions
+simultaneously in a single pass, which is awkward because a child's
+required candy count can be driven up by either side independently.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The rule is purely \emph{local}: child $i$ needs more candies than child
+$i-1$ if and only if $\textit{ratings}[i] > \textit{ratings}[i-1]$, and
+child $i$ needs more candies than child $i+1$ if and only if
+$\textit{ratings}[i] > \textit{ratings}[i+1]$. These are two independent
+constraints, one looking left and one looking right, and a child's final
+candy count must simultaneously satisfy both. This naturally suggests
+solving the left-looking constraint and the right-looking constraint
+separately, each with its own simple left-to-right or right-to-left greedy
+sweep, and then merging the two answers by taking, for each child, whichever
+requirement is stricter (i.e.\ larger).
+
+\subsection*{The left-to-right pass}
+
+\begin{ideabox}[Greedy Choice -- Left Pass]
+Scan left to right. Give every child at least $1$ candy initially. If
+$\textit{ratings}[i] > \textit{ratings}[i-1]$, this child must have strictly
+more candy than the child to its left, so set $\textit{left}[i] \gets
+\textit{left}[i-1] + 1$. Otherwise, the left-neighbor constraint places no
+extra demand on child $i$ beyond the baseline of $1$ candy, so
+$\textit{left}[i] \gets 1$.
+\end{ideabox}
+
+This single pass correctly satisfies every left-looking constraint, because
+each child's requirement here only ever depends on the child immediately
+before it, which has already been finalized by the time we reach the
+current child -- there is no need to look further back, since any chain of
+strictly increasing ratings to the left has already been correctly
+propagated forward by the recursive nature of the update rule.
+
+\subsection*{The right-to-left pass}
+
+\begin{ideabox}[Greedy Choice -- Right Pass]
+Symmetrically, scan right to left. Give every child at least $1$ candy
+initially. If $\textit{ratings}[i] > \textit{ratings}[i+1]$, set
+$\textit{right}[i] \gets \textit{right}[i+1] + 1$. Otherwise,
+$\textit{right}[i] \gets 1$.
+\end{ideabox}
+
+\subsection*{Why taking the maximum of both passes is correct}
+
+Once both arrays are computed, child $i$'s final candy count must be at
+least $\textit{left}[i]$ (to satisfy the left-neighbor rule) and at least
+$\textit{right}[i]$ (to satisfy the right-neighbor rule). Since these are
+two independent lower bounds on the same quantity (the number of candies
+given to child $i$), and we want the \emph{minimum} total, the smallest
+value that satisfies both lower bounds simultaneously is exactly their
+maximum:
+\[
+  \textit{candies}[i] = \max(\textit{left}[i], \textit{right}[i]).
+\]
+No smaller value could satisfy both constraints, and this value, taken for
+every child simultaneously, does not interfere with any other child's
+constraint, because each constraint here only relates two physically
+adjacent children, and the relative order between $\textit{left}[i]$ and
+$\textit{left}[i\pm1]$ (or $\textit{right}[i]$ and $\textit{right}[i\pm1]$)
+already correctly encodes the required strict inequality wherever the
+rating comparison demands it. Taking componentwise maxima of two arrays that
+each individually satisfy their own one-sided constraint is guaranteed to
+satisfy both constraints together, without ever needing to re-verify the
+combined array.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize arrays $\textit{left}[0..n-1]$ and
+        $\textit{right}[0..n-1]$, each filled with $1$.
+  \item Left pass: for $i \gets 1$ to $n-1$, if
+        $\textit{ratings}[i] > \textit{ratings}[i-1]$, set
+        $\textit{left}[i] \gets \textit{left}[i-1] + 1$.
+  \item Right pass: for $i \gets n-2$ down to $0$, if
+        $\textit{ratings}[i] > \textit{ratings}[i+1]$, set
+        $\textit{right}[i] \gets \textit{right}[i+1] + 1$.
+  \item Compute $\textit{total} \gets \sum_{i=0}^{n-1} \max(\textit{left}[i],
+        \textit{right}[i])$.
+  \item Return \textit{total}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Candy Distribution}
+\begin{algorithmic}[1]
+\Procedure{Candy}{\textit{ratings}}
+  \State $n \gets \text{length}(\textit{ratings})$
+  \State $\textit{left}[0..n-1] \gets 1$, $\textit{right}[0..n-1] \gets 1$
+  \For{$i \gets 1$ to $n-1$}
+    \If{$\textit{ratings}[i] > \textit{ratings}[i-1]$}
+      \State $\textit{left}[i] \gets \textit{left}[i-1] + 1$
+    \EndIf
+  \EndFor
+  \For{$i \gets n-2$ \textbf{down to} $0$}
+    \If{$\textit{ratings}[i] > \textit{ratings}[i+1]$}
+      \State $\textit{right}[i] \gets \textit{right}[i+1] + 1$
+    \EndIf
+  \EndFor
+  \State $\textit{total} \gets 0$
+  \For{$i \gets 0$ to $n-1$}
+    \State $\textit{total} \gets \textit{total} + \max(\textit{left}[i], \textit{right}[i])$
+  \EndFor
+  \State \Return \textit{total}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{ratings} = [1, 0, 2]$.}
+
+\textbf{Left pass.} $\textit{left} = [1, 1, 1]$ initially.
+\begin{itemize}
+  \item $i=1$: $\textit{ratings}[1]=0 > \textit{ratings}[0]=1$? No. Stays
+        $\textit{left}[1]=1$.
+  \item $i=2$: $\textit{ratings}[2]=2 > \textit{ratings}[1]=0$? Yes.
+        $\textit{left}[2] = \textit{left}[1]+1 = 2$.
+\end{itemize}
+Result: $\textit{left} = [1, 1, 2]$.
+
+\textbf{Right pass.} $\textit{right} = [1, 1, 1]$ initially.
+\begin{itemize}
+  \item $i=1$: $\textit{ratings}[1]=0 > \textit{ratings}[2]=2$? No. Stays
+        $\textit{right}[1]=1$.
+  \item $i=0$: $\textit{ratings}[0]=1 > \textit{ratings}[1]=0$? Yes.
+        $\textit{right}[0] = \textit{right}[1]+1 = 2$.
+\end{itemize}
+Result: $\textit{right} = [2, 1, 1]$.
+
+\textbf{Combine.} $\textit{candies} = [\max(1,2), \max(1,1), \max(2,1)] =
+[2, 1, 2]$.
+
+The total is $2+1+2 = 5$. This is correct: child $0$ (rating $1$) needs more
+than child $1$ (rating $0$), so child $0$ gets $2$ and child $1$ gets the
+baseline $1$; child $2$ (rating $2$) needs more than child $1$, so child $2$
+gets $2$. No constraint links child $0$ and child $2$ directly (they are not
+neighbors), so this is fully consistent and minimal.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int candy(vector<int>& ratings) {
+    int n = ratings.size();
+    vector<int> left(n, 1), right(n, 1);
+
+    for (int i = 1; i < n; i++) {
+        if (ratings[i] > ratings[i - 1]) {
+            left[i] = left[i - 1] + 1;
+        }
+    }
+
+    for (int i = n - 2; i >= 0; i--) {
+        if (ratings[i] > ratings[i + 1]) {
+            right[i] = right[i + 1] + 1;
+        }
+    }
+
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        total += max(left[i], right[i]);
+    }
+    return total;
+}
+
+int main() {
+    vector<int> ratings = {1, 0, 2};
+    cout << "Minimum candies: " << candy(ratings) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} We perform two linear passes (left-to-right and
+right-to-left) plus one linear combination pass, each $O(n)$, giving an
+overall time complexity of
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} We use two auxiliary arrays, \textit{left} and
+\textit{right}, each of size $n$, giving a space complexity of $O(n)$. This
+can be reduced to $O(1)$ extra space with a more careful single-pass
+peak-detection technique, though the two-array version is the clearest to
+derive and verify correct.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a constraint compares each element only to its immediate left and
+right neighbors, and the comparison is directionally asymmetric (a strict
+inequality matters only in one direction at a time), decompose the problem
+into two independent one-directional sweeps -- one enforcing the
+left-looking rule, one enforcing the right-looking rule -- and combine the
+two results with a pointwise maximum (for a ``need at least this many''
+constraint) or minimum (for a ``cannot exceed this many'' constraint).
+\end{takeawaybox}

@@ -1,0 +1,192 @@
+\section{Coin Change II (Count the Ways)}
+\label{sec:dp-coin-change-2}
+
+\problemstatement{Given an array $\textit{coins}$ of denominations (each
+in unlimited supply) and a target $\textit{amount}$, count the
+\textbf{number of distinct combinations} of coins that sum to exactly
+$\textit{amount}$.}
+
+\begin{patternbox}
+This is Section~\ref{sec:dp-coin-change}'s recurrence with minimum
+replaced by \textbf{addition} -- the same exists-vs-count distinction
+drawn throughout this chapter and the Recursion chapter before it, now
+applied to the unbounded-reuse setting.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+\begin{gather*}
+  f(\textit{index}, \textit{amount}) = f(\textit{index}{-}1, \textit{amount})
+  \ +\ \textit{take}, \\
+  \textit{take} = \textit{coins}[\textit{index}] \le \textit{amount}\ ?\
+  f(\textit{index}, \textit{amount}-\textit{coins}[\textit{index}]) : 0.
+\end{gather*}
+Base case: $f(0, \textit{amount}) = 1$ if $\textit{amount}$ is exactly
+divisible by $\textit{coins}[0]$ (exactly one way: use that many copies
+of the first coin), else $0$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int changeRecursive(int index, int amount, vector<int>& coins) {
+    if (index == 0) {
+        return (amount % coins[0] == 0) ? 1 : 0;
+    }
+
+    int notTake = changeRecursive(index - 1, amount, coins);
+    int take = 0;
+    if (coins[index] <= amount) {
+        take = changeRecursive(index, amount - coins[index], coins);
+    }
+    return notTake + take;
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    int n = coins.size();
+    cout << changeRecursive(n - 1, 5, coins) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} Exponential, same overlapping-subproblem blowup as
+Section~\ref{sec:dp-coin-change}.
+\textbf{Space.} $O(\textit{amount})$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int changeMemo(int index, int amount, vector<int>& coins,
+                vector<vector<int>>& memo) {
+    if (index == 0) {
+        return (amount % coins[0] == 0) ? 1 : 0;
+    }
+    if (memo[index][amount] != -1) return memo[index][amount];
+
+    int notTake = changeMemo(index - 1, amount, coins, memo);
+    int take = 0;
+    if (coins[index] <= amount) {
+        take = changeMemo(index, amount - coins[index], coins, memo);
+    }
+    return memo[index][amount] = notTake + take;
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    int n = coins.size(), amount = 5;
+    vector<vector<int>> memo(n, vector<int>(amount + 1, -1));
+    cout << changeMemo(n - 1, amount, coins, memo) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot \textit{amount})$.
+\textbf{Space.} $O(n \cdot \textit{amount})$ memo $+$
+$O(\textit{amount})$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int changeTabulation(vector<int>& coins, int amount) {
+    int n = coins.size();
+    vector<vector<long long>> dp(n, vector<long long>(amount + 1, 0));
+
+    for (int a = 0; a <= amount; a++) {
+        dp[0][a] = (a % coins[0] == 0) ? 1 : 0;
+    }
+
+    for (int index = 1; index < n; index++) {
+        for (int a = 0; a <= amount; a++) {
+            long long notTake = dp[index - 1][a];
+            long long take = (coins[index] <= a) ? dp[index][a - coins[index]] : 0;
+            dp[index][a] = notTake + take;
+        }
+    }
+    return dp[n - 1][amount];
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    cout << changeTabulation(coins, 5) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{coins}=[1,2,5]$, $\textit{amount}=5$.}
+
+The four ways to make $5$: $\{1,1,1,1,1\}$, $\{1,1,1,2\}$,
+$\{1,2,2\}$, $\{5\}$ -- matching $\textit{dp}[2][5]=4$. Row $0$ (coin
+$1$ only): $\textit{dp}[0][a]=1$ for every $a$ (always exactly one way
+using only $1$s). Row $1$ (coins $1,2$): combinations using some
+$2$s and the rest $1$s -- $\textit{dp}[1][5]=3$ (zero, one, or two
+$2$s, with the remainder in $1$s). Row $2$ adds the option of using
+coin $5$ once, contributing the fourth way.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot \textit{amount})$.
+\textbf{Space.} $O(n \cdot \textit{amount})$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int changeSpaceOptimized(vector<int>& coins, int amount) {
+    int n = coins.size();
+    vector<long long> prev(amount + 1, 0);
+
+    for (int a = 0; a <= amount; a++) {
+        prev[a] = (a % coins[0] == 0) ? 1 : 0;
+    }
+
+    for (int index = 1; index < n; index++) {
+        vector<long long> current(amount + 1, 0);
+        for (int a = 0; a <= amount; a++) {
+            long long notTake = prev[a];
+            long long take = (coins[index] <= a) ? current[a - coins[index]] : 0;
+            current[a] = notTake + take;
+        }
+        prev = current;
+    }
+    return prev[amount];
+}
+
+int main() {
+    vector<int> coins = {1, 2, 5};
+    cout << changeSpaceOptimized(coins, 5) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot \textit{amount})$.
+\textbf{Space.} $O(\textit{amount})$ for the rolling row, reading
+``take'' from \textit{current} exactly as in
+Section~\ref{sec:dp-coin-change}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Coin Change and Coin Change II are, structurally, the exact same
+recurrence with minimum versus addition as the only difference -- the
+unbounded-knapsack equivalent of Subset Sum versus Count Subsets earlier
+in this chapter. Once you have one of a min/count/exists triplet for a
+given recurrence shape, the other two cost almost nothing extra to
+derive.
+\end{takeawaybox}

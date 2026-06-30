@@ -1,0 +1,117 @@
+\section{Implement a Stack using a Linked List}
+\label{sec:sq-stack-linked-list}
+
+\problemstatement{Implement a stack supporting $\textit{push}(x)$,
+$\textit{pop}()$, $\textit{top}()$, and $\textit{isEmpty}()$, backed by a
+singly linked list, each operation running in $O(1)$, with no fixed
+capacity limit.}
+
+\begin{patternbox}
+The keyword shift from Section~\ref{sec:sq-stack-array} is \emph{``no
+fixed capacity''} -- an array-backed stack needs to know its maximum size
+up front (or pay for resizing), while a linked list grows and shrinks node
+by node with no such limit. The structural insight: a stack's LIFO order
+matches a linked list's \textbf{head} perfectly, since inserting and
+removing at the head of a singly linked list are both already $O(1)$.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If we always insert new elements at the \textbf{head} of the list and
+always remove from the head, the most recently inserted element is always
+the first one removed -- exactly LIFO order, with no need to traverse the
+list at all.
+
+\begin{ideabox}[Head Insertion = Push, Head Removal = Pop]
+Maintain a single pointer \textit{head} to the front of the list (null
+when empty). $\textit{push}(x)$ creates a new node with $\textit{next}
+\gets \textit{head}$, then sets $\textit{head}$ to this new node.
+$\textit{pop}()$ reads $\textit{head}$'s value, then advances
+$\textit{head} \gets \textit{head}.\textit{next}$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{head} \gets$ null initially.
+  \item $\textit{push}(x)$: $\textit{node} \gets$ new node with value $x$,
+        $\textit{next} \gets \textit{head}$; $\textit{head} \gets
+        \textit{node}$.
+  \item $\textit{pop}()$: $\textit{val} \gets \textit{head}.\textit{val}$;
+        $\textit{head} \gets \textit{head}.\textit{next}$; return
+        \textit{val}.
+  \item $\textit{top}()$: return $\textit{head}.\textit{val}$.
+  \item $\textit{isEmpty}()$: return $(\textit{head} = \text{null})$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Push $1,2,3$; pop once.}
+
+\begin{itemize}
+  \item Push $1$: list $= 1 \to \text{null}$.
+  \item Push $2$: list $= 2 \to 1 \to \text{null}$.
+  \item Push $3$: list $= 3 \to 2 \to 1 \to \text{null}$.
+  \item Pop: returns $3$; list $= 2 \to 1 \to \text{null}$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Stack {
+    struct Node {
+        int val;
+        Node* next;
+        Node(int v, Node* n) : val(v), next(n) {}
+    };
+    Node* head = nullptr;
+
+public:
+    void push(int x) {
+        head = new Node(x, head);
+    }
+
+    int pop() {
+        int val = head->val;
+        Node* old = head;
+        head = head->next;
+        delete old;
+        return val;
+    }
+
+    int top() {
+        return head->val;
+    }
+
+    bool isEmpty() {
+        return head == nullptr;
+    }
+};
+
+int main() {
+    Stack s;
+    s.push(1); s.push(2); s.push(3);
+    cout << "Popped: " << s.pop() << endl;
+    cout << "Top: " << s.top() << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ for every operation -- all of them touch
+only the head node.
+\textbf{Space Complexity.} $O(n)$ for $n$ stored elements, with one node
+of constant-size overhead each, and no wasted unused capacity (unlike a
+fixed-size array implementation).
+\end{complexitybox}
+
+\begin{takeawaybox}
+A stack's LIFO discipline matches a singly linked list's head exactly --
+no \textit{tail} pointer is ever needed, since insertion and removal both
+happen at the same end. This is the cleanest possible linked-list data
+structure to implement, and it is exactly why the next section's queue
+(needing access at \emph{both} ends) is structurally harder.
+\end{takeawaybox}

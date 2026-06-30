@@ -1,0 +1,119 @@
+\section{Kth Smallest Element in an Array}
+\label{sec:heap-kth-smallest}
+
+\problemstatement{Given an array $\textit{nums}$ of $n$ integers and an
+integer $k$, find the $k$-th smallest element in the array.}
+
+\begin{patternbox}
+The mirror image of Section~\ref{sec:heap-kth-largest}: \emph{``Kth
+smallest''} calls for the \emph{opposite}-polarity heap, a
+\textbf{max}-heap of size $k$. The root of a size-$k$ max-heap is the
+\emph{largest} of the current best-$k$-smallest candidates -- exactly the
+one to discard the instant a smaller element arrives.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+By the same reasoning as Section~\ref{sec:heap-kth-largest}, applied with
+every comparison flipped: maintain a max-heap that never holds more than
+$k$ elements. Push each new element, then if the heap exceeds size $k$,
+pop the maximum (the current weakest member of the ``smallest $k$
+so far'' set). After processing the whole array, the heap holds the $k$
+smallest elements, and its root -- the largest of those $k$ -- is the
+$k$-th smallest element overall.
+
+\begin{ideabox}[Reuse, with Every Comparison Flipped]
+Apply Algorithm~\ref{sec:heap-kth-largest}'s \textsc{KthLargest} procedure
+verbatim, replacing the min-heap with a max-heap and ``pop the minimum''
+with ``pop the maximum.''
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty max-heap.
+  \item For each element $x$ in $\textit{nums}$:
+  \begin{enumerate}
+    \item Push $x$ onto the heap.
+    \item If the heap's size exceeds $k$: pop the maximum.
+  \end{enumerate}
+  \item Return the heap's current maximum (its root).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Kth Smallest Element}
+\begin{algorithmic}[1]
+\Procedure{KthSmallest}{\textit{nums}, $k$}
+  \State $\textit{heap} \gets$ empty max-heap
+  \For{each $x$ in \textit{nums}}
+    \State push $x$ onto \textit{heap}
+    \If{$|\textit{heap}| > k$}
+      \State pop the maximum from \textit{heap}
+    \EndIf
+  \EndFor
+  \State \Return top of \textit{heap}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [7,10,4,3,20,15]$, $k = 3$.}
+
+\begin{itemize}
+  \item Push $7$: heap $=\{7\}$.
+  \item Push $10$: heap $=\{7,10\}$.
+  \item Push $4$: heap $=\{4,7,10\}$. Size $3 \le 3$.
+  \item Push $3$: heap $=\{3,4,7,10\}$. Size $4>3$: pop max ($10$). Heap
+        $=\{3,4,7\}$.
+  \item Push $20$: heap $=\{3,4,7,20\}$. Size $4>3$: pop max ($20$). Heap
+        $=\{3,4,7\}$.
+  \item Push $15$: heap $=\{3,4,7,15\}$. Size $4>3$: pop max ($15$). Heap
+        $=\{3,4,7\}$.
+\end{itemize}
+
+The final heap holds $\{3,4,7\}$, the three smallest elements; its root
+(maximum of these three) is $7$, the $3$rd smallest element overall.
+Sorting $[3,4,7,10,15,20]$ confirms index $k-1=2$ holds $7$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int kthSmallest(vector<int>& nums, int k) {
+    priority_queue<int> maxHeap; // max-heap (default in C++)
+
+    for (int x : nums) {
+        maxHeap.push(x);
+        if ((int)maxHeap.size() > k) {
+            maxHeap.pop();
+        }
+    }
+    return maxHeap.top();
+}
+
+int main() {
+    vector<int> nums = {7, 10, 4, 3, 20, 15};
+    cout << "3rd smallest: " << kthSmallest(nums, 3) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.}
+\[
+  O(n \log k),
+\]
+identical in structure to Section~\ref{sec:heap-kth-largest}.
+\textbf{Space Complexity.} $O(k)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Once Kth Largest is internalized, Kth Smallest costs nothing extra to
+derive -- it is the same algorithm with every comparison polarity
+reversed. The general rule: a size-$k$ heap of the \emph{opposite}
+polarity to what you are looking for always keeps the right boundary
+element at the root.
+\end{takeawaybox}

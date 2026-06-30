@@ -1,0 +1,140 @@
+\section{Remove K Digits}
+\label{sec:sq-remove-k-digits}
+
+\problemstatement{Given a non-negative integer represented as a string
+$\textit{num}$, and an integer $k$, remove exactly $k$ digits from
+$\textit{num}$ so that the remaining digits, kept in their original
+relative order, form the \textbf{smallest possible} number. The result
+must not have leading zeros (unless it is exactly \texttt{"0"}).}
+
+\begin{patternbox}
+\emph{``Remove $k$ elements (keeping relative order) to make the result as
+small/large as possible''} is a greedy-with-a-stack pattern: a number is
+smaller when an earlier (more significant) digit is smaller, so whenever
+we see a digit smaller than what we have just placed, removing that
+just-placed (now regretted) larger digit is always an improvement -- a
+monotonic increasing stack of kept digits, with removals funded by the
+budget $k$, captures exactly this.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Among any two digit strings of the same length, the one with the smaller
+digit at the first position where they differ is the smaller number --
+so, greedily, whenever we have the opportunity to remove a digit and
+thereby make some earlier-kept digit smaller (by exposing a smaller digit
+to take its place at that position), we should take it, as long as we
+still have removals left in our budget $k$.
+
+\begin{ideabox}[Monotonic Increasing Stack of Kept Digits, Funded by Budget $k$]
+Scan $\textit{num}$ left to right, maintaining a stack of digits kept so
+far. For each new digit $d$: while $k>0$ and the stack is non-empty and
+its top digit exceeds $d$, pop the top (spend one unit of $k$) -- this
+digit was a mistake to keep, now that a smaller one is available to take
+its place. Then push $d$. After the scan, if $k$ still has unused budget,
+remove that many digits from the \emph{end} of the stack (the largest
+remaining suffix, since no smaller digit ever showed up to justify
+removing them earlier). Finally, strip any leading zeros, and return
+\texttt{"0"} if the result is empty.
+\end{ideabox}
+
+\subsection*{Why popping a larger top whenever a smaller digit arrives is optimal}
+
+Removing a digit only ever helps if it lets an earlier, larger digit be
+replaced (in significance/position) by a smaller later digit -- and the
+earliest opportunity to do this should always be taken, since a smaller
+digit at a \emph{more significant} (more leftward) position always
+beats any improvement achievable further right. This is exactly the same
+exchange-argument logic as every monotonic-stack pop rule in this
+chapter: keeping a larger digit when a smaller one is available and
+removals remain in budget can never be better than removing it, since the
+resulting number would be lexicographically (and numerically, for
+same-length strings) larger or equal in every case.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack of digits.
+  \item For each digit $d$ in $\textit{num}$:
+  \begin{enumerate}
+    \item While $k>0$ and the stack is non-empty and its top $>d$: pop;
+          $k \gets k-1$.
+    \item Push $d$.
+  \end{enumerate}
+  \item While $k>0$: pop from the end of the stack; $k \gets k-1$.
+  \item Strip leading zeros from the stack's contents (read bottom to
+        top). If the result is empty, return \texttt{"0"}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{num} = \texttt{"1432219"}$, $k=3$.}
+
+\begin{itemize}
+  \item \texttt{1}: stack empty, push. Stack $=[1]$.
+  \item \texttt{4}: top $1<4$, no pop. Push. Stack $=[1,4]$.
+  \item \texttt{3}: top $4>3$ and $k=3>0$: pop $4$, $k=2$. New top
+        $1<3$, stop. Push $3$. Stack $=[1,3]$.
+  \item \texttt{2}: top $3>2$ and $k=2>0$: pop $3$, $k=1$. New top
+        $1<2$, stop. Push $2$. Stack $=[1,2]$.
+  \item \texttt{2}: top $2 \not> 2$, no pop. Push. Stack $=[1,2,2]$.
+  \item \texttt{1}: top $2>1$ and $k=1>0$: pop $2$, $k=0$. New top
+        $2>1$ but $k=0$ now, stop. Push $1$. Stack $=[1,2,1]$.
+  \item \texttt{9}: $k=0$, no pop. Push. Stack $=[1,2,1,9]$.
+\end{itemize}
+
+$k=0$, no trailing removal needed. Result (no leading zeros to strip):
+\texttt{"1219"}.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string removeKdigits(string num, int k) {
+    string st; // used as a stack of characters
+
+    for (char d : num) {
+        while (k > 0 && !st.empty() && st.back() > d) {
+            st.pop_back();
+            k--;
+        }
+        st.push_back(d);
+    }
+
+    while (k > 0 && !st.empty()) {
+        st.pop_back();
+        k--;
+    }
+
+    int i = 0;
+    while (i < (int)st.size() - 1 && st[i] == '0') i++;
+    st = st.substr(i);
+
+    return st.empty() ? "0" : st;
+}
+
+int main() {
+    cout << removeKdigits("1432219", 3) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each digit is pushed once and popped at most
+once, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Remove exactly $k$ elements to minimize/maximize the resulting
+sequence, preserving relative order'' is solved by a monotonic stack
+where the popping budget is explicitly $k$ -- once $k$ reaches zero, the
+stack stops discarding even objectively ``bad'' elements, and any
+leftover budget at the end is spent removing from the tail, since nothing
+better ever arrived to justify earlier removals there.
+\end{takeawaybox}

@@ -1,0 +1,136 @@
+\section{Lowest Common Ancestor in a BST}
+\label{sec:bst-lca}
+
+\problemstatement{Given the root of a BST and two nodes $p$ and $q$
+(both guaranteed to exist in the tree), find their \textbf{lowest common
+ancestor} (LCA): the deepest node that has both $p$ and $q$ as
+descendants (a node is considered a descendant of itself).}
+
+\begin{patternbox}
+LCA in a general binary tree requires examining both subtrees at every
+node and combining results bottom-up, costing $O(n)$. The keyword
+\emph{``BST''} attached to an LCA problem is a strong signal that the
+BST invariant alone determines the split point directly, top-down, in
+$O(h)$ -- no need to inspect both subtrees blindly the way a general
+tree's LCA algorithm would.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In a BST, the LCA of $p$ and $q$ is exactly the node where the search
+paths to $p$ and $q$ \textbf{diverge}: as long as both $p.\textit{val}$
+and $q.\textit{val}$ are on the same side (both less than the current
+node, or both greater), the current node cannot be the LCA -- both
+targets are reachable only by continuing in that single, same direction,
+so the LCA must lie further down on that side. The moment $p$ and $q$
+fall on \emph{different} sides (or one of them \emph{is} the current
+node), the current node is exactly the point where their paths separate
+-- the LCA.
+
+\begin{ideabox}[Follow Both Targets Together Until They Diverge]
+Starting at the root: if both $p.\textit{val}$ and $q.\textit{val}$ are
+less than the current node's value, move left. If both are greater, move
+right. Otherwise (one is $\le$ and the other is $\ge$ the current node's
+value, including the case where the current node \emph{is} $p$ or $q$),
+the current node is the LCA.
+\end{ideabox}
+
+\subsection*{Why the divergence point is provably the LCA}
+
+If both targets are smaller than the current node, the current node
+cannot be an ancestor that is also the \emph{lowest} one -- both $p$ and
+$q$ are confirmed to live in the left subtree, so a deeper common
+ancestor must exist there, and continuing left can only get closer to it
+(never skip past it, since the BST invariant guarantees the entire left
+subtree is exactly where both targets are). The symmetric argument holds
+for both being larger. The first node where this is no longer true --
+where the two targets are no longer both on the same side -- is, by
+definition, the deepest point both search paths still share, since any
+node below it would have to continue toward only one of $p$ or $q$, not
+both.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Start at the root.
+  \item While true:
+  \begin{enumerate}
+    \item If $p.\textit{val} < \textit{current}.\textit{val}$ and
+          $q.\textit{val} < \textit{current}.\textit{val}$: move to the
+          left child.
+    \item Else if $p.\textit{val} > \textit{current}.\textit{val}$ and
+          $q.\textit{val} > \textit{current}.\textit{val}$: move to the
+          right child.
+    \item Else: return \textit{current} (this is the LCA).
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the BST with root $6$, left child $2$ (children $0,4$),
+right child $8$ (children $7,9$). Find LCA of $p=2$, $q=4$.}
+
+\begin{itemize}
+  \item At $6$: is $2<6$ and $4<6$? Yes, both smaller. Move left to
+        $2$.
+  \item At $2$: is $2<2$? No ($p$ equals the current node). So not both
+        strictly smaller, and not both strictly larger. Return $2$.
+\end{itemize}
+
+LCA is $2$ (correct: $2$ is an ancestor of $4$, and is itself $p$).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
+    TreeNode* current = root;
+    while (true) {
+        if (p->val < current->val && q->val < current->val) {
+            current = current->left;
+        } else if (p->val > current->val && q->val > current->val) {
+            current = current->right;
+        } else {
+            return current;
+        }
+    }
+}
+
+int main() {
+    TreeNode* root = new TreeNode(6);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(8);
+    root->left->left = new TreeNode(0);
+    root->left->right = new TreeNode(4);
+    root->right->left = new TreeNode(7);
+    root->right->right = new TreeNode(9);
+
+    TreeNode* lca = lowestCommonAncestor(root, root->left, root->left->right);
+    cout << "LCA: " << lca->val << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(h)$ -- a single root-to-LCA walk, never
+touching any subtree that doesn't lie on the path to the answer.
+\textbf{Space Complexity.} $O(1)$ for the iterative version shown.
+\end{complexitybox}
+
+\begin{takeawaybox}
+LCA in a general binary tree needs $O(n)$ because there is no way to know
+which subtree contains which target without searching both. The BST
+invariant removes this ambiguity entirely: comparing both targets'
+values to the current node tells you, with certainty, which single
+direction to go (or that you have already arrived), collapsing an
+$O(n)$ two-subtree search into an $O(h)$ single-path walk.
+\end{takeawaybox}

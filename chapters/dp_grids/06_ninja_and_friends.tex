@@ -1,0 +1,260 @@
+\section{Ninja and his Friends (3D DP / Cherry Pickup)}
+\label{sec:dp-ninja-friends}
+
+\problemstatement{Given an $m \times n$ grid of chocolates, two
+collectors start at the top row -- one at $(0,0)$, the other at
+$(0,n-1)$ -- and both move \textbf{simultaneously}, one row at a time,
+down to row $m-1$. From $(\textit{row},\textit{col})$, a collector may
+move to $(\textit{row}+1,\textit{col}-1)$,
+$(\textit{row}+1,\textit{col})$, or $(\textit{row}+1,\textit{col}+1)$.
+Each collects the chocolates in every cell it visits; if both collectors
+occupy the \textbf{same} cell at the same time, that cell's chocolates
+are counted only \textbf{once}. Maximize the total chocolates collected.}
+
+\begin{patternbox}
+This closing problem of the chapter is a deliberate capstone: \emph{``two
+agents moving simultaneously through the same grid''} is
+Section~\ref{sec:dp-grids-intro}'s 3D DP keyword pattern. The state must
+track \textbf{three} coordinates -- the shared row (since both move in
+lockstep, one row per step) and \emph{each} collector's column -- because
+the optimal move for one collector can depend on where the other
+currently is (specifically, whether they currently coincide, which
+determines whether a cell's chocolates are double-counted).
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(\textit{row}, \textit{col1}, \textit{col2})$ be the maximum
+chocolates collectible from row $\textit{row}$ down to the last row,
+given that collector $1$ is currently at column $\textit{col1}$ and
+collector $2$ is currently at column $\textit{col2}$ (both in the same
+row, since they move together). The chocolates gained at this row are
+$\textit{grid}[\textit{row}][\textit{col1}]$ plus
+$\textit{grid}[\textit{row}][\textit{col2}]$ \emph{unless}
+$\textit{col1}=\textit{col2}$, in which case the cell's value is added
+only once. Each collector independently chooses one of $3$ column
+moves ($-1, 0, +1$) for the next row, giving $3 \times 3 = 9$
+combinations to maximize over:
+\[
+  f(\textit{row}, \textit{col1}, \textit{col2}) = \textit{collected} +
+  \max_{\substack{d_1, d_2 \in \{-1,0,1\} \\ \text{both columns valid}}}
+  f(\textit{row}+1, \textit{col1}+d_1, \textit{col2}+d_2),
+\]
+where $\textit{collected} = \textit{grid}[\textit{row}][\textit{col1}] +
+(\textit{col1} \ne \textit{col2} ? \textit{grid}[\textit{row}][\textit{col2}]
+: 0)$. Base case: at the last row ($\textit{row}=m-1$), there is no
+further move, so $f(m-1,\textit{col1},\textit{col2}) =
+\textit{collected}$ directly. The overall answer is $f(0, 0, n-1)$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int solve(int row, int col1, int col2, vector<vector<int>>& grid, int m, int n) {
+    if (col1 < 0 || col1 >= n || col2 < 0 || col2 >= n) return INT_MIN;
+
+    int collected = grid[row][col1];
+    if (col1 != col2) collected += grid[row][col2];
+
+    if (row == m - 1) return collected;
+
+    int best = INT_MIN;
+    for (int d1 = -1; d1 <= 1; d1++) {
+        for (int d2 = -1; d2 <= 1; d2++) {
+            int next = solve(row + 1, col1 + d1, col2 + d2, grid, m, n);
+            if (next != INT_MIN) best = max(best, next);
+        }
+    }
+    return collected + best;
+}
+
+int main() {
+    vector<vector<int>> grid = {{3,1,1},{2,5,1},{1,5,5},{2,1,1}};
+    int m = grid.size(), n = grid[0].size();
+    cout << solve(0, 0, n - 1, grid, m, n) << endl; // 24
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(9^m)$ -- up to $9$ branches per call, depth $m$.
+\textbf{Space.} $O(m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int solveMemo(int row, int col1, int col2, vector<vector<int>>& grid,
+              int m, int n, vector<vector<vector<int>>>& memo) {
+    if (col1 < 0 || col1 >= n || col2 < 0 || col2 >= n) return INT_MIN;
+
+    int collected = grid[row][col1];
+    if (col1 != col2) collected += grid[row][col2];
+
+    if (row == m - 1) return collected;
+    if (memo[row][col1][col2] != -1) return memo[row][col1][col2];
+
+    int best = INT_MIN;
+    for (int d1 = -1; d1 <= 1; d1++) {
+        for (int d2 = -1; d2 <= 1; d2++) {
+            int next = solveMemo(row + 1, col1 + d1, col2 + d2, grid, m, n, memo);
+            if (next != INT_MIN) best = max(best, next);
+        }
+    }
+    return memo[row][col1][col2] = collected + best;
+}
+
+int main() {
+    vector<vector<int>> grid = {{3,1,1},{2,5,1},{1,5,5},{2,1,1}};
+    int m = grid.size(), n = grid[0].size();
+    vector<vector<vector<int>>> memo(m, vector<vector<int>>(n, vector<int>(n, -1)));
+    cout << solveMemo(0, 0, n - 1, grid, m, n, memo) << endl; // 24
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(m \cdot n^2 \cdot 9)= O(m \cdot n^2)$ -- $m \cdot n^2$
+distinct states, each doing $O(9)=O(1)$ work.
+\textbf{Space.} $O(m \cdot n^2)$ memo $+$ $O(m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int solveTabulation(vector<vector<int>>& grid) {
+    int m = grid.size(), n = grid[0].size();
+    vector<vector<vector<int>>> dp(m, vector<vector<int>>(n, vector<int>(n, 0)));
+
+    for (int col1 = 0; col1 < n; col1++) {
+        for (int col2 = 0; col2 < n; col2++) {
+            dp[m-1][col1][col2] = grid[m-1][col1] +
+                (col1 != col2 ? grid[m-1][col2] : 0);
+        }
+    }
+
+    for (int row = m - 2; row >= 0; row--) {
+        for (int col1 = 0; col1 < n; col1++) {
+            for (int col2 = 0; col2 < n; col2++) {
+                int collected = grid[row][col1] +
+                    (col1 != col2 ? grid[row][col2] : 0);
+
+                int best = INT_MIN;
+                for (int d1 = -1; d1 <= 1; d1++) {
+                    for (int d2 = -1; d2 <= 1; d2++) {
+                        int nc1 = col1 + d1, nc2 = col2 + d2;
+                        if (nc1 >= 0 && nc1 < n && nc2 >= 0 && nc2 < n) {
+                            best = max(best, dp[row+1][nc1][nc2]);
+                        }
+                    }
+                }
+                dp[row][col1][col2] = collected + (best == INT_MIN ? 0 : best);
+            }
+        }
+    }
+    return dp[0][0][n-1];
+}
+
+int main() {
+    vector<vector<int>> grid = {{3,1,1},{2,5,1},{1,5,5},{2,1,1}};
+    cout << solveTabulation(grid) << endl; // 24
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{grid} = \begin{bmatrix}3&1&1\\2&5&1\\1&5&5\\2&1&1\end{bmatrix}$.}
+
+The last row's table is filled directly: e.g.\
+$\textit{dp}[3][0][2] = \textit{grid}[3][0]+\textit{grid}[3][2] =
+2+1=3$ (collectors at different columns, both counted). Working
+upward, $\textit{dp}[2][\cdot][\cdot]$ combines row $2$'s chocolates
+with the best reachable entry of $\textit{dp}[3]$, and so on up to
+$\textit{dp}[0][0][2]$. Tracing the full optimal path (confirmed by the
+code): collector $1$ follows $0\to1\to2\to1$ (columns), collector $2$
+follows $2\to1\to2\to1$, jointly visiting cells that sum to a maximum
+of $\boxed{24}$ chocolates.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(m \cdot n^2)$.
+\textbf{Space.} $O(m \cdot n^2)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{ideabox}[Only the Next Row's 2D Slice Is Ever Needed]
+Exactly as in Section~\ref{sec:dp-unique-paths}, row $\textit{row}$'s
+table only ever reads from row $\textit{row}+1$ -- so the full 3D table
+collapses to two rolling 2D slices, each of size $n \times n$, instead of
+$m \times n \times n$.
+\end{ideabox}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int solveSpaceOptimized(vector<vector<int>>& grid) {
+    int m = grid.size(), n = grid[0].size();
+    vector<vector<int>> nextRow(n, vector<int>(n, 0));
+
+    for (int col1 = 0; col1 < n; col1++)
+        for (int col2 = 0; col2 < n; col2++)
+            nextRow[col1][col2] = grid[m-1][col1] +
+                (col1 != col2 ? grid[m-1][col2] : 0);
+
+    for (int row = m - 2; row >= 0; row--) {
+        vector<vector<int>> currentRow(n, vector<int>(n, 0));
+        for (int col1 = 0; col1 < n; col1++) {
+            for (int col2 = 0; col2 < n; col2++) {
+                int collected = grid[row][col1] +
+                    (col1 != col2 ? grid[row][col2] : 0);
+
+                int best = INT_MIN;
+                for (int d1 = -1; d1 <= 1; d1++) {
+                    for (int d2 = -1; d2 <= 1; d2++) {
+                        int nc1 = col1 + d1, nc2 = col2 + d2;
+                        if (nc1 >= 0 && nc1 < n && nc2 >= 0 && nc2 < n) {
+                            best = max(best, nextRow[nc1][nc2]);
+                        }
+                    }
+                }
+                currentRow[col1][col2] = collected + (best == INT_MIN ? 0 : best);
+            }
+        }
+        nextRow = currentRow;
+    }
+    return nextRow[0][n-1];
+}
+
+int main() {
+    vector<vector<int>> grid = {{3,1,1},{2,5,1},{1,5,5},{2,1,1}};
+    cout << solveSpaceOptimized(grid) << endl; // 24
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(m \cdot n^2)$.
+\textbf{Space.} $O(n^2)$ for two rolling 2D slices, instead of
+$O(m \cdot n^2)$ for the full 3D table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A 3D DP state is exactly what ``$k$ agents moving through the same
+structure simultaneously'' demands: one shared dimension for the
+synchronized step (here, the row both collectors are always on
+together), plus one dimension per agent for its own position. Everything
+about the four-stage methodology -- recursion first, then memoization,
+then tabulation in the base case's direction, then collapsing to rolling
+slices -- is unchanged from the simpler 1D and 2D problems earlier in
+this book; only the number of dimensions being tracked grows.
+\end{takeawaybox}

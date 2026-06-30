@@ -1,0 +1,132 @@
+\section{Insert a Node in a BST}
+\label{sec:bst-insert}
+
+\problemstatement{Given the root of a BST and a value $X$ to insert,
+insert $X$ into the tree so that the BST invariant still holds, and
+return the (possibly new) root.}
+
+\begin{patternbox}
+\emph{``Insert into a BST''} reuses Section~\ref{sec:bst-search}'s
+search walk almost unchanged: insertion is what happens when a search for
+$X$ runs off the edge of the tree (reaches a null pointer) instead of
+finding a match -- that null position is exactly where $X$ belongs.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Walk down the tree exactly as in Section~\ref{sec:bst-search}'s search:
+at each node, go left if $X$ is smaller, right if $X$ is larger. Since
+$X$ is not yet in the tree, this walk will never find an exact match --
+it will instead reach a null child pointer. That null position is the
+unique place where $X$ can be attached while preserving the BST
+invariant: it is smaller than everything on the path so far that went
+right, and larger than everything that went left, by construction of the
+walk itself.
+
+\begin{ideabox}[Same Walk as Search, Attach at the Null]
+Walk from the root as in a search for $X$. Whenever the walk would move
+into a null child, create a new node with value $X$ and attach it there
+instead. If the tree was empty to begin with, the new node simply becomes
+the root.
+\end{ideabox}
+
+\subsection*{Why attaching at the first null reached is always valid}
+
+Every step of the walk maintains an invariant: $X$ is consistent with
+becoming a descendant of the current node, given everything decided so
+far (it is greater than every ancestor we went right from, and less than
+every ancestor we went left from). Reaching a null pointer means no
+existing node currently occupies the position consistent with all those
+decisions -- so creating a new node there extends the tree without
+violating the BST invariant anywhere, since the new node's relationship
+to every ancestor on the path is already exactly correct by construction.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the current node is null: create and return a new node with
+        value $X$.
+  \item If $X <$ current node's value: recursively insert into the left
+        child, and attach the (possibly updated) result back as the left
+        child.
+  \item Else: recursively insert into the right child, attach back as
+        the right child.
+  \item Return the current node (unchanged, except possibly for the
+        newly attached child).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Insert into a BST}
+\begin{algorithmic}[1]
+\Procedure{InsertBST}{\textit{root}, $X$}
+  \If{$\textit{root} = \text{null}$}
+    \State \Return new node with value $X$
+  \EndIf
+  \If{$X < \textit{root}.\textit{val}$}
+    \State $\textit{root}.\textit{left} \gets \Call{InsertBST}{\textit{root}.\textit{left}, X}$
+  \Else
+    \State $\textit{root}.\textit{right} \gets \Call{InsertBST}{\textit{root}.\textit{right}, X}$
+  \EndIf
+  \State \Return \textit{root}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Insert $X=6$ into the BST with root $5$, left child $3$, right
+child $8$.}
+
+\begin{itemize}
+  \item At $5$: $6>5$, go right to $8$.
+  \item At $8$: $6<8$, go left -- but $8$ has no left child (null).
+        Create new node $6$, attach as $8$'s left child.
+\end{itemize}
+
+The tree now has $8$'s left child equal to $6$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+TreeNode* insertBST(TreeNode* root, int X) {
+    if (root == nullptr) return new TreeNode(X);
+
+    if (X < root->val) root->left = insertBST(root->left, X);
+    else root->right = insertBST(root->right, X);
+
+    return root;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(5);
+    root->left = new TreeNode(3);
+    root->right = new TreeNode(8);
+
+    insertBST(root, 6);
+    cout << "8's left child: " << root->right->left->val << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(h)$, identical to search.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack, plus $O(1)$
+for the single new node created.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Insertion is search that creates a node instead of reporting failure --
+recognizing this means you do not need to separately re-derive the walk
+logic, only add the ``attach a new node here'' step at the point where
+search would otherwise give up.
+\end{takeawaybox}

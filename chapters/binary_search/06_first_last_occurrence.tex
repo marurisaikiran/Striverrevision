@@ -1,0 +1,155 @@
+\section{Find the First and Last Occurrence of an Element}
+\label{sec:bs-first-last}
+
+\problemstatement{We are given a sorted array $\textit{arr}$ of $n$
+elements, possibly with duplicates, and a target $X$. We must find the
+index of the \textbf{first} occurrence of $X$ and the index of the
+\textbf{last} occurrence of $X$. If $X$ is not present, both should be
+$-1$.}
+
+\begin{patternbox}
+\emph{``First occurrence''} and \emph{``last occurrence''} of a value in a
+sorted array are, respectively, exactly the lower bound and
+(upper bound $- 1$) of that value, \emph{provided the value is actually
+present}. This section is mostly about correctly handling the ``what if it
+is not present at all'' case, since lower bound and upper bound alone do
+not distinguish between ``$X$ is present, starting here'' and ``$X$ is
+absent, and this is just where it would be inserted.''
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Recall from Section~\ref{sec:bs-upper-bound} that, when $X$ is present,
+\[
+  \textit{firstOccurrence} = \textit{lowerBound}(X), \qquad
+  \textit{lastOccurrence} = \textit{upperBound}(X) - 1.
+\]
+The subtlety is verifying presence. The lower bound of $X$ gives the first
+index whose value is $\ge X$; this is the same as the first occurrence of
+$X$ \emph{only if} the value actually stored at that index equals $X$ (and
+the index is within bounds). If $\textit{lowerBound}(X) = n$, or if
+$\textit{arr}[\textit{lowerBound}(X)] \ne X$, then $X$ is simply not in the
+array at all.
+
+\begin{ideabox}[Approach]
+Compute $\textit{lb} \gets \textit{lowerBound}(X)$. If $\textit{lb} = n$ or
+$\textit{arr}[\textit{lb}] \ne X$, return $(-1,-1)$. Otherwise, the first
+occurrence is $\textit{lb}$, and the last occurrence is
+$\textit{upperBound}(X) - 1$.
+\end{ideabox}
+
+\subsection*{Why checking presence only once is sufficient}
+
+Because the array is sorted, every occurrence of $X$ forms a single
+contiguous block. If the very first candidate position (the lower bound)
+does not actually hold $X$, no later position can hold $X$ either -- the
+lower bound is, by construction, the leftmost position any element $\ge X$
+could occupy, so if even that position fails to be exactly $X$, $X$ does
+not appear anywhere in the array. This means a single equality check after
+computing the lower bound is enough to settle presence, with no need for
+an additional independent search.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{lb} \gets \textit{lowerBound}(\textit{arr}, X)$ (using
+        Algorithm~\ref{sec:bs-lower-bound}).
+  \item If $\textit{lb} = n$ or $\textit{arr}[\textit{lb}] \ne X$: return
+        $(-1, -1)$.
+  \item Otherwise: $\textit{ub} \gets \textit{upperBound}(\textit{arr}, X)$
+        (using Algorithm~\ref{sec:bs-upper-bound}). Return
+        $(\textit{lb}, \textit{ub} - 1)$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{First and Last Occurrence}
+\begin{algorithmic}[1]
+\Procedure{FirstAndLast}{$\textit{arr}, X$}
+  \State $\textit{lb} \gets \Call{LowerBound}{\textit{arr}, X}$
+  \If{$\textit{lb} = n$ \textbf{or} $\textit{arr}[\textit{lb}] \ne X$}
+    \State \Return $(-1, -1)$
+  \EndIf
+  \State $\textit{ub} \gets \Call{UpperBound}{\textit{arr}, X}$
+  \State \Return $(\textit{lb}, \textit{ub} - 1)$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [5, 7, 7, 8, 8, 10]$, $X = 8$.}
+
+$\textit{lowerBound}(8)$: scanning, the first index with value $\ge 8$ is
+index $3$ ($\textit{arr}[3]=8$). Since $\textit{arr}[3]=8=X$, $X$ is
+present. $\textit{upperBound}(8)$: the first index with value $>8$ is
+index $5$ ($\textit{arr}[5]=10$). So
+$\textit{lastOccurrence} = 5 - 1 = 4$.
+
+The answer is (first $=3$, last $=4$).
+
+Now take $X = 6$ on the same array. $\textit{lowerBound}(6) = 1$
+($\textit{arr}[1]=7 \ge 6$ is the first such index). But
+$\textit{arr}[1] = 7 \ne 6$, so $6$ is not present, and the answer is
+$(-1, -1)$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lowerBound(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1, ans = n;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] >= X) { ans = mid; hi = mid - 1; }
+        else lo = mid + 1;
+    }
+    return ans;
+}
+
+int upperBound(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1, ans = n;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] > X) { ans = mid; hi = mid - 1; }
+        else lo = mid + 1;
+    }
+    return ans;
+}
+
+pair<int,int> firstAndLast(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lb = lowerBound(arr, X);
+    if (lb == n || arr[lb] != X) return {-1, -1};
+
+    int ub = upperBound(arr, X);
+    return {lb, ub - 1};
+}
+
+int main() {
+    vector<int> arr = {5, 7, 7, 8, 8, 10};
+    auto [first, last] = firstAndLast(arr, 8);
+    cout << "First: " << first << ", Last: " << last << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Two binary searches (lower bound and, if needed,
+upper bound), each $O(\log n)$, giving an overall time complexity of
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Lower bound and upper bound, used together with a single presence check,
+solve any ``range of occurrences'' question about a sorted array. There is
+rarely a need to write a bespoke binary search for ``first occurrence'' or
+``last occurrence'' from scratch -- compose them from the lower/upper bound
+primitives instead.
+\end{takeawaybox}

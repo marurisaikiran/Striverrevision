@@ -1,0 +1,150 @@
+\section{Sum of Subarray Minimums}
+\label{sec:sq-sum-subarray-minimums}
+
+\problemstatement{Given an array $\textit{arr}$ of $n$ integers, consider
+every one of its $\binom{n+1}{2}$ contiguous subarrays. Compute the sum,
+over all of them, of each subarray's minimum element (the result can be
+large, so it is typically returned modulo $10^9+7$).}
+
+\begin{patternbox}
+\emph{``Sum, over all subarrays, of each subarray's minimum (or
+maximum)''} is a strong signal to flip the entire computation around:
+instead of asking, for each subarray, ``what is its minimum,'' ask, for
+each \textbf{element}, ``in how many subarrays is \emph{this} element the
+minimum.'' This contribution-counting reformulation, combined with a
+monotonic stack to compute exactly that count for every element in
+$O(n)$ total, avoids ever enumerating the $O(n^2)$ subarrays directly.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For element $\textit{arr}[i]$ to be the minimum of some subarray, that
+subarray must be entirely contained within the maximal range around $i$
+over which $\textit{arr}[i]$ remains the smallest value -- bounded on the
+left by the nearest strictly smaller element, and on the right by the
+nearest smaller-or-equal element (using a strict boundary on one side and
+a non-strict boundary on the other is essential to avoid double-counting
+subarrays when duplicate values are present, by consistently attributing
+each subarray's minimum to a single, well-defined occurrence among any
+tied values).
+
+\begin{ideabox}[{Count Subarrays Where $\textit{arr}[i]$ Is the Minimum}]
+For each $i$, let $\textit{left}[i]$ be the number of valid choices for a
+subarray's left endpoint such that every element from that endpoint up to
+$i$ is $\ge \textit{arr}[i]$ -- this equals $i - \textit{PLE}(i)$, where
+$\textit{PLE}(i)$ is the index of the nearest element to the left that is
+\emph{strictly less} than $\textit{arr}[i]$ (or $-1$ if none). Let
+$\textit{right}[i]$ be the number of valid choices for the right endpoint
+such that every element from $i$ to that endpoint is $\ge
+\textit{arr}[i]$ -- this equals $\textit{NLE}(i) - i$, where
+$\textit{NLE}(i)$ is the nearest element to the right that is \emph{less
+than or equal to} $\textit{arr}[i]$ (or $n$ if none). Then
+$\textit{arr}[i]$ is the minimum of exactly $\textit{left}[i] \times
+\textit{right}[i]$ subarrays (any combination of a valid left endpoint and
+a valid right endpoint).
+\end{ideabox}
+
+\subsection*{Why the strict/non-strict boundary asymmetry avoids double-counting}
+
+If both boundaries used the same (either both strict, or both
+non-strict) comparison, a subarray containing two equal minimum values
+would be counted once for \emph{each} occurrence of that value, inflating
+the sum. Using strictly-less on the left and less-or-equal on the right
+ensures that, among several equal candidate minimum positions within a
+subarray, only the \textbf{leftmost} one ``claims'' that subarray as
+contributing to its count: the leftmost equal occurrence's right boundary
+search will stop at the very next equal (or smaller) value, while any
+later equal occurrence's left boundary search will pass straight over
+the earlier equal value (since it is not \emph{strictly} less) and only
+stop at a genuinely smaller one further left -- so the two occurrences
+never both count the same subarray.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute $\textit{left}[i]$ for every $i$ via a monotonic
+        increasing stack scanned left to right: pop while the stack's top
+        value $\ge \textit{arr}[i]$; $\textit{left}[i] \gets i - (\text{
+        stack empty} ? -1 : \text{top index})$; push $i$.
+  \item Compute $\textit{right}[i]$ for every $i$ via a monotonic stack
+        scanned right to left: pop while the stack's top value $>
+        \textit{arr}[i]$; $\textit{right}[i] \gets (\text{stack empty} ?
+        n : \text{top index}) - i$; push $i$.
+  \item Sum $\textit{arr}[i] \times \textit{left}[i] \times
+        \textit{right}[i]$ over all $i$, modulo $10^9+7$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [3,1,2,4]$.}
+
+\textbf{Left} (pop while top $\ge \textit{arr}[i]$): $\textit{left} =
+[1,2,1,1]$ (computed via the standard PLE scan, e.g.\ at $i=2$, value
+$2$: the stack's top is index $1$, value $1 < 2$, so no pop;
+$\textit{left}[2]=2-1=1$).
+
+\textbf{Right} (pop while top $> \textit{arr}[i]$): $\textit{right} =
+[1,3,2,1]$ (e.g.\ at $i=1$, value $1$: scanning right to left, both
+index $2$ (value $2$) and index $3$... after appropriate pops the stack
+empties, giving $\textit{right}[1]=4-1=3$).
+
+Contributions: $3 \times 1 \times 1=3$; $1\times2\times3=6$;
+$2\times1\times2=4$; $4\times1\times1=4$. Total $=3+6+4+4=17$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+int sumSubarrayMins(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> left(n), right(n);
+    stack<int> st;
+
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && arr[st.top()] >= arr[i]) st.pop();
+        left[i] = i - (st.empty() ? -1 : st.top());
+        st.push(i);
+    }
+
+    while (!st.empty()) st.pop();
+
+    for (int i = n - 1; i >= 0; i--) {
+        while (!st.empty() && arr[st.top()] > arr[i]) st.pop();
+        right[i] = (st.empty() ? n : st.top()) - i;
+        st.push(i);
+    }
+
+    long long total = 0;
+    for (int i = 0; i < n; i++) {
+        total = (total + (long long)arr[i] * left[i] % MOD * right[i]) % MOD;
+    }
+    return total;
+}
+
+int main() {
+    vector<int> arr = {3, 1, 2, 4};
+    cout << "Sum of subarray minimums: " << sumSubarrayMins(arr) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Two monotonic-stack passes, each $O(n)$, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stacks and the
+\textit{left}/\textit{right} arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Sum/count over all subarrays of [some per-subarray extremum]'' is
+solved not by enumerating subarrays, but by computing, for each element,
+\emph{how many} subarrays it is the extremum of -- a count derived from
+the nearest strictly-more-extreme boundaries on each side, found with two
+monotonic-stack passes. This contribution-counting reformulation is one
+of the most powerful general techniques to recognize in this chapter.
+\end{takeawaybox}

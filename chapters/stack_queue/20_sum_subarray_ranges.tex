@@ -1,0 +1,155 @@
+\section{Sum of Subarray Ranges}
+\label{sec:sq-sum-subarray-ranges}
+
+\problemstatement{Given an array $\textit{arr}$, the \textbf{range} of a
+subarray is defined as its maximum element minus its minimum element.
+Compute the sum of ranges over all contiguous subarrays.}
+
+\begin{patternbox}
+A subarray's range is, by definition, $\max - \min$. Summing ranges over
+all subarrays is therefore exactly
+\[
+  \left(\sum_{\text{subarrays}} \max\right) -
+  \left(\sum_{\text{subarrays}} \min\right),
+\]
+and the second term is precisely Section~\ref{sec:sq-sum-subarray-minimums}'s
+problem. The first term is its exact mirror image -- ``sum of subarray
+maximums'' -- solved by the same contribution-counting technique with
+every comparison flipped. No new derivation is needed; this problem is a
+direct combination of two near-identical applications of the same idea.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Linearity of summation lets us split the sum of $(\max - \min)$ over all
+subarrays into a sum of $\max$ over all subarrays, minus a sum of
+$\min$ over all subarrays, computed completely independently. Each piece
+is solved by the contribution-counting technique from
+Section~\ref{sec:sq-sum-subarray-minimums}: for the minimum part, exactly
+as before; for the maximum part, the same left/right boundary counting,
+but searching for the nearest strictly-\emph{greater} element (instead of
+strictly-less) on one side and greater-or-equal on the other.
+
+\begin{ideabox}[Reuse Twice, with Comparisons Flipped for the Maximum Half]
+Compute $\textit{sumOfMins}$ exactly as in
+Algorithm~\ref{sec:sq-sum-subarray-minimums}. Compute
+$\textit{sumOfMaxs}$ with the same algorithm, but with stack comparisons
+flipped: the left pass pops while the stack's top value $\le
+\textit{arr}[i]$ (finding the nearest strictly \emph{greater} element to
+the left), and the right pass pops while the stack's top value $<
+\textit{arr}[i]$ (finding the nearest greater-or-equal element to the
+right). Return $\textit{sumOfMaxs} - \textit{sumOfMins}$.
+\end{ideabox}
+
+\subsection*{Why flipping every comparison correctly computes the maximum-side sum}
+
+This is a direct restatement of the next-greater/next-smaller duality
+established in Section~\ref{sec:sq-next-smaller}: ``how many subarrays is
+$\textit{arr}[i]$ the maximum of'' is structurally identical to ``how many
+subarrays is $\textit{arr}[i]$ the minimum of,'' with every $<$ replaced
+by $>$ and vice versa. The strict/non-strict asymmetry between the two
+boundary searches is still required, for the same reason as
+Section~\ref{sec:sq-sum-subarray-minimums}: to avoid double-counting
+subarrays containing duplicate maximum values.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute $\textit{sumOfMins}$ using
+        Algorithm~\ref{sec:sq-sum-subarray-minimums} unchanged.
+  \item Compute $\textit{sumOfMaxs}$ using the same algorithm structure,
+        with left-pass pops on $\le$ and right-pass pops on $<$ (instead
+        of $\ge$ and $>$ respectively).
+  \item Return $\textit{sumOfMaxs} - \textit{sumOfMins}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,2,3]$.}
+
+$\textit{sumOfMins}$: subarrays and their minimums: $[1]{=}1$, $[2]{=}2$,
+$[3]{=}3$, $[1,2]{=}1$, $[2,3]{=}2$, $[1,2,3]{=}1$. Sum $=1+2+3+1+2+1=10$.
+
+$\textit{sumOfMaxs}$: maximums: $1,2,3,2,3,3$. Sum
+$=1+2+3+2+3+3=14$.
+
+Sum of ranges $=14-10=4$. Checking directly: ranges are $0,0,0,1,1,2$,
+summing to $4$. Matches.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+long long sumOfMins(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> left(n), right(n);
+    stack<int> st;
+
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && arr[st.top()] >= arr[i]) st.pop();
+        left[i] = i - (st.empty() ? -1 : st.top());
+        st.push(i);
+    }
+    while (!st.empty()) st.pop();
+    for (int i = n - 1; i >= 0; i--) {
+        while (!st.empty() && arr[st.top()] > arr[i]) st.pop();
+        right[i] = (st.empty() ? n : st.top()) - i;
+        st.push(i);
+    }
+
+    long long total = 0;
+    for (int i = 0; i < n; i++) total += (long long)arr[i] * left[i] * right[i];
+    return total;
+}
+
+long long sumOfMaxs(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> left(n), right(n);
+    stack<int> st;
+
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && arr[st.top()] <= arr[i]) st.pop();
+        left[i] = i - (st.empty() ? -1 : st.top());
+        st.push(i);
+    }
+    while (!st.empty()) st.pop();
+    for (int i = n - 1; i >= 0; i--) {
+        while (!st.empty() && arr[st.top()] < arr[i]) st.pop();
+        right[i] = (st.empty() ? n : st.top()) - i;
+        st.push(i);
+    }
+
+    long long total = 0;
+    for (int i = 0; i < n; i++) total += (long long)arr[i] * left[i] * right[i];
+    return total;
+}
+
+long long sumSubarrayRanges(vector<int>& arr) {
+    return sumOfMaxs(arr) - sumOfMins(arr);
+}
+
+int main() {
+    vector<int> arr = {1, 2, 3};
+    cout << "Sum of subarray ranges: " << sumSubarrayRanges(arr) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Four monotonic-stack passes total (two for
+minimums, two for maximums), each $O(n)$, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a quantity decomposes linearly (here, range $= \max - \min$),
+compute each piece with whatever technique already solves it, and combine
+at the end -- there is no need to find a single unified algorithm that
+handles $\max$ and $\min$ simultaneously when summing them separately and
+subtracting is just as correct and far simpler to reason about.
+\end{takeawaybox}

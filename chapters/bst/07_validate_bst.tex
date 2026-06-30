@@ -1,0 +1,144 @@
+\section{Validate a Binary Search Tree}
+\label{sec:bst-validate}
+
+\problemstatement{Given the root of a binary tree, determine whether it
+is a valid BST: for every node, all values in its left subtree must be
+strictly less than the node's value, and all values in its right subtree
+must be strictly greater.}
+
+\begin{patternbox}
+The keyword trap here: it is tempting to check only that each node is
+greater than its immediate left child and less than its immediate right
+child, but the BST invariant is actually about \textbf{every} node in
+each subtree, not just the direct children. \emph{``Validate a property
+that must hold against \textbf{all ancestors}, not just the immediate
+parent''} signals that the recursion needs to carry a \textbf{valid
+range} downward, narrowing at every step, rather than just comparing
+parent to child.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Consider the tree with root $5$, left child $3$, and $3$'s right child
+$6$. Checking only parent-child pairs would see: $3<5$ (fine, left child
+smaller than parent) and $6>3$ (fine, right child larger than its own
+parent) -- and incorrectly conclude this is a valid BST. But $6$ sits in
+$5$'s \emph{left} subtree, and the BST invariant requires \emph{every}
+value there to be less than $5$, which $6$ violates. The bug is checking
+only local parent-child relationships instead of the full inherited
+range of validity.
+
+\begin{ideabox}[Pass Down a Valid (Lower, Upper) Range]
+Recurse with two bounds, $\textit{lower}$ and $\textit{upper}$
+(initially $-\infty$ and $+\infty$ at the root). At each node: if its
+value is not strictly between $\textit{lower}$ and $\textit{upper}$,
+the tree is invalid. Otherwise, recurse left with the same
+$\textit{lower}$ but $\textit{upper}$ tightened to the current node's
+value (everything in the left subtree must be less than this node), and
+recurse right with $\textit{lower}$ tightened to the current node's
+value and the same $\textit{upper}$.
+\end{ideabox}
+
+\subsection*{Why narrowing the range at every level correctly enforces the global invariant}
+
+By construction, the range $(\textit{lower}, \textit{upper})$ passed into
+any node already reflects the combined constraints of \emph{every}
+ancestor on the path from the root, not just the immediate parent: each
+recursive call only ever tightens the range, never loosens it, so a deep
+descendant's range is the \emph{intersection} of every constraint imposed
+by every ancestor above it. Checking the current node's value against
+this fully-accumulated range is therefore equivalent to checking it
+against every single ancestor directly, just done incrementally and in
+$O(1)$ work per node instead of re-walking ancestors at every step.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Validate}(\textit{node}, \textit{lower}, \textit{upper}):
+  \begin{enumerate}
+    \item If $\textit{node} = $ null: return true (an empty tree is
+          trivially valid).
+    \item If $\textit{node}.\textit{val} \le \textit{lower}$ or
+          $\textit{node}.\textit{val} \ge \textit{upper}$: return
+          false.
+    \item Return
+          \textsc{Validate}($\textit{node}.\textit{left}, \textit{lower},
+          \textit{node}.\textit{val}$) \textbf{and}
+          \textsc{Validate}($\textit{node}.\textit{right},
+          \textit{node}.\textit{val}, \textit{upper}$).
+  \end{enumerate}
+  \item Call with $\textit{lower}=-\infty$, $\textit{upper}=+\infty$ at
+        the root.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the tree with root $5$, left child $3$, $3$'s right child
+$6$.}
+
+\begin{itemize}
+  \item At $5$, range $(-\infty,+\infty)$: $5$ is within range.
+        Recurse left into $3$ with range $(-\infty,5)$; recurse right
+        into null with range $(5,+\infty)$ (trivially valid).
+  \item At $3$, range $(-\infty,5)$: $3$ is within range. Recurse left
+        into null (valid); recurse right into $6$ with range $(3,5)$.
+  \item At $6$, range $(3,5)$: is $6$ strictly between $3$ and $5$? No
+        ($6 \ge 5$). Return false.
+\end{itemize}
+
+The tree is correctly identified as \textbf{invalid}.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+bool validate(TreeNode* node, long long lower, long long upper) {
+    if (node == nullptr) return true;
+    if (node->val <= lower || node->val >= upper) return false;
+
+    return validate(node->left, lower, node->val) &&
+           validate(node->right, node->val, upper);
+}
+
+bool isValidBST(TreeNode* root) {
+    return validate(root, LLONG_MIN, LLONG_MAX);
+}
+
+int main() {
+    TreeNode* root = new TreeNode(5);
+    root->left = new TreeNode(3);
+    root->left->right = new TreeNode(6);
+
+    cout << (isValidBST(root) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Every node is visited exactly once, with
+$O(1)$ work per node, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Any property phrased as ``true for every node relative to \emph{all} of
+its ancestors/descendants,'' not just its immediate neighbors, needs
+state (here, a valid range) threaded through the recursion, accumulating
+constraints as it descends. An equally valid alternative solution
+performs an inorder traversal and checks that the resulting sequence is
+strictly increasing, directly invoking
+Section~\ref{sec:bst-intro}'s headline fact -- worth knowing as a second
+way to arrive at the same answer.
+\end{takeawaybox}

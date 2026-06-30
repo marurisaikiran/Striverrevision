@@ -1,0 +1,186 @@
+\section{LRU Cache}
+\label{sec:sq-lru-cache}
+
+\problemstatement{Design a cache with a fixed capacity supporting
+$\textit{get}(\textit{key})$ (return the value if present, else $-1$, and
+mark the key as recently used) and $\textit{put}(\textit{key},
+\textit{value})$ (insert or update a key, marking it recently used; if the
+cache is full and a new key must be inserted, evict the
+\textbf{least recently used} key first). Both operations must run in
+$O(1)$.}
+
+\begin{patternbox}
+\emph{``Most/least recently used, with fast lookup''} is the keyword
+combination from Section~\ref{sec:sq-intro}: $O(1)$ lookup by key demands
+a hash map, while $O(1)$ ``move this to the most-recent end'' and
+``evict the least-recent end'' demands a structure with fast removal and
+insertion at \emph{both} ends and from the \emph{middle} -- which a plain
+array or singly linked list cannot offer, but a \textbf{doubly linked
+list} can.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+A hash map alone gives $O(1)$ lookup but no notion of ``recency
+order.'' A queue alone gives recency order but $O(n)$ lookup by key, and
+moving an arbitrary key to the front of recency would require knowing its
+position. Combining both is the standard fix: a \textbf{doubly linked
+list} maintains recency order (most recently used at one end, least
+recently used at the other), and a \textbf{hash map from key to that
+key's node} gives $O(1)$ lookup -- crucially, because the list is
+\emph{doubly} linked, removing a node found via the hash map (to move it
+or evict it) takes $O(1)$, since we have direct pointers to its neighbors
+without needing to traverse from either end.
+
+\begin{ideabox}[Doubly Linked List + Hash Map]
+Maintain a doubly linked list with two sentinel nodes, \textit{head} and
+\textit{tail}, where the side nearest \textit{head} represents
+\emph{most} recently used and the side nearest \textit{tail} represents
+\emph{least} recently used. A hash map stores $\textit{key} \to
+\textit{node pointer}$. On $\textit{get}(\textit{key})$: if present,
+unlink the node from its current position and re-insert it right after
+\textit{head} (marking it most recent), then return its value; if absent,
+return $-1$. On $\textit{put}(\textit{key}, \textit{value})$: if the key
+exists, update its value and move its node to just after \textit{head}
+(same as a successful get). If the key is new and the cache is at
+capacity, remove the node just before \textit{tail} (the least recently
+used) along with its hash map entry; then insert a new node for this key
+just after \textit{head}.
+\end{ideabox}
+
+\subsection*{Why doubly linked, not singly linked, is essential}
+
+The operation that makes this problem hard is not insertion or removal at
+the \emph{ends} (a singly linked list with head and tail pointers could
+handle that, as in Section~\ref{sec:sq-queue-linked-list}) -- it is
+removal from an \textbf{arbitrary middle position}, which happens every
+time an already-cached key is accessed again and must be promoted to
+most-recently-used. Removing a node from the middle of a singly linked
+list requires knowing its \emph{predecessor}, which means traversing from
+the head -- an $O(n)$ operation. A doubly linked list stores each node's
+predecessor pointer directly, so the hash map's stored node pointer alone
+is enough to unlink it in $O(1)$, with no traversal needed at all.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain sentinel \textit{head} and \textit{tail} nodes, a hash
+        map $\textit{key} \to \textit{node}$, and a capacity limit.
+  \item \textsc{Get}($\textit{key}$): if absent, return $-1$. Else:
+        unlink the node; re-insert it right after \textit{head}; return
+        its value.
+  \item \textsc{Put}($\textit{key}, \textit{value}$): if present, update
+        the node's value and move it to right after \textit{head}
+        (as in \textsc{Get}). If absent and at capacity: remove the
+        node just before \textit{tail} (and its map entry). Create a new
+        node, insert it right after \textit{head}, and add it to the map.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Capacity $2$. \textsc{Put}(1,1), \textsc{Put}(2,2),
+\textsc{Get}(1), \textsc{Put}(3,3) (evicts LRU), \textsc{Get}(2).}
+
+\begin{itemize}
+  \item Put(1,1): list (MRU$\to$LRU) $=[1]$.
+  \item Put(2,2): list $=[2,1]$.
+  \item Get(1): found; move to front. List $=[1,2]$. Returns $1$.
+  \item Put(3,3): cache full ($2$ keys); evict LRU end ($2$). List
+        $=[3,1]$.
+  \item Get(2): key $2$ was evicted; returns $-1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class LRUCache {
+    struct Node {
+        int key, value;
+        Node* prev = nullptr;
+        Node* next = nullptr;
+        Node(int k, int v) : key(k), value(v) {}
+    };
+
+    int capacity;
+    Node* head; // sentinel: head->next is most recently used
+    Node* tail; // sentinel: tail->prev is least recently used
+    unordered_map<int, Node*> map;
+
+    void remove(Node* node) {
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+    }
+
+    void insertAfterHead(Node* node) {
+        node->next = head->next;
+        node->prev = head;
+        head->next->prev = node;
+        head->next = node;
+    }
+
+public:
+    LRUCache(int cap) : capacity(cap) {
+        head = new Node(-1, -1);
+        tail = new Node(-1, -1);
+        head->next = tail;
+        tail->prev = head;
+    }
+
+    int get(int key) {
+        if (!map.count(key)) return -1;
+        Node* node = map[key];
+        remove(node);
+        insertAfterHead(node);
+        return node->value;
+    }
+
+    void put(int key, int value) {
+        if (map.count(key)) {
+            Node* node = map[key];
+            node->value = value;
+            remove(node);
+            insertAfterHead(node);
+            return;
+        }
+        if ((int)map.size() == capacity) {
+            Node* lru = tail->prev;
+            remove(lru);
+            map.erase(lru->key);
+            delete lru;
+        }
+        Node* node = new Node(key, value);
+        insertAfterHead(node);
+        map[key] = node;
+    }
+};
+
+int main() {
+    LRUCache cache(2);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cout << cache.get(1) << endl; // 1
+    cache.put(3, 3); // evicts key 2
+    cout << cache.get(2) << endl; // -1
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ for both $\textit{get}$ and
+$\textit{put}$ -- hash map lookup, plus a constant number of pointer
+updates for the doubly linked list operations.
+\textbf{Space Complexity.} $O(\textit{capacity})$ for the nodes and hash
+map.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Fast lookup by key'' plus ``fast reordering by recency, including
+removal from the middle'' is the signature combination that demands a
+hash map paired with a \emph{doubly} linked list, not a singly linked one
+-- the doubly linked structure is what converts an $O(n)$ traversal-to-find-predecessor
+into an $O(1)$ direct unlink. The same pairing, with a different
+eviction rule, solves LFU Cache next.
+\end{takeawaybox}

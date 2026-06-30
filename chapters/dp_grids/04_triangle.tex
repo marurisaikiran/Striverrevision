@@ -1,0 +1,194 @@
+\section{Triangle}
+\label{sec:dp-triangle}
+
+\problemstatement{Given a triangular array of numbers (row $i$ has
+$i+1$ entries, $0$-indexed), find the minimum path sum from the top to
+any entry of the bottom row, where moving from $(i,j)$ to the next row
+may go to $(i+1,j)$ or $(i+1,j+1)$.}
+
+\begin{patternbox}
+\emph{``Path through a triangular grid, moving to one of two cells in
+the next row''} is structurally the same combine-two-predecessors
+recurrence as Minimum Path Sum (Section~\ref{sec:dp-minimum-path-sum}),
+but with a twist worth noticing carefully: each cell's choices point
+\textbf{forward and downward} (to the next row), not backward
+(from the previous row), which means the most natural recursion starts
+at the \textbf{top} and recurses toward the bottom, and -- correspondingly
+-- the tabulation table is most naturally filled starting from the
+\textbf{bottom} row upward, the opposite direction from every grid DP
+problem so far in this chapter.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $\textit{minSum}(i,j)$ be the minimum path sum starting from cell
+$(i,j)$ down to \emph{any} cell in the last row. From $(i,j)$, the path
+must continue to $(i+1,j)$ or $(i+1,j+1)$, and we want the cheaper
+continuation:
+\[
+  \textit{minSum}(i,j) = \textit{triangle}[i][j] + \min\big(
+  \textit{minSum}(i+1,j),\ \textit{minSum}(i+1,j+1)\big).
+\]
+Base case: at the last row ($i = n-1$), there is nowhere further to go,
+so $\textit{minSum}(n-1,j) = \textit{triangle}[n-1][j]$ directly. The
+overall answer is $\textit{minSum}(0,0)$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int triangleRecursive(int i, int j, vector<vector<int>>& triangle) {
+    int n = triangle.size();
+    if (i == n - 1) return triangle[i][j];
+
+    int down      = triangleRecursive(i + 1, j, triangle);
+    int downRight = triangleRecursive(i + 1, j + 1, triangle);
+    return triangle[i][j] + min(down, downRight);
+}
+
+int main() {
+    vector<vector<int>> triangle = {{2},{3,4},{6,5,7},{4,1,8,3}};
+    cout << triangleRecursive(0, 0, triangle) << endl; // 11
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$ -- two branches per call, depth $n$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int triangleMemo(int i, int j, vector<vector<int>>& triangle,
+                  vector<vector<int>>& memo) {
+    int n = triangle.size();
+    if (i == n - 1) return triangle[i][j];
+    if (memo[i][j] != -1) return memo[i][j];
+
+    int down      = triangleMemo(i + 1, j, triangle, memo);
+    int downRight = triangleMemo(i + 1, j + 1, triangle, memo);
+    return memo[i][j] = triangle[i][j] + min(down, downRight);
+}
+
+int main() {
+    vector<vector<int>> triangle = {{2},{3,4},{6,5,7},{4,1,8,3}};
+    int n = triangle.size();
+    vector<vector<int>> memo(n, vector<int>(n, -1));
+    cout << triangleMemo(0, 0, triangle, memo) << endl; // 11
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n^2)$ -- the triangle has $O(n^2)$ total cells.
+\textbf{Space.} $O(n^2)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{ideabox}[Fill the Table Bottom-Up, in the Direction of the Base Case]
+Because the recurrence reads from row $i+1$ to compute row $i$, the
+tabulation loop must process rows in \textbf{decreasing} order of $i$,
+starting by copying the last row directly (the base case), and working
+upward to row $0$ -- the mirror image of Sections~\ref{sec:dp-unique-paths}--\ref{sec:dp-minimum-path-sum}'s
+top-to-bottom fill order.
+\end{ideabox}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int triangleTabulation(vector<vector<int>>& triangle) {
+    int n = triangle.size();
+    vector<vector<int>> dp(n, vector<int>(n, 0));
+
+    for (int j = 0; j < n; j++) dp[n-1][j] = triangle[n-1][j];
+
+    for (int i = n - 2; i >= 0; i--) {
+        for (int j = 0; j <= i; j++) {
+            int down      = dp[i+1][j];
+            int downRight = dp[i+1][j+1];
+            dp[i][j] = triangle[i][j] + min(down, downRight);
+        }
+    }
+    return dp[0][0];
+}
+
+int main() {
+    vector<vector<int>> triangle = {{2},{3,4},{6,5,7},{4,1,8,3}};
+    cout << triangleTabulation(triangle) << endl; // 11
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{triangle} = [[2],[3,4],[6,5,7],[4,1,8,3]]$.}
+
+\begin{itemize}
+  \item Row $3$ (base case): $\textit{dp}[3] = [4,1,8,3]$.
+  \item Row $2$: $\textit{dp}[2][0] = 6+\min(4,1)=7$;
+        $\textit{dp}[2][1] = 5+\min(1,8)=6$; $\textit{dp}[2][2] =
+        7+\min(8,3)=10$.
+  \item Row $1$: $\textit{dp}[1][0] = 3+\min(7,6)=9$;
+        $\textit{dp}[1][1] = 4+\min(6,10)=10$.
+  \item Row $0$: $\textit{dp}[0][0] = 2+\min(9,10)=11$.
+\end{itemize}
+
+The minimum path sum is $\boxed{11}$, via $2\to3\to5\to1$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n^2)$.
+\textbf{Space.} $O(n^2)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int triangleSpaceOptimized(vector<vector<int>>& triangle) {
+    int n = triangle.size();
+    vector<int> nextRow = triangle[n - 1];
+
+    for (int i = n - 2; i >= 0; i--) {
+        vector<int> currentRow(i + 1);
+        for (int j = 0; j <= i; j++) {
+            int down      = nextRow[j];
+            int downRight = nextRow[j + 1];
+            currentRow[j] = triangle[i][j] + min(down, downRight);
+        }
+        nextRow = currentRow;
+    }
+    return nextRow[0];
+}
+
+int main() {
+    vector<vector<int>> triangle = {{2},{3,4},{6,5,7},{4,1,8,3}};
+    cout << triangleSpaceOptimized(triangle) << endl; // 11
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n^2)$.
+\textbf{Space.} $O(n)$ for the single rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Always let the \emph{base case's location} dictate the tabulation's fill
+direction -- when a recurrence looks ``forward'' to a later row (as
+here), the table must be filled starting from that later base case and
+working backward, not from index $0$ forward. Checking which direction
+the recursion's base case sits in, before writing the tabulation loop, is
+a habit worth forming explicitly to avoid reading uninitialized table
+entries.
+\end{takeawaybox}

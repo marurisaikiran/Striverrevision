@@ -1,0 +1,65 @@
+\chapter{Dynamic Programming: DP on LIS}
+\chapterepigraph{The longest increasing subsequence asks one question
+at every position: looking back at everything already placed, what is
+the best chain I could be extending right now? Once that single
+question is answered efficiently, an entire family of problems --
+divisibility chains, string chains, bitonic sequences, counting -- falls
+out as the same question asked with a different notion of ``extends.''}
+
+\section{Ending-Here DP: A New Way to Index the Table}
+\label{sec:dp-lis-intro}
+
+Every problem in this chapter uses a state shape not yet seen in this
+book: $\textit{dp}[i]$ represents the best answer for a subsequence (or
+chain) \textbf{ending exactly at index $i$} -- not a prefix-based answer
+like every earlier chapter's $f(i, \ldots)$, which represented the best
+answer using \emph{only} the first $i$ elements. This ``ending-here''
+indexing is what allows the final answer to be the maximum over
+\emph{all} $\textit{dp}[i]$, rather than simply $\textit{dp}[n]$.
+
+\begin{ideabox}[Why the Answer Lives in a Maximum Over the Whole Table, Not One Cell]
+A longest increasing subsequence can end at \emph{any} position in the
+array -- there is no reason to expect it ends at the last element. So,
+unlike LCS or Knapsack-family problems where the final answer sits at
+one specific corner of the table ($\textit{dp}[n][m]$), here every cell
+$\textit{dp}[i]$ is independently a candidate answer, and we must scan
+the entire filled table for the maximum at the end. This is the single
+biggest structural difference to watch for in this chapter.
+\end{ideabox}
+
+\begin{patternbox}[How ``Ending-Here'' Generalizes Beyond Plain LIS]
+\begin{itemize}
+  \item \textbf{Longest Increasing Subsequence}: $\textit{dp}[i] = 1 +
+        \max(\textit{dp}[j])$ over all $j<i$ with
+        $\textit{arr}[j] < \textit{arr}[i]$.
+  \item \textbf{Largest Divisible Subset (Section~\ref{sec:dp-largest-divisible-subset})}:
+        identical shape, with the condition $\textit{arr}[j] <
+        \textit{arr}[i]$ replaced by $\textit{arr}[i] \bmod
+        \textit{arr}[j] = 0$ (after sorting).
+  \item \textbf{Longest String Chain (Section~\ref{sec:dp-longest-string-chain})}:
+        identical shape, with the condition replaced by ``$\textit{word}_j$
+        becomes $\textit{word}_i$ after inserting exactly one
+        character'' (after sorting by length).
+  \item \textbf{Longest Bitonic Subsequence (Section~\ref{sec:dp-longest-bitonic-subsequence})}:
+        run the ending-here LIS computation \textbf{twice} (once
+        forward for increasing runs, once backward for decreasing
+        runs) and combine the two tables at each index.
+  \item \textbf{Number of LIS (Section~\ref{sec:dp-number-of-lis})}: pair
+        $\textit{dp}[i]$ (the best length ending here) with a second
+        table $\textit{count}[i]$ (how many subsequences of that best
+        length end here), updated together.
+\end{itemize}
+Recognizing this single recurrence shape -- extend from any valid
+earlier ``ending-here'' cell, under whatever notion of ``valid'' the
+problem defines -- is the entire content of this chapter.
+\end{patternbox}
+
+\newpage
+
+\input{chapters/dp_lis/01_longest_increasing_subsequence.tex}
+\input{chapters/dp_lis/02_print_lis.tex}
+\input{chapters/dp_lis/03_lis_binary_search.tex}
+\input{chapters/dp_lis/04_largest_divisible_subset.tex}
+\input{chapters/dp_lis/05_longest_string_chain.tex}
+\input{chapters/dp_lis/06_longest_bitonic_subsequence.tex}
+\input{chapters/dp_lis/07_number_of_lis.tex}

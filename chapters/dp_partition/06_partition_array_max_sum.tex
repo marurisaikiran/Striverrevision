@@ -1,0 +1,156 @@
+\section{Partition Array for Maximum Sum}
+\label{sec:dp-partition-max-sum}
+
+\problemstatement{Given an array $\textit{arr}$ and an integer $k$,
+partition $\textit{arr}$ into contiguous subarrays each of length
+\textbf{at most} $k$. Within each chosen subarray, replace every
+element with that subarray's \textbf{maximum} value. Maximize the sum
+of the resulting array.}
+
+\begin{patternbox}
+This closing problem of the chapter simplifies
+Section~\ref{sec:dp-partition-intro}'s template in one specific way:
+because every partition is bounded to length at most $k$, the search
+over ``where to place the next partition boundary'' is bounded to $k$
+choices, not a full $O(n)$ scan over every possible split -- collapsing
+the usual $O(n^3)$ interval-DP cost down to $O(n \cdot k)$.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(i)$ be the maximum achievable sum for the suffix
+$\textit{arr}[i..n{-}1]$. The \emph{first} partition starting at index
+$i$ can have any length $L$ from $1$ to $k$ (as long as it fits within
+the array): choosing length $L$ replaces $\textit{arr}[i..i{+}L{-}1]$
+with $L$ copies of its maximum value, contributing
+$L \times \max(\textit{arr}[i..i{+}L{-}1])$, plus whatever the best
+suffix sum is afterward:
+\[
+  f(i) = \max_{1 \le L \le k,\ i+L \le n} \Big( L \times
+  \max(\textit{arr}[i..i{+}L{-}1]) + f(i{+}L) \Big), \quad f(n) = 0.
+\]
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int partitionRecursive(int i, vector<int>& arr, int k) {
+    int n = arr.size();
+    if (i == n) return 0;
+
+    int best = INT_MIN, maxVal = INT_MIN;
+    for (int len = 1; len <= k && i + len <= n; len++) {
+        maxVal = max(maxVal, arr[i + len - 1]);
+        int candidate = len * maxVal + partitionRecursive(i + len, arr, k);
+        best = max(best, candidate);
+    }
+    return best;
+}
+
+int main() {
+    vector<int> arr = {1, 15, 7, 9, 2, 5, 10};
+    int k = 3;
+    cout << partitionRecursive(0, arr, k) << endl; // 84
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(k^n)$ in the worst case ($k$ branches per call,
+$n$ levels of recursion).
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int partitionMemo(int i, vector<int>& arr, int k, vector<int>& memo) {
+    int n = arr.size();
+    if (i == n) return 0;
+    if (memo[i] != -1) return memo[i];
+
+    int best = INT_MIN, maxVal = INT_MIN;
+    for (int len = 1; len <= k && i + len <= n; len++) {
+        maxVal = max(maxVal, arr[i + len - 1]);
+        int candidate = len * maxVal + partitionMemo(i + len, arr, k, memo);
+        best = max(best, candidate);
+    }
+    return memo[i] = best;
+}
+
+int main() {
+    vector<int> arr = {1, 15, 7, 9, 2, 5, 10};
+    int n = arr.size(), k = 3;
+    vector<int> memo(n, -1);
+    cout << partitionMemo(0, arr, k, memo) << endl; // 84
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot k)$ -- $n$ states, each scanning at most $k$
+partition lengths.
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int partitionTabulation(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<int> dp(n + 1, 0);
+
+    for (int i = n - 1; i >= 0; i--) {
+        int maxVal = INT_MIN;
+        for (int len = 1; len <= k && i + len <= n; len++) {
+            maxVal = max(maxVal, arr[i + len - 1]);
+            dp[i] = max(dp[i], len * maxVal + dp[i + len]);
+        }
+    }
+    return dp[0];
+}
+
+int main() {
+    vector<int> arr = {1, 15, 7, 9, 2, 5, 10};
+    cout << partitionTabulation(arr, 3) << endl; // 84
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr}=[1,15,7,9,2,5,10]$, $k=3$.}
+
+The optimal partition: $[1,15,7]$ (length $3$, max $15$, contributes
+$3\times15=45$), $[9]$ (length $1$, contributes $9$), $[2,5,10]$
+(length $3$, max $10$, contributes $3\times10=30$). Total:
+$45+9+30=84$, matching $\textit{dp}[0]=84$. Note the middle group is a
+single element, length $1$ -- the DP correctly recognizes that
+extending it to length $2$ or $3$ (absorbing $2$ or $2,5$) would force
+those smaller values up to $9$ as well, costing more than it gains.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n)$ for the \textit{dp} array. Since every state
+depends only on the next $k$ states, a further optimization could keep
+just a sliding window of $k$ values instead of the full array, but the
+saving from $O(n)$ to $O(k)$ is rarely worth the added complexity when
+$k \ll n$ is already small.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A length cap on partitions is the cleanest possible way an interval DP
+can avoid its usual $O(n)$ split-point search: when the next boundary
+can only be placed within a fixed-size window, the search collapses
+from a full scan over the entire remaining array to a scan bounded by
+that window size -- turning what would otherwise be $O(n^2)$ or
+$O(n^3)$ into $O(n\cdot k)$.
+\end{takeawaybox}

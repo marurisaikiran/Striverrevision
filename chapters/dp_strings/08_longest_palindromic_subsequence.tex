@@ -1,0 +1,87 @@
+\section{Longest Palindromic Subsequence}
+\label{sec:dp-longest-palindromic-subsequence}
+
+\problemstatement{Given a string $s$, find the length of its
+\textbf{longest palindromic subsequence} (a subsequence that reads the
+same forward and backward).}
+
+\begin{patternbox}
+\emph{``Longest subsequence that is a palindrome''} reduces directly to
+Section~\ref{sec:dp-lcs}: a palindrome reads identically forward and
+backward, so a subsequence of $s$ is a palindrome exactly when it is
+\emph{also} a subsequence of $s$'s \textbf{reverse} -- making the longest
+palindromic subsequence of $s$ exactly the longest common subsequence of
+$s$ and $\textit{reverse}(s)$.
+\end{patternbox}
+
+\subsection*{Understanding the reduction}
+
+Let $r = \textit{reverse}(s)$. Any common subsequence of $s$ and $r$
+is, by construction, a sequence of characters appearing in order in $s$
+that \emph{also} appears in order in $r$ -- but appearing in order in $r$
+is the same as appearing in \emph{reverse} order in $s$. A sequence that
+is both a subsequence of $s$ in forward order and a subsequence of $s$
+in reverse order is precisely a palindromic subsequence of $s$. So:
+\[
+  |\textit{LPS}(s)| = |\textit{LCS}(s, \textit{reverse}(s))|.
+\]
+
+\subsection*{All Four Approaches}
+
+Every stage is Section~\ref{sec:dp-lcs}'s LCS implementation, called
+with $s_1 = s$ and $s_2 = \textit{reverse}(s)$.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lcsSpaceOptimized(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<int> prev(m + 1, 0), current(m + 1, 0);
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                current[j] = 1 + prev[j - 1];
+            } else {
+                current[j] = max(prev[j], current[j - 1]);
+            }
+        }
+        prev = current;
+    }
+    return prev[m];
+}
+
+int longestPalindromicSubsequence(string s) {
+    string r = s;
+    reverse(r.begin(), r.end());
+    return lcsSpaceOptimized(s, r);
+}
+
+int main() {
+    cout << longestPalindromicSubsequence("bbbab") << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"bbbab"}$.}
+
+$r = \texttt{"babbb"}$. The LCS of \texttt{"bbbab"} and \texttt{"babbb"}
+is \texttt{"bbbb"} (length $4$), which is indeed a palindrome and a
+subsequence of the original \texttt{"bbbab"} (drop the \texttt{'a'}).
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ (since $|s_1|=|s_2|=n$), inherited
+directly from LCS.
+\textbf{Space Complexity.} $O(n)$ for the rolling-row LCS.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Longest palindromic X'' problems frequently reduce to ``longest common
+X between the string and its reverse'' -- a reduction worth checking
+first before writing a dedicated palindrome recurrence (which does also
+exist for this specific problem, expanding outward from the center, but
+the LCS reduction shown here requires no new derivation at all).
+\end{takeawaybox}

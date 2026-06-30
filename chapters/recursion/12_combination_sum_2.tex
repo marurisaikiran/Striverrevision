@@ -1,0 +1,172 @@
+\section{Combination Sum II}
+\label{sec:rec-combination-sum-2}
+
+\problemstatement{Given an array $\textit{candidates}$ that \textbf{may
+contain duplicate values} and a target, return every unique combination
+that sums to the target, where \textbf{each individual element of the
+array may be used at most once} (no reuse), and the output must contain
+no duplicate combinations.}
+
+\begin{patternbox}
+This problem directly combines two techniques already derived in this
+chapter: Section~\ref{sec:rec-subset-sum-2}'s ``sort, then skip a choice
+equal to the previous choice at the same level'' duplicate-avoidance, and
+Section~\ref{sec:rec-combination-sum}'s general combination-building
+recursion -- but \textbf{without} that section's ``stay at the same
+index'' reuse rule, since each element here may only be used once.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Because reuse is forbidden, the recursion always advances past the
+current index after picking it (exactly like
+Section~\ref{sec:rec-subset-sum-2}, never like
+Section~\ref{sec:rec-combination-sum}). Because duplicate values are
+present, we sort first and skip same-level duplicate choices, exactly as
+in Section~\ref{sec:rec-subset-sum-2}, to avoid generating the same
+combination more than once. One further optimization becomes available
+specifically because we additionally have a numeric target and a sorted
+array: the moment a candidate's value alone exceeds the remaining
+target, every later candidate (being at least as large, since the array
+is sorted) must also exceed it, so the entire rest of the loop at this
+level can be abandoned immediately, rather than checked one by one.
+
+\begin{ideabox}[Sort, Skip Same-Level Duplicates, and Break Early]
+Sort $\textit{candidates}$. $\textsc{Solve}(\textit{start},
+\textit{remaining}, \textit{current})$: if $\textit{remaining}=0$:
+record $\textit{current}$; return. For $i$ from $\textit{start}$ to
+$n-1$: if $i>\textit{start}$ and $\textit{candidates}[i] =
+\textit{candidates}[i-1]$: skip (same-level duplicate). If
+$\textit{candidates}[i] > \textit{remaining}$: \textbf{break} out of the
+loop entirely (pruning -- no further $i$ in this sorted loop can help).
+Otherwise: append $\textit{candidates}[i]$; recurse
+$\textsc{Solve}(i+1, \textit{remaining} - \textit{candidates}[i],
+\textit{current})$; remove (undo).
+\end{ideabox}
+
+\subsection*{Why breaking (not just skipping) on an over-large candidate is valid}
+
+This is a direct consequence of sortedness, not a heuristic: since
+$\textit{candidates}$ is sorted in increasing order, once
+$\textit{candidates}[i] > \textit{remaining}$, every subsequent
+$\textit{candidates}[j]$ for $j>i$ satisfies $\textit{candidates}[j] \ge
+\textit{candidates}[i] > \textit{remaining}$ too -- so none of them could
+possibly lead to a valid combination either, at this level. Breaking the
+loop entirely (rather than merely skipping this one $i$ and checking the
+next) is therefore a safe pruning step that discards an entire suffix of
+guaranteed-failing branches in $O(1)$, rather than wastefully visiting
+and individually rejecting each one.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $\textit{candidates}$.
+  \item $\textsc{Solve}(\textit{start}, \textit{remaining}, \textit{current})$:
+  \begin{enumerate}
+    \item If $\textit{remaining}=0$: record $\textit{current}$; return.
+    \item For $i$ from $\textit{start}$ to $n-1$:
+    \begin{itemize}
+      \item If $i>\textit{start}$ and $\textit{candidates}[i] =
+            \textit{candidates}[i-1]$: continue (skip).
+      \item If $\textit{candidates}[i] > \textit{remaining}$: break.
+      \item Append $\textit{candidates}[i]$; recurse
+            $\textsc{Solve}(i+1, \textit{remaining} -
+            \textit{candidates}[i], \textit{current})$; remove (undo).
+    \end{itemize}
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0, \textit{target}, [\,])$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{candidates} = [1,1,2]$ (sorted),
+$\textit{target}=3$.}
+
+\begin{itemize}
+  \item $\textsc{Solve}(0,3,[])$: $i=0$ ($1$): append, recurse
+        $\textsc{Solve}(1,2,[1])$. Undo.
+  \begin{itemize}
+    \item $\textsc{Solve}(1,2,[1])$: $i=1$ ($1$): $i=\textit{start}$,
+          no skip check needed. Append, recurse
+          $\textsc{Solve}(2,1,[1,1])$. Undo.
+    \begin{itemize}
+      \item $\textsc{Solve}(2,1,[1,1])$: $i=2$ ($2$): $2 > 1$,
+            \textbf{break} immediately.
+    \end{itemize}
+    \item $i=2$ ($2$) at this level: append, recurse
+          $\textsc{Solve}(3,0,[1,2])$: $\textit{remaining}=0$! Record
+          $[1,2]$.
+  \end{itemize}
+  \item Back at top level: $i=1$ ($1$): $i>\textit{start}=0$ and
+        $\textit{candidates}[1]=\textit{candidates}[0]$: skip.
+  \item $i=2$ ($2$): append, recurse $\textsc{Solve}(3,1,[2])$:
+        $\textit{remaining}=1 \ne 0$, and the loop from $i=3$ to $n-1$
+        is empty (no candidates left); this branch records nothing.
+\end{itemize}
+
+Recorded combinations: $[1,1,1]$? -- wait, recheck: we recorded $[1,2]$
+once. The full correct output for this classic instance is
+$\{[1,1,1]\text{-like attempts that failed}, [1,2]\}$; tracing carefully
+as above, the only successful combination found is $[1,2]$, matching the
+expected unique result for target $3$ from $\{1,1,2\}$ (the combination
+$1+1+2=4 \ne 3$ does not qualify; $1+2=3$ does, exactly once despite two
+copies of $1$ being available).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(int start, int remaining, vector<int>& candidates,
+           vector<int>& current, vector<vector<int>>& result) {
+    if (remaining == 0) {
+        result.push_back(current);
+        return;
+    }
+    for (int i = start; i < (int)candidates.size(); i++) {
+        if (i > start && candidates[i] == candidates[i - 1]) continue;
+        if (candidates[i] > remaining) break;
+
+        current.push_back(candidates[i]);
+        solve(i + 1, remaining - candidates[i], candidates, current, result);
+        current.pop_back();
+    }
+}
+
+vector<vector<int>> combinationSum2(vector<int>& candidates, int target) {
+    sort(candidates.begin(), candidates.end());
+    vector<vector<int>> result;
+    vector<int> current;
+    solve(0, target, candidates, current, result);
+    return result;
+}
+
+int main() {
+    vector<int> candidates = {1, 1, 2};
+    for (auto& comb : combinationSum2(candidates, 3)) {
+        cout << "[ ";
+        for (int x : comb) cout << x << " ";
+        cout << "] ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n)$ in the worst case (every subset
+potentially checked), though sorting plus the early-break pruning
+typically eliminates a substantial fraction of branches in practice; an
+additional $O(n \log n)$ for the initial sort.
+\textbf{Space Complexity.} $O(n)$ for the recursion depth.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Combination Sum II is a direct composition of two already-derived
+techniques -- no-reuse advancing recursion plus sort-and-skip duplicate
+avoidance -- with one additional sorted-array pruning trick (breaking
+early once a candidate exceeds the remaining target) layered on top.
+Recognizing a new problem as ``technique A combined with technique B''
+is, again, the fastest path to a correct solution.
+\end{takeawaybox}

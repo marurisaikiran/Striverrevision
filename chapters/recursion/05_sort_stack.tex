@@ -1,0 +1,151 @@
+\section{Sort a Stack using Recursion}
+\label{sec:rec-sort-stack}
+
+\problemstatement{Given a stack, sort it in increasing order (so the
+smallest element ends up on top) using \textbf{only} \textit{push} and
+\textit{pop}, and recursion -- no second stack, array, or queue allowed.}
+
+\begin{patternbox}
+This is Section~\ref{sec:rec-reverse-stack}'s ``insert at the bottom''
+helper, generalized to ``insert at the \emph{correct sorted position}.''
+The overall structure -- pop the top, recursively solve the rest, then
+reinsert the popped value using a specialized helper -- is identical;
+only the helper's insertion rule changes from ``always go to the
+bottom'' to ``go just above everything smaller, and below everything
+larger.''
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If the remainder of the stack (everything below the current top) is
+already correctly sorted, inserting the popped-off top element into its
+correct position relative to that sorted remainder finishes the job --
+this is exactly insertion sort's core idea, expressed with a stack
+playing the role that an array's shifting-elements-right step normally
+plays.
+
+\begin{ideabox}[Insert into a Sorted Stack at the Correct Position]
+$\textsc{InsertSorted}(\textit{stack}, x)$: if $\textit{stack}$ is empty
+\emph{or} its top is $\le x$, push $x$ and return (its correct position
+has been found: everything remaining below is $\le x$, satisfying sorted
+order with the top of the stack as the largest visible value at this
+point... more precisely, the stack is kept increasing from top to
+bottom, so $x$ belongs here once it is at least as large as what is
+currently on top). Otherwise, pop the top into $\textit{temp}$,
+recursively call $\textsc{InsertSorted}(\textit{stack}, x)$ (continue
+searching deeper for $x$'s correct position), then push $\textit{temp}$
+back on top.
+\end{ideabox}
+
+\subsection*{Why this insertion rule keeps the stack sorted at every step}
+
+Assume, inductively, that before inserting $x$, the stack is already
+sorted (say, increasing from top to bottom: the smallest element on top).
+The helper pops elements off only while they are \emph{larger} than $x$
+-- precisely the elements that must end up \emph{above} $x$ once $x$ is
+correctly placed. The moment it finds an element $\le x$ (or the stack
+empties), that is exactly the right depth to insert $x$, and pushing the
+previously-popped larger elements back afterward restores them directly
+on top of $x$, in their original relative order (preserved by the
+recursive call stack's own LIFO unwinding) -- so the stack remains
+sorted after the insertion completes.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{InsertSorted}(\textit{stack}, x)$:
+  \begin{enumerate}
+    \item If $\textit{stack}$ is empty or top $\le x$: push $x$; return.
+    \item Pop top into $\textit{temp}$.
+    \item $\textsc{InsertSorted}(\textit{stack}, x)$.
+    \item Push $\textit{temp}$.
+  \end{enumerate}
+  \item $\textsc{SortStack}(\textit{stack})$:
+  \begin{enumerate}
+    \item If $\textit{stack}$ is empty: return.
+    \item Pop top into $\textit{temp}$.
+    \item $\textsc{SortStack}(\textit{stack})$.
+    \item $\textsc{InsertSorted}(\textit{stack}, \textit{temp})$.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Sort the stack $[3,1,2]$ (top to bottom: $2,1,3$).}
+
+\begin{itemize}
+  \item Pop $2$. Recurse on $[3,1]$ (top to bottom: $1,3$).
+  \item Pop $1$. Recurse on $[3]$.
+  \item Pop $3$. Recurse on $[]$ (base case).
+  \item $\textsc{InsertSorted}([], 3)$: empty, push. Stack$=[3]$.
+  \item Back in the ``pop $1$'' frame: $\textsc{InsertSorted}([3], 1)$:
+        top is $3 > 1$, pop $3$ into \textit{temp}; recurse
+        $\textsc{InsertSorted}([], 1)$: empty, push $1$, stack$=[1]$;
+        push back \textit{temp} ($3$): stack$=[1,3]$ (top to bottom:
+        $1,3$ -- sorted).
+  \item Back in the ``pop $2$'' frame: $\textsc{InsertSorted}([1,3],
+        2)$: top is $1 \le 2$, push $2$ directly. Stack$=[2,1,3]$ (top
+        to bottom: $2,1,3$).
+\end{itemize}
+
+Final stack, top to bottom: $1,2,3$ -- correctly sorted, smallest on
+top.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void insertSorted(stack<int>& st, int x) {
+    if (st.empty() || st.top() <= x) {
+        st.push(x);
+        return;
+    }
+    int temp = st.top();
+    st.pop();
+    insertSorted(st, x);
+    st.push(temp);
+}
+
+void sortStack(stack<int>& st) {
+    if (st.empty()) return;
+
+    int temp = st.top();
+    st.pop();
+    sortStack(st);
+    insertSorted(st, temp);
+}
+
+int main() {
+    stack<int> st;
+    st.push(3); st.push(1); st.push(2);
+
+    sortStack(st);
+
+    while (!st.empty()) {
+        cout << st.top() << " ";
+        st.pop();
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ in the worst case -- the same
+insertion-sort-style bound as Section~\ref{sec:rec-reverse-stack}, since
+$\textsc{InsertSorted}$ can pop and re-push up to $O(k)$ elements for a
+stack of size $k$, summed over $n$ insertions.
+\textbf{Space Complexity.} $O(n)$ for the recursion stack at the deepest
+point.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Once you have solved one ``insert at a specific position using only
+recursion'' problem (insert at the bottom, in
+Section~\ref{sec:rec-reverse-stack}), solving a closely related one is
+just a matter of changing the stopping condition inside the same
+recursive shape: stop unconditionally at the bottom for reversal, stop as
+soon as a smaller-or-equal element is found for sorting.
+\end{takeawaybox}

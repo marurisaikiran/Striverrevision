@@ -1,0 +1,168 @@
+\section{Row with Maximum Number of 1s}
+\label{sec:bs-row-max-ones}
+
+\noindent We now begin the third and final group of problems in this
+chapter: \textbf{binary search on a 2D array}. The recurring theme is that
+each \emph{row} (or column) of the matrix is independently sorted, which
+lets us reuse the 1D binary search templates from
+Sections~\ref{sec:bs-find-x}--\ref{sec:bs-peak-1d} \emph{per row or
+column}, or combine row-sortedness and column-sortedness to search the
+whole 2D index space in a single sweep.
+
+\problemstatement{We are given an $n \times m$ binary matrix in which
+\textbf{every row is sorted} (all $0$s appear before all $1$s within that
+row). We must find the index of the row containing the \textbf{maximum
+number of $1$s}.}
+
+\begin{patternbox}
+\emph{``Each row is sorted''} (even though the matrix as a whole is not
+globally ordered in any simple way) is the keyword that tells us we can
+binary search \emph{within each row independently}, rather than needing
+any 2D-aware search technique. Whenever a 2D-array problem's sortedness
+guarantee is row-by-row (or column-by-column) rather than global,
+default first to ``run a 1D binary search on each row/column,'' since it
+is almost always the simplest correct approach, even if not always the
+asymptotically fastest one.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Because each row is sorted with $0$s before $1$s, the number of $1$s in a
+row equals $m - \textit{lowerBound}(\text{row}, 1)$, where
+$\textit{lowerBound}(\text{row}, 1)$ is the first index in that row where
+the value is $\ge 1$ (Section~\ref{sec:bs-lower-bound}). Computing this for
+every row and tracking the maximum gives the answer.
+
+\begin{ideabox}[Reuse, Don't Re-derive]
+Apply Algorithm~\ref{sec:bs-lower-bound}'s \textsc{LowerBound} procedure
+to each row independently (searching for the first $1$), convert each
+result to a count of $1$s, and track the row index achieving the maximum
+count.
+\end{ideabox}
+
+\subsection*{A note on the alternative $O(n+m)$ staircase approach}
+
+A different, even faster technique exists for this specific problem:
+starting from the top-right corner of the matrix, move left whenever the
+current cell is $1$ (recording this row as the best-so-far and shrinking
+the column boundary), and move down whenever the current cell is $0$. This
+``staircase search'' exploits row-and-column-sortedness jointly and runs
+in $O(n+m)$ total, faster than the $O(n \log m)$ of the per-row binary
+search. We mention it here because it foreshadows the 2D search technique
+used in Section~\ref{sec:bs-search-2d-matrix-2}, but the per-row binary
+search remains the more directly transferable technique for this
+chapter's purposes, since it requires no new derivation beyond what
+Section~\ref{sec:bs-lower-bound} already established.
+
+\subsection*{Algorithm (Per-Row Binary Search)}
+
+\begin{enumerate}
+  \item Initialize $\textit{bestRow} \gets -1$, $\textit{bestCount}
+        \gets 0$.
+  \item For each row $i$ from $0$ to $n-1$:
+  \begin{enumerate}
+    \item $\textit{idx} \gets \textit{lowerBound}(\text{row } i, 1)$.
+    \item $\textit{count} \gets m - \textit{idx}$.
+    \item If $\textit{count} > \textit{bestCount}$: update
+          $\textit{bestCount} \gets \textit{count}$,
+          $\textit{bestRow} \gets i$.
+  \end{enumerate}
+  \item Return \textit{bestRow}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Row with Maximum Number of 1s}
+\begin{algorithmic}[1]
+\Procedure{RowWithMaxOnes}{\textit{matrix}}
+  \State $\textit{bestRow} \gets -1$, $\textit{bestCount} \gets 0$
+  \For{$i \gets 0$ to $n-1$}
+    \State $\textit{idx} \gets \Call{LowerBound}{\textit{matrix}[i], 1}$
+    \State $\textit{count} \gets m - \textit{idx}$
+    \If{$\textit{count} > \textit{bestCount}$}
+      \State $\textit{bestCount} \gets \textit{count}$, $\textit{bestRow} \gets i$
+    \EndIf
+  \EndFor
+  \State \Return \textit{bestRow}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take the matrix
+$\begin{bmatrix} 0&0&0 \\ 0&1&1 \\ 1&1&1 \\ 0&0&0 \end{bmatrix}$.}
+
+\begin{itemize}
+  \item Row $0$: $[0,0,0]$. Lower bound of $1$ is index $3$ (no $1$ found).
+        Count $= 3-3=0$.
+  \item Row $1$: $[0,1,1]$. Lower bound of $1$ is index $1$. Count
+        $=3-1=2$. Best so far: row $1$, count $2$.
+  \item Row $2$: $[1,1,1]$. Lower bound of $1$ is index $0$. Count
+        $=3-0=3$. Best so far: row $2$, count $3$.
+  \item Row $3$: $[0,0,0]$. Count $=0$.
+\end{itemize}
+
+The answer is row $2$, with $3$ ones.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lowerBoundRow(vector<int>& row, int X) {
+    int lo = 0, hi = row.size() - 1, ans = row.size();
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (row[mid] >= X) { ans = mid; hi = mid - 1; }
+        else lo = mid + 1;
+    }
+    return ans;
+}
+
+int rowWithMaxOnes(vector<vector<int>>& matrix) {
+    int n = matrix.size(), m = matrix[0].size();
+    int bestRow = -1, bestCount = 0;
+
+    for (int i = 0; i < n; i++) {
+        int idx = lowerBoundRow(matrix[i], 1);
+        int count = m - idx;
+        if (count > bestCount) {
+            bestCount = count;
+            bestRow = i;
+        }
+    }
+    return bestRow;
+}
+
+int main() {
+    vector<vector<int>> matrix = {
+        {0,0,0},
+        {0,1,1},
+        {1,1,1},
+        {0,0,0}
+    };
+    cout << "Row with max ones: " << rowWithMaxOnes(matrix) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} For each of the $n$ rows, a binary search costs
+$O(\log m)$, giving an overall time complexity of
+\[
+  O(n \log m).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The simplest way to handle a 2D problem where sortedness is guaranteed
+only \emph{per row} (or per column) is to apply a 1D binary search
+template independently to each row, accepting an extra factor of $n$ (or
+$m$) in the time complexity in exchange for needing no new derivation.
+Faster joint row-and-column techniques exist for some such problems (the
+staircase search above, and Section~\ref{sec:bs-search-2d-matrix-2}), but
+they require the matrix to be sorted in \emph{both} directions
+simultaneously.
+\end{takeawaybox}

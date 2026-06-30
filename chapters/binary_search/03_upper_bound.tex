@@ -1,0 +1,148 @@
+\section{Implement Upper Bound}
+\label{sec:bs-upper-bound}
+
+\problemstatement{We are given a sorted array $\textit{arr}$ of $n$
+elements and a value $X$. We must find the \textbf{upper bound} of $X$:
+the index of the first element in $\textit{arr}$ that is
+\textbf{strictly greater than} $X$. If no such element exists, the upper
+bound is $n$.}
+
+\begin{patternbox}
+Upper bound is lower bound's twin, with one word changed: ``greater than or
+equal to'' becomes ``strictly greater than.'' Whenever you see \emph{``first
+index strictly greater than $X$''} as opposed to \emph{``first index at
+least $X$,''} you are being asked for an upper bound rather than a lower
+bound. The two are easy to confuse under time pressure, so it is worth
+fixing the distinction precisely: lower bound finds where $X$ \emph{could
+first appear}; upper bound finds where the elements equal to $X$
+\emph{end}.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The predicate here is $P(i) = (\textit{arr}[i] > X)$, which, exactly as in
+lower bound, is \texttt{false} for a prefix and \texttt{true} for a suffix
+of the sorted array, with a single crossover. The only change from
+Section~\ref{sec:bs-lower-bound} is the strictness of the comparison: an
+element exactly equal to $X$ satisfies the lower-bound predicate
+($\ge X$) but \emph{not} the upper-bound predicate ($> X$). Consequently,
+if $X$ appears multiple times in the array, the lower bound points to the
+first occurrence of $X$, while the upper bound points to the index
+\emph{immediately after} the last occurrence of $X$ -- a fact we will use
+directly in Section~\ref{sec:bs-first-last} and
+Section~\ref{sec:bs-count-occurrences}.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is indices $0, \dots, n$. The predicate is
+$P(i) = (\textit{arr}[i] > X)$ for $i < n$, and we want the smallest index
+where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why the same template applies, with one flipped comparison}
+
+The reasoning is identical to lower bound: whenever
+$\textit{arr}[\textit{mid}] > X$, this index is a valid candidate for the
+upper bound, but there might be an even earlier index that is also strictly
+greater than $X$, so we record it and search left. Whenever
+$\textit{arr}[\textit{mid}] \le X$ (note: this now includes equality, unlike
+lower bound), this index and everything before it is disqualified, so we
+search right. The only code change relative to lower bound is replacing the
+comparison \texttt{arr[mid] >= X} with \texttt{arr[mid] > X}.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$,
+        $\textit{ans} \gets n$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo} + (\textit{hi}-\textit{lo})/2$.
+    \item If $\textit{arr}[\textit{mid}] > X$: record
+          $\textit{ans} \gets \textit{mid}$; $\textit{hi} \gets
+          \textit{mid}-1$.
+    \item Otherwise: $\textit{lo} \gets \textit{mid}+1$.
+  \end{enumerate}
+  \item Return \textit{ans}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Upper Bound}
+\begin{algorithmic}[1]
+\Procedure{UpperBound}{$\textit{arr}, X$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$, $\textit{ans} \gets n$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo} + (\textit{hi}-\textit{lo})/2$
+    \If{$\textit{arr}[\textit{mid}] > X$}
+      \State $\textit{ans} \gets \textit{mid}$
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{ans}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1, 2, 2, 3]$, $X = 2$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=3,\textit{ans}=4$: $\textit{mid}=1$,
+        $\textit{arr}[1]=2 > 2$? No. $\textit{lo}=2$.
+  \item $\textit{lo}=2,\textit{hi}=3$: $\textit{mid}=2$,
+        $\textit{arr}[2]=2 > 2$? No. $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=3$: $\textit{mid}=3$,
+        $\textit{arr}[3]=3 > 2$? Yes. $\textit{ans}=3$, $\textit{hi}=2$.
+  \item $\textit{lo}=3 > \textit{hi}=2$: loop ends.
+\end{itemize}
+
+The upper bound is index $3$ -- one past the last occurrence of $2$
+(which sits at index $2$), consistent with the lower bound of $2$ found in
+Section~\ref{sec:bs-lower-bound} being index $1$: the occurrences of $2$
+span indices $[1, 2]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int upperBound(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1, ans = n;
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] > X) {
+            ans = mid;
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return ans;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 2, 3};
+    cout << "Upper bound of 2: " << upperBound(arr, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\log n)$, identical to lower bound, since
+the algorithm structure is unchanged.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Lower bound and upper bound differ by exactly one comparison operator
+($\ge$ versus $>$), but that single difference is what makes the pair
+together so useful: the number of occurrences of $X$ in a sorted array is
+always $\textit{upperBound}(X) - \textit{lowerBound}(X)$, and the first and
+last occurrence indices of $X$ are $\textit{lowerBound}(X)$ and
+$\textit{upperBound}(X) - 1$ respectively (when $X$ is present at all).
+\end{takeawaybox}

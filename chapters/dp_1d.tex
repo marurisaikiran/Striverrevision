@@ -1,0 +1,103 @@
+\chapter{Dynamic Programming: 1D DP}
+\chapterepigraph{Dynamic programming is not a different way of thinking
+from recursion -- it is recursion, plus a memory. Find the correct
+recursive recurrence first, exactly as in the previous chapter; only
+afterward ask whether that recurrence revisits the same sub-problem more
+than once, and if it does, give it a memory.}
+
+\section{From Recursion to Tabulation: The Four Stages}
+\label{sec:dp-intro}
+
+The Recursion chapter ended on its Word Break section, which exposed
+a problem whose correct recursive solution recomputes
+the same sub-problems exponentially many times. This chapter, and every
+dynamic programming chapter that follows, is about systematically fixing
+exactly that weakness. Every problem here is solved in up to four
+progressively refined stages, and the chapter's single most important
+habit is deriving them \emph{in this order}, never skipping straight to
+the last one.
+
+\begin{ideabox}[The Four Stages, Illustrated on Fibonacci]
+Consider computing the $n$-th Fibonacci number, $F(n) = F(n-1) + F(n-2)$,
+with $F(0)=0$, $F(1)=1$.
+
+\begin{enumerate}
+  \item \textbf{Recursion (brute force).} Translate the recurrence
+        directly into a function: $\textsc{Fib}(n)$ returns $n$ if $n
+        \le 1$, else $\textsc{Fib}(n-1) + \textsc{Fib}(n-2)$. This is
+        always correct by definition, but $\textsc{Fib}(n-2)$ is
+        computed once directly here and \emph{again} inside the
+        recursive expansion of $\textsc{Fib}(n-1)$ -- and this
+        duplication compounds at every level, giving $O(2^n)$ time.
+  \item \textbf{Memoization (top-down DP).} Add an array (or hash map)
+        $\textit{memo}$, indexed by the same parameter(s) the recursive
+        function takes. Before computing $\textsc{Fib}(n)$'s result,
+        check whether $\textit{memo}[n]$ is already filled; if so,
+        return it directly. Otherwise compute it exactly as in the
+        brute-force recursion, but \textbf{store} the result in
+        $\textit{memo}[n]$ before returning. This is the \emph{exact
+        same} recursive function, with two added lines -- yet it drops
+        the time complexity to $O(n)$, since each distinct sub-problem
+        $\textsc{Fib}(k)$ is now genuinely computed only once.
+  \item \textbf{Tabulation (bottom-up DP).} Rewrite the same recurrence
+        as an explicit loop filling an array $\textit{dp}$ from the base
+        cases \emph{upward} to $n$, instead of recursing downward from
+        $n$: $\textit{dp}[0]=0$, $\textit{dp}[1]=1$, and for $i$ from $2$
+        to $n$: $\textit{dp}[i] = \textit{dp}[i-1] + \textit{dp}[i-2]$.
+        This computes exactly the same values as memoization, in the
+        same $O(n)$ time, but with no recursion or call-stack overhead
+        at all.
+  \item \textbf{Space Optimization.} Observe that computing
+        $\textit{dp}[i]$ only ever needs $\textit{dp}[i-1]$ and
+        $\textit{dp}[i-2]$ -- once $\textit{dp}[i]$ is computed, every
+        earlier entry is permanently unneeded. Replace the full array
+        with two scalar variables, updated in a rolling fashion, cutting
+        space from $O(n)$ to $O(1)$.
+\end{enumerate}
+\end{ideabox}
+
+\subsection*{Why Derive All Four, Rather Than Jumping to the Last}
+
+Tabulation and space optimization are mechanical rewrites of memoization,
+which is itself a two-line addition to brute-force recursion -- but each
+rewrite is only safe once the \emph{previous} stage is verified correct.
+Attempting to write a tabulation loop directly, without first confirming
+the recursive recurrence by hand on a small example, is the single most
+common source of off-by-one and base-case bugs in dynamic programming.
+This chapter therefore presents every problem in exactly this order:
+state the recursive recurrence and verify it on a small case, add
+memoization, convert to tabulation, then space-optimize -- and the
+\emph{only} thing that changes from problem to problem is what the
+recurrence itself looks like.
+
+\begin{patternbox}[How to Recognise a 1D DP Problem and Find Its Recurrence]
+\begin{itemize}
+  \item \textbf{``Number of ways to reach step $n$,'' or ``minimum
+        cost/jumps to reach position $n$''} -- the answer at position
+        $n$ is built from the answers at a small, fixed set of earlier
+        positions (e.g.\ $n-1$ and $n-2$ for single or double steps),
+        combined by addition (counting ways) or by minimization (cost).
+  \item \textbf{``Maximum sum, no two adjacent chosen'' (House Robber and
+        its variants)} -- at each position, the recurrence is a
+        \emph{choice}: include this position's value plus the best
+        answer from two positions back, or exclude it and take the best
+        answer from one position back, whichever is larger.
+\end{itemize}
+Once the recurrence is identified, the parameter(s) it depends on become
+the memoization array's index (or indices) -- this is true for every DP
+problem in this book, not just the ones in this chapter.
+\end{patternbox}
+
+Each section in this chapter follows this four-stage structure, together
+with the keyword/pattern recognition, a hand-traced dry run of the
+tabulation table being filled, and a time/space complexity comparison
+across all four stages.
+
+\newpage
+
+\input{chapters/dp_1d/01_fibonacci.tex}
+\input{chapters/dp_1d/02_climbing_stairs.tex}
+\input{chapters/dp_1d/03_frog_jump.tex}
+\input{chapters/dp_1d/04_frog_jump_k_distance.tex}
+\input{chapters/dp_1d/05_house_robber.tex}
+\input{chapters/dp_1d/06_house_robber_2.tex}

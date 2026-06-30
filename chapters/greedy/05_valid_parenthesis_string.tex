@@ -1,0 +1,215 @@
+\section{Valid Parenthesis String}
+\label{sec:valid-parenthesis-string}
+
+\problemstatement{We are given a string $s$ consisting only of the
+characters \texttt{'('}, \texttt{')'}, and \texttt{'*'}. The character
+\texttt{'*'} is a wildcard: each occurrence of it may be treated, independently,
+as either \texttt{'('}, or \texttt{')'}, or the empty string. We must decide
+whether there is \emph{some} way to resolve every \texttt{'*'} so that the
+resulting string is a valid parenthesis sequence (every prefix has at least
+as many \texttt{'('} as \texttt{')'}, and the total counts of \texttt{'('}
+and \texttt{')'} are equal).}
+
+\begin{patternbox}
+The phrase \emph{``each wildcard may independently be one of several
+things; does \textbf{some} assignment make the whole thing valid''} looks,
+at first glance, like it demands trying all $3^k$ assignments of the $k$
+wildcards -- an exponential brute force. But the underlying validity
+condition for parentheses is itself expressible as a simple running balance
+(``open count never goes negative, and ends at zero''), and whenever a
+validity condition can be tracked by a \emph{running numeric range} rather
+than an exact value, that is a strong signal that we can collapse all
+exponentially many choices into tracking just the minimum and maximum
+possible value of that running quantity at each step -- a classic
+``track an interval of reachable states'' greedy, no recursion or
+backtracking required.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For a string with only \texttt{'('} and \texttt{')'}, validity is checked by
+maintaining a single counter, the \emph{open balance}: add $1$ for
+\texttt{'('}, subtract $1$ for \texttt{')'}, and the string is valid exactly
+when the balance never goes negative and ends at exactly $0$.
+
+With \texttt{'*'} in the mix, the open balance after processing a prefix is
+no longer a single number -- it is a \emph{range} of possible numbers,
+depending on how each \texttt{'*'} so far was resolved. Let
+$\textit{lo}$ be the smallest possible balance consistent with some
+resolution of the wildcards seen so far, and $\textit{hi}$ be the largest
+possible balance. We update this range character by character:
+
+\begin{itemize}
+  \item On \texttt{'('}: both the smallest and largest possible balance
+        increase by $1$, so $\textit{lo} \mathrel{+}= 1$,
+        $\textit{hi} \mathrel{+}= 1$.
+  \item On \texttt{')'}: both decrease by $1$, so
+        $\textit{lo} \mathrel{-}= 1$, $\textit{hi} \mathrel{-}= 1$.
+  \item On \texttt{'*'}: in the most pessimistic resolution (treat it as
+        \texttt{')'}), the balance decreases by $1$, so
+        $\textit{lo} \mathrel{-}= 1$. In the most optimistic resolution
+        (treat it as \texttt{'('}), the balance increases by $1$, so
+        $\textit{hi} \mathrel{+}= 1$. (Treating it as empty would leave the
+        balance unchanged, which always lies between these two extremes, so
+        it never needs separate tracking.)
+\end{itemize}
+
+\begin{ideabox}[Greedy Choice]
+At every position, maintain only the \emph{interval} $[\textit{lo},
+\textit{hi}]$ of balances that are achievable by \emph{some} resolution of
+the wildcards seen so far -- not every individual achievable value, just the
+two extremes. Whenever $\textit{hi}$ drops below $0$, no resolution can
+recover (the balance has gone irrecoverably negative even in the best case),
+so we can answer \texttt{false} immediately. Whenever $\textit{lo}$ drops
+below $0$, clamp it to $0$, because a balance can never validly be negative,
+so any resolution that would have produced a negative running balance is
+simply discarded from consideration -- it is never the right choice for an
+eventual valid string, so we do not need to track it.
+\end{ideabox}
+
+\subsection*{Why tracking only the interval is enough}
+
+It might seem like we are throwing away information by tracking only
+$[\textit{lo}, \textit{hi}]$ rather than the full set of achievable balances.
+But notice that the set of achievable balances after processing a prefix is
+always a contiguous range of integers with the \emph{same parity step of
+$1$} apart (because every character changes the balance by exactly $-1$,
+$0$, or $+1$, and a \texttt{'*'} contributes all three options, which fills
+in every integer between the all-\texttt{')'} extreme and the all-\texttt{'('}
+extreme). So the reachable set truly is an interval, and tracking its
+endpoints loses nothing. At the very end, the string can be made valid if
+and only if $0$ lies in the final interval -- but since we always clamp
+$\textit{lo}$ to be at least $0$ throughout, checking that the final
+$\textit{lo} = 0$ is equivalent to checking that $0$ is reachable, because if
+$0$ were reachable, clamping would have kept $\textit{lo}$ pinned at (or
+below, then clamped to) $0$ rather than drifting strictly positive.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets 0$.
+  \item For each character $c$ in $s$:
+  \begin{enumerate}
+    \item If $c = $ \texttt{'('}: $\textit{lo} \gets \textit{lo}+1$,
+          $\textit{hi} \gets \textit{hi}+1$.
+    \item If $c = $ \texttt{')'}: $\textit{lo} \gets \textit{lo}-1$,
+          $\textit{hi} \gets \textit{hi}-1$.
+    \item If $c = $ \texttt{'*'}: $\textit{lo} \gets \textit{lo}-1$,
+          $\textit{hi} \gets \textit{hi}+1$.
+    \item If $\textit{hi} < 0$: return \texttt{false} immediately.
+    \item If $\textit{lo} < 0$: clamp $\textit{lo} \gets 0$.
+  \end{enumerate}
+  \item After processing the whole string, return
+        $(\textit{lo} = 0)$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Valid Parenthesis String}
+\begin{algorithmic}[1]
+\Procedure{CheckValidString}{$s$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets 0$
+  \For{each character $c$ in $s$}
+    \If{$c = $ '('}
+      \State $\textit{lo} \gets \textit{lo} + 1$, $\textit{hi} \gets \textit{hi} + 1$
+    \ElsIf{$c = $ ')'}
+      \State $\textit{lo} \gets \textit{lo} - 1$, $\textit{hi} \gets \textit{hi} - 1$
+    \Else \Comment{$c = $ '*'}
+      \State $\textit{lo} \gets \textit{lo} - 1$, $\textit{hi} \gets \textit{hi} + 1$
+    \EndIf
+    \If{$\textit{hi} < 0$}
+      \State \Return \textbf{false}
+    \EndIf
+    \If{$\textit{lo} < 0$}
+      \State $\textit{lo} \gets 0$
+    \EndIf
+  \EndFor
+  \State \Return $(\textit{lo} = 0)$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"(*))"}$.}
+
+Start with $\textit{lo}=0$, $\textit{hi}=0$.
+
+\begin{itemize}
+  \item $c = $ \texttt{'('}: $\textit{lo}=1$, $\textit{hi}=1$.
+  \item $c = $ \texttt{'*'}: $\textit{lo}=0$, $\textit{hi}=2$.
+  \item $c = $ \texttt{')'}: $\textit{lo}=-1 \to$ clamp to $0$,
+        $\textit{hi}=1$.
+  \item $c = $ \texttt{')'}: $\textit{lo}=-1 \to$ clamp to $0$,
+        $\textit{hi}=0$.
+\end{itemize}
+
+At no point did $\textit{hi}$ go negative, and the final $\textit{lo} = 0$,
+so the answer is \texttt{true}. We can confirm this directly: resolving the
+\texttt{'*'} as \texttt{'('} turns $s$ into \texttt{"(())"}, whose balances
+are $1,2,1,0$ -- never negative, ending at $0$ -- so this is indeed a valid
+resolution, and the algorithm's \texttt{true} verdict is justified.
+
+Now take $s = \texttt{"(*))("}$, which appends one extra unmatched
+\texttt{'('} to the previous string.
+
+\begin{itemize}
+  \item As above, after \texttt{"(*))"}: $\textit{lo}=0$, $\textit{hi}=0$.
+  \item $c = $ \texttt{'('}: $\textit{lo}=1$, $\textit{hi}=1$.
+\end{itemize}
+
+Final $\textit{lo} = 1 \neq 0$, so the answer is \texttt{false} -- correctly,
+since the trailing unmatched \texttt{'('} can never be closed by anything
+after it.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool checkValidString(string s) {
+    int lo = 0, hi = 0;
+
+    for (char c : s) {
+        if (c == '(') {
+            lo++;
+            hi++;
+        } else if (c == ')') {
+            lo--;
+            hi--;
+        } else { // c == '*'
+            lo--;
+            hi++;
+        }
+
+        if (hi < 0) return false;
+        if (lo < 0) lo = 0;
+    }
+    return lo == 0;
+}
+
+int main() {
+    string s = "(*))";
+    cout << (checkValidString(s) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} We scan the string once, doing constant work per
+character, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} We maintain only the two integers \textit{lo} and
+\textit{hi}, so the space complexity is $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a validity check can be expressed as a single running numeric
+quantity that must stay within bounds, and the input introduces wildcards
+with several possible numeric effects, try tracking the \emph{interval} of
+reachable values for that quantity instead of branching over every
+combination of wildcard resolutions. This turns an exponential
+``try every assignment'' search into a single linear greedy sweep.
+\end{takeawaybox}

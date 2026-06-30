@@ -1,0 +1,119 @@
+\section{Palindrome Partitioning II}
+\label{sec:dp-palindrome-partitioning-2}
+
+\problemstatement{Given a string $s$, partition it into the minimum
+possible number of substrings such that every substring is a
+palindrome. Return the \textbf{minimum number of cuts} needed
+(one fewer than the number of pieces).}
+
+\begin{patternbox}
+This problem layers \textbf{two} DP tables, each from a different
+chapter's family: an interval DP table (Section~\ref{sec:dp-partition-intro}'s
+style) precomputing \emph{which substrings are palindromes}, feeding
+into a 1D ending-here table (the DP on LIS chapter's style) computing
+the minimum cuts.
+\end{patternbox}
+
+\subsection*{Step 1: Precomputing palindromic substrings (interval DP)}
+
+Let $\textit{isPal}(i,j)$ be true exactly when $s[i..j]$ is a
+palindrome. The classic interval recurrence:
+\[
+  \textit{isPal}(i,j) = \big(s[i]=s[j]\big) \land
+  \big(j-i<2 \lor \textit{isPal}(i{+}1,j{-}1)\big).
+\]
+A single character ($i=j$) or two equal characters ($j=i+1$,
+$s[i]=s[j]$) is trivially a palindrome; otherwise, $s[i..j]$ is a
+palindrome exactly when its outer characters match \emph{and} the
+inner substring $s[i{+}1..j{-}1]$ is itself a palindrome. This table is
+filled by increasing range length, exactly like every other interval DP
+in this chapter.
+
+\subsection*{Step 2: Minimum cuts (1D ending-here DP)}
+
+Let $\textit{cuts}[i]$ be the minimum cuts needed for the prefix
+$s[0..i]$. For every $j$ from $0$ to $i$ where $s[j..i]$ is a
+palindrome (looked up from Step 1's table in $O(1)$), this palindrome
+can be the \textbf{last piece} of the partition, requiring whatever cuts
+were needed for the prefix before it, plus one more cut to separate
+this final piece (or zero cuts if $j=0$, since the whole prefix is one
+single piece with no preceding pieces):
+\[
+  \textit{cuts}[i] = \min_{j\le i,\ \textit{isPal}(j,i)}
+  \big(j=0\ ?\ 0 : \textit{cuts}[j{-}1] + 1\big).
+\]
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int minCutsPalindromePartition(string s) {
+    int n = s.size();
+    vector<vector<bool>> isPal(n, vector<bool>(n, false));
+
+    for (int len = 1; len <= n; len++) {
+        for (int i = 0; i + len - 1 < n; i++) {
+            int j = i + len - 1;
+            if (s[i] == s[j] && (len <= 2 || isPal[i + 1][j - 1])) {
+                isPal[i][j] = true;
+            }
+        }
+    }
+
+    vector<int> cuts(n, INT_MAX);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j <= i; j++) {
+            if (isPal[j][i]) {
+                int prevCuts = (j == 0) ? 0 : cuts[j - 1] + 1;
+                cuts[i] = min(cuts[i], prevCuts);
+            }
+        }
+    }
+    return cuts[n - 1];
+}
+
+int main() {
+    cout << minCutsPalindromePartition("aab") << endl; // 1
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"aab"}$.}
+
+Step 1: $\textit{isPal}$ is true for every single character
+($(0,0),(1,1),(2,2)$), for $(0,1)$ (\texttt{"aa"}), and false for
+$(1,2)$ (\texttt{"ab"}) and $(0,2)$ (\texttt{"aab"}, outer characters
+$a,b$ mismatch).
+
+Step 2: $\textit{cuts}[0]=0$ (single character \texttt{"a"}, no cuts
+needed). $\textit{cuts}[1]$: $j=0$ gives \texttt{"aa"}, a palindrome,
+contributing $0$; $j=1$ gives \texttt{"a"} alone, contributing
+$\textit{cuts}[0]+1=1$. Minimum: $\textit{cuts}[1]=0$.
+$\textit{cuts}[2]$: $j=2$ gives \texttt{"b"} alone, contributing
+$\textit{cuts}[1]+1=1$; no other $j$ gives a palindrome ending at
+index $2$. $\textit{cuts}[2]=1$. Answer: $1$ cut, partitioning
+\texttt{"aa"} $\mid$ \texttt{"b"}.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ for Step 1 (interval DP, filled in
+$O(1)$ per cell here since no further split-point search is needed --
+only the immediately smaller inner range is checked), plus $O(n^2)$ for
+Step 2 (an $O(n)$ scan per index): $O(n^2)$ overall.
+\textbf{Space Complexity.} $O(n^2)$ for \textit{isPal}, plus $O(n)$ for
+\textit{cuts}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Not every interval DP needs the full $O(n)$ split-point search this
+chapter opened with -- \textit{isPal} is an interval table whose
+recurrence only ever looks at \emph{one} smaller inner range, not a
+search over all of them, because a palindrome's defining property
+(matching outer characters) only has one way to shrink. Recognizing
+when an interval recurrence collapses to a single inner lookup (rather
+than a full split-point scan) is what keeps this problem at $O(n^2)$
+instead of the $O(n^3)$ every other section in this chapter needs.
+\end{takeawaybox}

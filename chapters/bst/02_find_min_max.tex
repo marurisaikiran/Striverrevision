@@ -1,0 +1,108 @@
+\section{Find the Minimum and Maximum in a BST}
+\label{sec:bst-min-max}
+
+\problemstatement{Given the root of a BST, find its minimum value and its
+maximum value.}
+
+\begin{patternbox}
+\emph{``Minimum/maximum of a BST''} requires no comparison logic at all,
+unlike Section~\ref{sec:bst-search} -- the BST invariant alone pins the
+minimum and maximum to two fixed, unambiguous locations: the
+\textbf{leftmost} node and the \textbf{rightmost} node.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+By the BST invariant, every left child is smaller than its parent, and
+every right child is larger. So starting from the root and always moving
+left strictly decreases the value at every step, until no left child
+remains -- at which point we are standing on a value smaller than every
+other value in the tree (every node we passed is larger, and every node in
+their right subtrees, which we skipped, is even larger still). The
+symmetric argument, always moving right, finds the maximum.
+
+\begin{ideabox}[Walk to the Edge, No Comparisons Needed]
+For the minimum: starting at the root, repeatedly move to the left child
+until there is none; return the value at that point. For the maximum:
+symmetrically, repeatedly move right until there is none.
+\end{ideabox}
+
+\subsection*{Why no value comparisons are needed during the walk}
+
+This is a direct structural consequence of the BST invariant, not
+something that needs separate verification at each step: the invariant
+\emph{guarantees}, for every node visited, that its left child (if any) is
+strictly smaller, so simply choosing ``left, if it exists'' at every step
+is already provably optimal -- there is no need to compare the current
+node's value to anything, since the tree's shape alone already encodes
+the answer's location.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{FindMin}: starting at \textit{root}, while the current
+        node has a left child, move to it. Return the current node's
+        value.
+  \item \textsc{FindMax}: symmetrically, while the current node has a
+        right child, move to it. Return the current node's value.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the BST with root $5$, left child $3$ (with left child $1$
+and right child $4$), right child $8$ (with right child $9$).}
+
+\textbf{Min}: $5 \to 3 \to 1$ (no left child). Minimum is $1$.
+
+\textbf{Max}: $5 \to 8 \to 9$ (no right child). Maximum is $9$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int findMin(TreeNode* root) {
+    while (root->left) root = root->left;
+    return root->val;
+}
+
+int findMax(TreeNode* root) {
+    while (root->right) root = root->right;
+    return root->val;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(5);
+    root->left = new TreeNode(3);
+    root->right = new TreeNode(8);
+    root->left->left = new TreeNode(1);
+    root->left->right = new TreeNode(4);
+    root->right->right = new TreeNode(9);
+
+    cout << "Min: " << findMin(root) << ", Max: " << findMax(root) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(h)$, where $h$ is the tree's height.
+\textbf{Space Complexity.} $O(1)$ -- the iterative walk needs no
+recursion stack at all, unlike most other BST operations in this chapter.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Finding the minimum and maximum of a BST is the simplest possible
+operation in this chapter precisely because it needs zero comparisons --
+the structure alone answers the question. This ``walk to the leftmost /
+rightmost node'' primitive is reused directly inside Delete
+(Section~\ref{sec:bst-delete}) to find a replacement node, and inside
+Predecessor/Successor (Section~\ref{sec:bst-pred-succ}).
+\end{takeawaybox}

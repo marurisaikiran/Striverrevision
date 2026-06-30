@@ -1,0 +1,65 @@
+\chapter{Dynamic Programming: DP on Strings}
+\chapterepigraph{Two strings rarely need a third dimension. Almost
+everything in this chapter is answered by a single 2D table, indexed by
+one pointer into each string, where the recurrence is just: do the
+characters at these two pointers match, and if so, how does that
+agreement combine with the answer for both pointers advanced together?}
+
+\section{One Table, Two Pointers, Two Strings}
+\label{sec:dp-strings-intro}
+
+Every problem in this chapter compares two strings $s_1$ (length $n$)
+and $s_2$ (length $m$) using a DP state $(i, j)$, where $i$ indexes a
+prefix (or suffix) of $s_1$ and $j$ indexes a prefix (or suffix) of
+$s_2$. The recurrence almost always branches on a single question: does
+$s_1[i] = s_2[j]$?
+
+\begin{patternbox}[The Core Recurrence Almost Every Problem Specializes]
+\begin{itemize}
+  \item \textbf{If $s_1[i] = s_2[j]$:} this matched pair of characters
+        is worth keeping, so add $1$ (or otherwise credit the match) and
+        recurse on \emph{both} pointers advanced:
+        $f(i,j) = 1 + f(i{-}1,j{-}1)$ (for subsequence-length problems),
+        or a similarly structured combination for other problems.
+  \item \textbf{If $s_1[i] \ne s_2[j]$:} the characters cannot both be
+        used in this match, so the best answer comes from advancing
+        \emph{one} pointer at a time and taking whichever is better:
+        $f(i,j) = \max(f(i{-}1,j),\ f(i,j{-}1))$, or, for edit-distance-style
+        problems, the minimum over several specific single-step or
+        dual-step operations (insert, delete, replace).
+\end{itemize}
+The entire chapter is variations on this one template: \textbf{Longest
+Common Subsequence} establishes it in its cleanest form; every other
+section either reuses it directly (Shortest Common Supersequence,
+Distinct Subsequences), reduces to it (Longest Palindromic Subsequence,
+Delete Operations, Minimum Insertions for Palindrome), or extends it with
+a small number of additional operations (Edit Distance, Wildcard
+Matching).
+\end{patternbox}
+
+\subsection*{Why Recursing on a Suffix-or-Prefix Pair, Not a Single Index, Is the New Idea}
+
+Every problem in the DP 1D and DP Grids chapters so far has used at most
+two coupled positions (a row and column on one shared structure, or two
+agents on the same row). Here, the two indices $i$ and $j$ belong to
+\textbf{independent} strings -- $s_1[i]$ and $s_2[j]$ are not from the
+same array at all, so there is no inherent geometric relationship between
+them the way there was for grid DP's row/column. The table is still
+filled exactly like a grid (row by row, or with both loops nested), but
+the meaning of ``the cell at $(i,j)$'' is now ``comparing a prefix of
+$s_1$ against a prefix of $s_2$,'' a genuinely new state shape worth
+internalizing carefully in the chapter's first section before relying on
+it everywhere else.
+
+\newpage
+
+\input{chapters/dp_strings/01_longest_common_subsequence.tex}
+\input{chapters/dp_strings/02_print_lcs.tex}
+\input{chapters/dp_strings/03_longest_common_substring.tex}
+\input{chapters/dp_strings/04_shortest_common_supersequence.tex}
+\input{chapters/dp_strings/05_distinct_subsequences.tex}
+\input{chapters/dp_strings/06_edit_distance.tex}
+\input{chapters/dp_strings/07_delete_operations.tex}
+\input{chapters/dp_strings/08_longest_palindromic_subsequence.tex}
+\input{chapters/dp_strings/09_min_insertions_palindrome.tex}
+\input{chapters/dp_strings/10_wildcard_matching.tex}

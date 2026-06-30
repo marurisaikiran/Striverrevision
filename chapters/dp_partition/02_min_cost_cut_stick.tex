@@ -1,0 +1,101 @@
+\section{Minimum Cost to Cut a Stick}
+\label{sec:dp-min-cost-cut-sticks}
+
+\problemstatement{Given a stick of length $n$ and an array
+$\textit{cuts}$ of positions where cuts must be made (in any order),
+where the cost of making one cut equals the \textbf{current length} of
+the piece being cut, find the minimum total cost to perform all cuts.}
+
+\begin{patternbox}
+This problem is Section~\ref{sec:dp-mcm}'s interval template with the
+join cost changed from a triple product to a simple length difference:
+choosing which cut to make \textbf{first} among a range of pending
+cuts is exactly the same kind of ``pick a split point $k$'' decision.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Add boundary markers $0$ and $n$ to \textit{cuts}, then sort:
+$\textit{points} = [0, c_1, c_2, \ldots, c_m, n]$. Let $f(i,j)$ be the
+minimum cost to make every cut strictly between $\textit{points}[i]$
+and $\textit{points}[j]$ (i.e., the original cuts at sorted indices
+$i{+}1, \ldots, j{-}1$), on a stick segment currently spanning
+$[\textit{points}[i], \textit{points}[j]]$. Base case:
+$f(i, i{+}1) = 0$ (no cuts pending between adjacent points -- nothing
+to do). For $j > i+1$, try every pending cut $k$ as the \textbf{first}
+one made on this segment:
+\[
+  f(i,j) = \min_{i < k < j} \Big( f(i,k) + f(k,j) +
+  \big(\textit{points}[j] - \textit{points}[i]\big) \Big).
+\]
+The join cost $\textit{points}[j]-\textit{points}[i]$ is constant
+across every choice of $k$ (cutting first, while the segment is still
+its full original length) -- only the \emph{choice of which $k$ to cut
+first} affects how the two resulting sub-problems are structured.
+
+\subsection*{C++ implementation (memoization)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int cutStickMemo(int i, int j, vector<int>& points, vector<vector<int>>& memo) {
+    if (j - i <= 1) return 0; // no cuts pending between adjacent points
+    if (memo[i][j] != -1) return memo[i][j];
+
+    int best = INT_MAX;
+    for (int k = i + 1; k < j; k++) {
+        int cost = cutStickMemo(i, k, points, memo) +
+                   cutStickMemo(k, j, points, memo) +
+                   (points[j] - points[i]);
+        best = min(best, cost);
+    }
+    return memo[i][j] = best;
+}
+
+int minCostToCutStick(int n, vector<int>& cuts) {
+    vector<int> points = cuts;
+    points.push_back(0);
+    points.push_back(n);
+    sort(points.begin(), points.end());
+
+    int m = points.size();
+    vector<vector<int>> memo(m, vector<int>(m, -1));
+    return cutStickMemo(0, m - 1, points, memo);
+}
+
+int main() {
+    vector<int> cuts = {3, 5, 1, 4};
+    cout << minCostToCutStick(7, cuts) << endl; // 16
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=7$, $\textit{cuts}=[3,5,1,4]$. Boundary-augmented and
+sorted: $\textit{points}=[0,1,3,4,5,7]$.}
+
+The optimal ordering cuts at position $3$ first, costing the full
+stick length $7$, splitting into segment $[0,3]$ (one pending cut at
+$1$) and segment $[3,7]$ (two pending cuts, at $4$ and $5$). Segment
+$[0,3]$ costs $3$ for its single cut. Segment $[3,7]$ optimally cuts at
+$5$ first (cost $7-3=4$), splitting into $[3,5]$ (pending cut at $4$,
+cost $2$) and $[5,7]$ (no pending cuts). Total cost:
+$7 \,(\text{cut at }3) + 3\,(\text{cut at }1) + 4\,(\text{cut at }5) +
+2\,(\text{cut at }4) = 16$, matching $f(0,5)=16$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(m^3)$ where $m$ is the number of cuts
+(plus boundaries) -- $O(m^2)$ ranges, each scanning $O(m)$ split
+points.
+\textbf{Space Complexity.} $O(m^2)$ for the memo table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The choice of \emph{which} cut to make first only matters for how the
+remaining sub-problems are structured -- the cost of making any cut on
+a segment of fixed current length is fixed regardless of which pending
+cut is chosen, which is exactly what makes the join-cost term constant
+across all choices of $k$ in this recurrence.
+\end{takeawaybox}

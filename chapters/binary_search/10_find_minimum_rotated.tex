@@ -1,0 +1,164 @@
+\section{Find Minimum in a Rotated Sorted Array}
+\label{sec:bs-find-min-rotated}
+
+\problemstatement{We are given a sorted array (with all distinct elements)
+that has been rotated at some unknown pivot. We must find the
+\textbf{minimum element} of the array in $O(\log n)$ time.}
+
+\begin{patternbox}
+\emph{``Minimum element of a rotated sorted array''} is really asking us to
+\textbf{find the rotation pivot itself} -- the minimum element is exactly
+the element sitting at the pivot (the one place where the rotated array's
+increasing run restarts). Once you see ``rotated sorted array'' combined
+with ``find the minimum/find the rotation point,'' reach for the same
+``one half is always sorted'' invariant used in
+Sections~\ref{sec:bs-rotated-1}--\ref{sec:bs-rotated-2}, but this time the
+goal is to home in on the pivot's location directly, rather than to locate
+a separately given target value.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In a rotated sorted array, exactly one of the following is true at any
+candidate window $[\textit{lo}, \textit{hi}]$: either the window itself is
+already fully sorted (no rotation point inside it), in which case its
+minimum is simply $\textit{arr}[\textit{lo}]$; or the rotation point lies
+strictly inside the window, in which case we can use the same
+left-half/right-half sortedness check from Section~\ref{sec:bs-rotated-1}
+to decide which half the rotation point falls into, and discard the half
+that is provably free of it.
+
+\begin{ideabox}[Greedy Choice]
+If $\textit{arr}[\textit{lo}] \le \textit{arr}[\textit{hi}]$, the current
+window is already fully sorted (no rotation inside it), so its minimum is
+$\textit{arr}[\textit{lo}]$ -- record it and stop. Otherwise, compare
+$\textit{arr}[\textit{mid}]$ to $\textit{arr}[\textit{lo}]$: if
+$\textit{arr}[\textit{mid}] \ge \textit{arr}[\textit{lo}]$, the left half
+$[\textit{lo}, \textit{mid}]$ is sorted (so its minimum is
+$\textit{arr}[\textit{lo}]$, not better than what is achievable on the
+right, since the right half must contain the actual rotation point and
+hence a smaller value); discard the left half by moving $\textit{lo}
+\gets \textit{mid}+1$. Otherwise, the rotation point lies in
+$[\textit{lo}, \textit{mid}]$ itself, so we keep $\textit{mid}$ as a
+candidate minimum and search left: $\textit{hi} \gets \textit{mid}$ (not
+$\textit{mid}-1$, since $\textit{mid}$ itself might be the true minimum).
+\end{ideabox}
+
+\subsection*{Why discarding the sorted half is always correct here}
+
+If $\textit{arr}[\textit{mid}] \ge \textit{arr}[\textit{lo}]$, the segment
+$[\textit{lo}, \textit{mid}]$ has no internal rotation (it is increasing
+throughout), so its smallest value is $\textit{arr}[\textit{lo}]$, which is
+\emph{not smaller} than the global minimum unless the global minimum
+happens to equal $\textit{arr}[\textit{lo}]$ itself -- but that can only
+happen if the whole array (or at least everything from \textit{lo} onward
+that matters) is sorted with no rotation remaining, a case that is only
+reachable by continuing to shrink toward the actual pivot, which must then
+lie at or to the right of \textit{mid}. So it is always safe to move
+$\textit{lo}$ past this sorted segment; the true minimum, if not already
+found, must lie strictly within $(\textit{mid}, \textit{hi}]$. Conversely,
+if $\textit{arr}[\textit{mid}] < \textit{arr}[\textit{lo}]$, the array has
+``wrapped around'' somewhere in $[\textit{lo}, \textit{mid}]$, so the
+rotation pivot -- and hence the true minimum -- is guaranteed to lie within
+that left segment, including possibly at $\textit{mid}$ itself, which is
+why we narrow to $\textit{hi} \gets \textit{mid}$ rather than excluding it.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$.
+  \item While $\textit{lo} < \textit{hi}$:
+  \begin{enumerate}
+    \item If $\textit{arr}[\textit{lo}] \le \textit{arr}[\textit{hi}]$:
+          the window is sorted; break (the minimum is
+          $\textit{arr}[\textit{lo}]$).
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item If $\textit{arr}[\textit{mid}] \ge \textit{arr}[\textit{lo}]$:
+          $\textit{lo} \gets \textit{mid}+1$.
+    \item Else: $\textit{hi} \gets \textit{mid}$.
+  \end{enumerate}
+  \item Return $\textit{arr}[\textit{lo}]$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Find Minimum in Rotated Sorted Array}
+\begin{algorithmic}[1]
+\Procedure{FindMin}{\textit{arr}}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$
+  \While{$\textit{lo} < \textit{hi}$}
+    \If{$\textit{arr}[\textit{lo}] \le \textit{arr}[\textit{hi}]$}
+      \State \textbf{break}
+    \EndIf
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \If{$\textit{arr}[\textit{mid}] \ge \textit{arr}[\textit{lo}]$}
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid}$
+    \EndIf
+  \EndWhile
+  \State \Return $\textit{arr}[\textit{lo}]$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [4,5,6,7,0,1,2]$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=6$: $\textit{arr}[0]=4 \le
+        \textit{arr}[6]=2$? No. $\textit{mid}=3$,
+        $\textit{arr}[3]=7 \ge \textit{arr}[0]=4$? Yes. $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=6$: $\textit{arr}[4]=0 \le
+        \textit{arr}[6]=2$? Yes -- window is sorted. Break.
+\end{itemize}
+
+The minimum is $\textit{arr}[4] = 0$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int findMin(vector<int>& arr) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1;
+
+    while (lo < hi) {
+        if (arr[lo] <= arr[hi]) break; // already sorted
+
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] >= arr[lo]) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return arr[lo];
+}
+
+int main() {
+    vector<int> arr = {4, 5, 6, 7, 0, 1, 2};
+    cout << "Minimum: " << findMin(arr) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each iteration halves the search window (or
+terminates early once the window is detected to be sorted), giving
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Finding the rotation pivot and searching for a target in a rotated array
+(Section~\ref{sec:bs-rotated-1}) rely on the exact same underlying
+invariant -- one half around any midpoint is always genuinely sorted. The
+pivot itself is simply the boundary that this repeated halving converges
+to when there is no separate target value to compare against, only the
+structure of the rotation itself.
+\end{takeawaybox}

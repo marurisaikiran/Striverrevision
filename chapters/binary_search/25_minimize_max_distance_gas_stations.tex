@@ -1,0 +1,174 @@
+\section{Minimize the Maximum Distance Between Gas Stations}
+\label{sec:bs-gas-stations}
+
+\problemstatement{We are given $n$ gas station positions, sorted along a
+number line, and an integer $k$. We may insert $k$ additional gas stations
+\textbf{anywhere} (not restricted to integer positions) among the existing
+ones. We must choose where to insert them so as to \textbf{minimize the
+largest gap} between any two consecutive gas stations (existing or newly
+inserted), and report that minimized largest gap.}
+
+\begin{patternbox}
+This problem keeps the ``minimize the maximum, subject to a budget''
+shape of Sections~\ref{sec:bs-book-allocation}--\ref{sec:bs-painters-partition},
+but with one crucial new wrinkle: the answer is a \textbf{real number},
+not an integer, because stations may be placed at fractional positions.
+Whenever a binary-search-on-the-answer problem allows continuous
+(real-valued) placement rather than discrete/integer choices, the
+\texttt{while(lo <= hi)} integer loop must be replaced with a
+fixed-precision loop that runs until \textit{hi} and \textit{lo} are
+within some small tolerance $\varepsilon$ of each other.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Consider the existing gaps between consecutive original stations:
+$\textit{gap}_1, \textit{gap}_2, \dots, \textit{gap}_{n-1}$. For a fixed
+candidate maximum allowed gap $d$, the minimum number of new stations
+needed to bring gap $\textit{gap}_i$ down to segments no larger than $d$
+is
+\[
+  \left\lceil \frac{\textit{gap}_i}{d} \right\rceil - 1
+\]
+(inserting $c$ points into a single gap of length $L$ divides it into
+$c+1$ equal-or-smaller segments; we need the smallest $c$ such that
+$L/(c+1) \le d$, which rearranges to $c \ge L/d - 1$, i.e.\ $c = \lceil
+L/d \rceil - 1$ for integer $c$). Summing this over every existing gap
+gives $\textit{stationsNeeded}(d)$, the total new stations required to
+guarantee no gap exceeds $d$. As $d$ increases, fewer stations are needed
+per gap, so $\textit{stationsNeeded}(d)$ is non-increasing in $d$.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is real numbers $d \in (0, \max(\textit{gap}_i)]$.
+The predicate is $P(d) = (\textit{stationsNeeded}(d) \le k)$, and we want
+the smallest $d$ where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why a fixed-precision loop replaces the integer loop}
+
+With a continuous candidate space, there is no notion of ``the next
+integer candidate,'' so the loop cannot terminate by \textit{lo} and
+\textit{hi} crossing as integers do. Instead, we run the loop a fixed
+number of times (or until $\textit{hi} - \textit{lo}$ shrinks below a
+chosen precision threshold $\varepsilon$, e.g.\ $10^{-6}$), narrowing
+\textit{lo} or \textit{hi} to \textit{mid} (not $\textit{mid} \pm 1$, since
+there is no discrete step to add or subtract) at each iteration. Each
+iteration still halves the remaining interval, so a fixed number of
+iterations (around $50$--$100$, since $2^{-100}$ is far smaller than any
+reasonable $\varepsilon$) is always enough regardless of the initial
+interval width.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute the existing gaps; $\textit{lo} \gets 0$,
+        $\textit{hi} \gets \max(\textit{gap}_i)$.
+  \item Repeat a fixed number of times (or while
+        $\textit{hi} - \textit{lo} > \varepsilon$):
+  \begin{enumerate}
+    \item $\textit{mid} \gets (\textit{lo}+\textit{hi})/2$.
+    \item Compute $\textit{stationsNeeded}(\textit{mid}) =
+          \sum_i \left( \lceil \textit{gap}_i / \textit{mid} \rceil - 1
+          \right)$.
+    \item If $\textit{stationsNeeded}(\textit{mid}) \le k$:
+          $\textit{hi} \gets \textit{mid}$ (feasible; try smaller).
+    \item Else: $\textit{lo} \gets \textit{mid}$ (infeasible; try larger).
+  \end{enumerate}
+  \item Return $\textit{hi}$ (or $\textit{lo}$; they have converged to
+        within $\varepsilon$).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Minimize Maximum Gas Station Distance}
+\begin{algorithmic}[1]
+\Procedure{MinimizeMaxDistance}{\textit{stations}, $k$}
+  \State compute gaps $\textit{gap}_1, \dots, \textit{gap}_{n-1}$
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets \max_i \textit{gap}_i$
+  \For{$\textit{iter} \gets 1$ to $100$}
+    \State $\textit{mid} \gets (\textit{lo}+\textit{hi})/2$
+    \State $\textit{needed} \gets \sum_i (\lceil \textit{gap}_i / \textit{mid} \rceil - 1)$
+    \If{$\textit{needed} \le k$}
+      \State $\textit{hi} \gets \textit{mid}$
+    \Else
+      \State $\textit{lo} \gets \textit{mid}$
+    \EndIf
+  \EndFor
+  \State \Return \textit{hi}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take stations at $[1, 2, 3, 4, 5]$ (gaps all $=1$), $k = 4$.}
+
+There are $4$ gaps, each of length $1$. With $k=4$ new stations to
+distribute (one per gap), each gap of length $1$ becomes two segments of
+length $0.5$. So $\textit{stationsNeeded}(0.5) = \sum (\lceil 1/0.5
+\rceil - 1) = \sum (2-1) = 4 \cdot 1 = 4 \le 4$ -- feasible. Checking a
+slightly smaller candidate, say $d=0.49$:
+$\lceil 1/0.49 \rceil - 1 = \lceil 2.04 \rceil - 1 = 3-1=2$ per gap, times
+$4$ gaps $=8 > 4$ -- infeasible. So the binary search converges to
+$d = 0.5$, the minimized maximum distance.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+double minimizeMaxDistance(vector<int>& stations, int k) {
+    int n = stations.size();
+    vector<double> gaps(n - 1);
+    for (int i = 0; i + 1 < n; i++) {
+        gaps[i] = stations[i + 1] - stations[i];
+    }
+
+    double lo = 0, hi = *max_element(gaps.begin(), gaps.end());
+
+    for (int iter = 0; iter < 100; iter++) {
+        double mid = (lo + hi) / 2.0;
+        long long needed = 0;
+        for (double g : gaps) {
+            needed += (long long)ceil(g / mid) - 1;
+        }
+
+        if (needed <= k) {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    return hi;
+}
+
+int main() {
+    vector<int> stations = {1, 2, 3, 4, 5};
+    cout << fixed << setprecision(4);
+    cout << "Minimized maximum distance: "
+         << minimizeMaxDistance(stations, 4) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The fixed-precision loop runs a constant number
+of iterations (e.g.\ $100$), and each feasibility check costs $O(n)$,
+giving
+\[
+  O(n \cdot \text{iterations}) = O(n),
+\]
+treating the iteration count as a constant determined by the desired
+precision (more precisely, $O(n \log(\textit{range}/\varepsilon))$ if the
+precision $\varepsilon$ is treated as a variable rather than fixed).
+\textbf{Space Complexity.} $O(n)$ to store the gaps.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Binary search on the answer is not limited to integer candidates. When the
+problem allows real-valued placement, keep every other part of the
+template (monotonic feasibility predicate, minimize/maximize narrowing
+direction) and simply replace the integer loop and its $\pm 1$ adjustments
+with a fixed-iteration or epsilon-tolerance loop that narrows
+\textit{lo}/\textit{hi} directly to \textit{mid}.
+\end{takeawaybox}

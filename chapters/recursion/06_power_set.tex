@@ -1,0 +1,164 @@
+\section{Power Set: Print All Subsequences}
+\label{sec:rec-power-set}
+
+\noindent We now begin the chapter's second family: \textbf{exploration
+recursion}, or backtracking. This first problem introduces the single
+template -- the \textbf{pick/not-pick} decision tree -- that every other
+problem in this group (Sections~\ref{sec:rec-power-set}--\ref{sec:rec-letter-combinations})
+specializes or extends.
+
+\problemstatement{Given an array (or string) of $n$ distinct elements,
+generate \textbf{every} subsequence (equivalently, every subset, since
+order within a subsequence here does not matter for counting purposes)
+-- all $2^n$ of them, including the empty subsequence.}
+
+\begin{patternbox}
+\emph{``Generate all subsequences/subsets''} is the foundational
+backtracking pattern: at every element of the input, there are exactly
+\textbf{two} choices -- include it in the current subsequence, or
+don't -- and these two choices are completely independent across
+different elements. A recursion that branches into exactly these two
+calls at every position, one per element, visits every one of the
+$2^n$ combinations exactly once.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Think of building a subsequence by walking through the input array left
+to right, making one binary decision per element: ``is this element in
+my subsequence, or not?'' After making this decision for every one of
+the $n$ elements, exactly one specific subsequence has been fully
+determined. Since there are $2$ choices at each of $n$ independent
+positions, there are exactly $2^n$ distinct sequences of choices --
+matching exactly the $2^n$ subsequences a set of $n$ elements has.
+
+\begin{ideabox}[The Pick/Not-Pick Template]
+$\textsc{Solve}(\textit{index}, \textit{current})$: if
+$\textit{index} = n$ (every element has been decided): record
+$\textit{current}$ as one complete subsequence; return (base case).
+Otherwise: \textbf{pick} -- append $\textit{arr}[\textit{index}]$ to
+$\textit{current}$, recurse with $\textsc{Solve}(\textit{index}+1,
+\textit{current})$, then \textbf{undo} the append (remove the last
+element, restoring $\textit{current}$ to how it was before this branch).
+\textbf{Not-pick} -- recurse with $\textsc{Solve}(\textit{index}+1,
+\textit{current})$ unchanged (the element is simply skipped).
+\end{ideabox}
+
+\subsection*{Why the explicit ``undo'' step after the pick branch is essential}
+
+If $\textit{current}$ is a single shared mutable list passed by
+reference into both branches (rather than a fresh copy made for each),
+then after the pick branch's entire recursive exploration finishes and
+control returns to this level, $\textit{current}$ must be restored to
+exactly the state it had \emph{before} the pick was made -- otherwise the
+upcoming not-pick branch would incorrectly start from a list that still
+contains the picked element. This pattern -- \textbf{choose}, recurse,
+\textbf{un-choose} -- is the defining rhythm of every backtracking
+algorithm in this chapter; forgetting the un-choose step is the single
+most common bug when implementing backtracking with a shared, mutated
+data structure instead of fresh copies.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Solve}(\textit{index}, \textit{current})$:
+  \begin{enumerate}
+    \item If $\textit{index} = n$: add a copy of $\textit{current}$ to
+          the result list; return.
+    \item Append $\textit{arr}[\textit{index}]$ to $\textit{current}$.
+    \item $\textsc{Solve}(\textit{index}+1, \textit{current})$.
+    \item Remove the last element of $\textit{current}$ (undo).
+    \item $\textsc{Solve}(\textit{index}+1, \textit{current})$
+          (not-pick branch, $\textit{current}$ unchanged from before
+          step 2).
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0, [\,])$ to start.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,2]$ ($n=2$).}
+
+The recursion tree:
+\begin{itemize}
+  \item $\textsc{Solve}(0, [])$:
+  \begin{itemize}
+    \item Pick $1$: $\textsc{Solve}(1, [1])$:
+    \begin{itemize}
+      \item Pick $2$: $\textsc{Solve}(2, [1,2])$: base case, record
+            $[1,2]$.
+      \item Undo; Not-pick $2$: $\textsc{Solve}(2, [1])$: base case,
+            record $[1]$.
+    \end{itemize}
+    \item Undo; Not-pick $1$: $\textsc{Solve}(1, [])$:
+    \begin{itemize}
+      \item Pick $2$: $\textsc{Solve}(2, [2])$: base case, record
+            $[2]$.
+      \item Undo; Not-pick $2$: $\textsc{Solve}(2, [])$: base case,
+            record $[]$.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+Recorded subsequences, in the order generated: $[1,2], [1], [2], []$ --
+all $2^2=4$ subsequences of $\{1,2\}$, each exactly once.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(int index, vector<int>& arr, vector<int>& current,
+           vector<vector<int>>& result) {
+    if (index == (int)arr.size()) {
+        result.push_back(current);
+        return;
+    }
+
+    current.push_back(arr[index]);      // pick
+    solve(index + 1, arr, current, result);
+    current.pop_back();                 // undo
+
+    solve(index + 1, arr, current, result); // not-pick
+}
+
+vector<vector<int>> powerSet(vector<int>& arr) {
+    vector<vector<int>> result;
+    vector<int> current;
+    solve(0, arr, current, result);
+    return result;
+}
+
+int main() {
+    vector<int> arr = {1, 2};
+    for (auto& subset : powerSet(arr)) {
+        cout << "[ ";
+        for (int x : subset) cout << x << " ";
+        cout << "] ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} There are $2^n$ leaves in the recursion tree
+(one per subsequence), and building each subsequence costs up to $O(n)$
+to copy it into the result, giving
+\[
+  O(n \cdot 2^n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the recursion depth and the
+$\textit{current}$ list at any point in time (excluding the output
+storage, which is $O(n \cdot 2^n)$ to hold every generated subsequence).
+\end{complexitybox}
+
+\begin{takeawaybox}
+The pick/not-pick recursion tree, with an explicit choose/recurse/un-choose
+rhythm, is the master template for this entire group of problems.
+Combination Sum, Subset Sum, and several other sections ahead are all
+this exact same tree, either pruned early (skip branches that can no
+longer succeed) or with the choice set widened beyond a simple binary
+pick/skip.
+\end{takeawaybox}

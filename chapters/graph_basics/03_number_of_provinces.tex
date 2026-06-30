@@ -1,0 +1,109 @@
+\section{Number of Provinces}
+\label{sec:graph-number-of-provinces}
+
+\problemstatement{Given an $n \times n$ adjacency matrix
+$\textit{isConnected}$ for $n$ cities (where
+$\textit{isConnected}[i][j]=1$ means cities $i$ and $j$ are directly
+connected), find the number of \textbf{provinces} -- groups of cities
+connected directly or indirectly, where a city in one group has no
+connection to a city in any other group.}
+
+\begin{patternbox}
+\emph{``Count the number of disconnected groups''} is exactly counting
+\textbf{connected components}: run a traversal (DFS or BFS) from every
+\textbf{unvisited} node, marking everything that traversal reaches.
+Each time a traversal is launched from a fresh, unvisited node, that is
+one new province discovered.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain a $\textit{visited}$ array and a $\textit{provinces}$
+        counter, both initialized to $0$/false.
+  \item For each city $i$ from $0$ to $n-1$: if $i$ is not visited,
+        increment $\textit{provinces}$, then run a full DFS (or BFS)
+        from $i$, marking every reachable city visited.
+  \item Return $\textit{provinces}$.
+\end{enumerate}
+
+\begin{ideabox}[Why This Always Terminates with the Correct Count]
+Every city belongs to exactly one province (provinces are, by
+definition, a partition of the cities). The traversal from an
+unvisited city visits \emph{exactly} that city's entire province (no
+more, no less, since the adjacency matrix's connections define the
+province's boundary). So each outer-loop iteration that finds an
+unvisited city is necessarily the \emph{first} city of a province not
+yet counted -- which is precisely why incrementing the counter there,
+and nowhere else, gives the correct total.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void dfs(int node, vector<vector<int>>& isConnected, vector<bool>& visited) {
+    visited[node] = true;
+    int n = isConnected.size();
+    for (int neighbor = 0; neighbor < n; neighbor++) {
+        if (isConnected[node][neighbor] == 1 && !visited[neighbor]) {
+            dfs(neighbor, isConnected, visited);
+        }
+    }
+}
+
+int findCircleNum(vector<vector<int>>& isConnected) {
+    int n = isConnected.size();
+    vector<bool> visited(n, false);
+    int provinces = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) {
+            provinces++;
+            dfs(i, isConnected, visited);
+        }
+    }
+    return provinces;
+}
+
+int main() {
+    vector<vector<int>> isConnected = {
+        {1, 1, 0},
+        {1, 1, 0},
+        {0, 0, 1}
+    };
+    cout << findCircleNum(isConnected) << endl; // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $3\times3$ matrix above (cities $0,1$ connected;
+city $2$ isolated).}
+
+$i=0$: unvisited, $\textit{provinces}=1$; DFS from $0$ visits $1$
+(connected) and stops (city $2$ not connected to $0$ or $1$);
+visited $=\{0,1\}$. $i=1$: already visited, skip. $i=2$: unvisited,
+$\textit{provinces}=2$; DFS from $2$ visits only itself. Final answer:
+$2$ provinces.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ -- the adjacency matrix
+representation forces an $O(n)$ scan per node during DFS (checking
+every possible neighbor), across $n$ nodes total.
+\textbf{Space Complexity.} $O(n)$ for the \textit{visited} array and
+recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Count the number of connected components'' is one of the most
+frequently recurring graph templates: launch a traversal from every
+unvisited node, counting launches. This exact loop structure --
+\textit{not} the traversal itself -- is what changes across this
+chapter's later problems (Number of Islands, Section~\ref{sec:graph-number-of-islands},
+reuses this identical loop on an implicit grid graph instead of an
+explicit matrix).
+\end{takeawaybox}

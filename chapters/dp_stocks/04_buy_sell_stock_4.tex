@@ -1,0 +1,182 @@
+\section{Best Time to Buy and Sell Stock IV}
+\label{sec:dp-stock-4}
+
+\problemstatement{Given $\textit{price}$ and an integer $k$, find the
+maximum profit from \textbf{at most $k$} transactions.}
+
+\begin{patternbox}
+This generalizes Section~\ref{sec:dp-stock-3}'s fixed cap of $2$ to an
+arbitrary parameter $k$. Rather than extending the $4$-value parity-cap
+trick to $2k$ values (which works but obscures the meaning of each
+state), it is clearer to track \textbf{transactions completed so far}
+directly as a third dimension alongside \textit{holding}.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(i, \textit{used}, \textit{holding})$ be the maximum profit from
+day $i$ onward, having already completed $\textit{used}$ transactions
+(a transaction counts as ``completed'' the moment its sell happens):
+
+\[
+  f(i, \textit{used}, \textit{holding}) =
+  \begin{cases}
+    \max\big(\textit{price}[i] + f(i{+}1, \textit{used}{+}1, 0),\
+    f(i{+}1, \textit{used}, 1)\big) & \text{holding}, \\
+    \max\big(-\textit{price}[i] + f(i{+}1, \textit{used}, 1),\
+    f(i{+}1, \textit{used}, 0)\big) & \text{not holding.}
+  \end{cases}
+\]
+Base cases: $f(n, \cdot, \cdot) = 0$ (no days left), and
+$f(i, k, \cdot) = 0$ for any $i$ (the transaction budget is exhausted,
+so no further buy is permitted -- selling is also moot since you cannot
+be holding with $\textit{used}=k$ and a remaining buy budget of $0$
+simultaneously in any reachable state).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock4Recursive(int i, int used, int holding, int k, vector<int>& price) {
+    int n = price.size();
+    if (i == n || used == k) return 0;
+
+    if (holding) {
+        return max(price[i] + stock4Recursive(i + 1, used + 1, 0, k, price),
+                   stock4Recursive(i + 1, used, 1, k, price));
+    }
+    return max(-price[i] + stock4Recursive(i + 1, used, 1, k, price),
+               stock4Recursive(i + 1, used, 0, k, price));
+}
+
+int main() {
+    vector<int> price = {3, 2, 6, 5, 0, 3};
+    int k = 2;
+    cout << stock4Recursive(0, 0, 0, k, price) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock4Memo(int i, int used, int holding, int k, vector<int>& price,
+               vector<vector<vector<int>>>& memo) {
+    int n = price.size();
+    if (i == n || used == k) return 0;
+    if (memo[i][used][holding] != -1) return memo[i][used][holding];
+
+    int result;
+    if (holding) {
+        result = max(price[i] + stock4Memo(i + 1, used + 1, 0, k, price, memo),
+                      stock4Memo(i + 1, used, 1, k, price, memo));
+    } else {
+        result = max(-price[i] + stock4Memo(i + 1, used, 1, k, price, memo),
+                      stock4Memo(i + 1, used, 0, k, price, memo));
+    }
+    return memo[i][used][holding] = result;
+}
+
+int main() {
+    vector<int> price = {3, 2, 6, 5, 0, 3};
+    int n = price.size(), k = 2;
+    vector<vector<vector<int>>> memo(n, vector<vector<int>>(k, vector<int>(2, -1)));
+    cout << stock4Memo(0, 0, 0, k, price, memo) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n \cdot k)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock4Tabulation(vector<int>& price, int k) {
+    int n = price.size();
+    vector<vector<vector<int>>> dp(n + 1, vector<vector<int>>(k + 1, vector<int>(2, 0)));
+
+    for (int i = n - 1; i >= 0; i--) {
+        for (int used = k - 1; used >= 0; used--) {
+            dp[i][used][1] = max(price[i] + dp[i + 1][used + 1][0], dp[i + 1][used][1]);
+            dp[i][used][0] = max(-price[i] + dp[i + 1][used][1], dp[i + 1][used][0]);
+        }
+    }
+    return dp[0][0][0];
+}
+
+int main() {
+    vector<int> price = {3, 2, 6, 5, 0, 3};
+    cout << stock4Tabulation(price, 2) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{price} = [3,2,6,5,0,3]$, $k=2$.}
+
+The optimal two transactions: buy at $2$ (day $1$), sell at $6$ (day
+$2$, profit $4$), buy at $0$ (day $4$), sell at $3$ (day $5$, profit
+$3$): total $4+3=7$, matching $\textit{dp}[0][0][0]=7$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(n \cdot k)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int stock4SpaceOptimized(vector<int>& price, int k) {
+    int n = price.size();
+    vector<vector<int>> next(k + 1, vector<int>(2, 0)), current(k + 1, vector<int>(2, 0));
+
+    for (int i = n - 1; i >= 0; i--) {
+        for (int used = k - 1; used >= 0; used--) {
+            current[used][1] = max(price[i] + next[used + 1][0], next[used][1]);
+            current[used][0] = max(-price[i] + next[used][1], next[used][0]);
+        }
+        next = current;
+    }
+    return next[0][0];
+}
+
+int main() {
+    vector<int> price = {3, 2, 6, 5, 0, 3};
+    cout << stock4SpaceOptimized(price, 2) << endl; // 7
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot k)$.
+\textbf{Space.} $O(k)$ for two rolling 2D slices.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Stock IV subsumes both Stock I ($k=1$) and Stock III ($k=2$) as special
+cases of the exact same $(\textit{day}, \textit{used},
+\textit{holding})$ table -- a clean illustration of why generalizing a
+fixed-constant dimension (here, the transaction cap) into a parameter is
+usually worth doing directly, rather than maintaining separate
+hand-specialized versions for each fixed value.
+\end{takeawaybox}

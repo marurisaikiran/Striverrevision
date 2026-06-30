@@ -1,0 +1,186 @@
+\section{Longest String with All Prefixes}
+\label{sec:trie-longest-word-prefixes}
+
+\problemstatement{Given an array of words, find the \textbf{longest}
+word such that \textbf{every prefix} of that word (of every length from
+$1$ up to its full length) is also present, as a complete word, somewhere
+in the array. If there are ties in length, return the lexicographically
+smallest such word. If no word qualifies (not even single-character
+words), return the empty string.}
+
+\begin{patternbox}
+\emph{``Every prefix of this word must also be a complete word in the
+collection''} is the keyword that distinguishes this from
+Section~\ref{sec:trie-implement}'s plain $\textit{startsWith}$ check: we
+are not asking whether a path exists, but whether \textbf{every node
+along that entire path} happens to be an end-of-word marker, not just the
+final node.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Insert every word into a trie, exactly as in
+Section~\ref{sec:trie-implement}, marking end-of-word at each word's
+final node. Then, for each word, walk its path through the trie and check
+\emph{every} node visited (not just the last one) for the end-of-word
+marker. A word qualifies if and only if this check passes at every
+single position along its path -- meaning the 1-character prefix, the
+2-character prefix, and so on, are all themselves complete words that
+were inserted into the trie.
+
+\begin{ideabox}[Check Every Node Along the Path, Not Just the Last]
+For each candidate word $w$, walk the trie character by character. At
+\emph{every} node visited (after consuming each character), check that
+node's end-of-word flag. If any node along the way fails this check, $w$
+does not qualify -- stop checking this word immediately. If the entire
+walk completes with every node passing the check, $w$ qualifies; compare
+it against the best answer found so far (preferring longer length, and
+lexicographically smaller on ties).
+\end{ideabox}
+
+\subsection*{Why checking the whole path (not just the destination) is the correct test}
+
+The problem's requirement is explicitly about \emph{every prefix}, not
+just the word itself -- a word might be present in the array (so its
+final node is marked end-of-word) while one of its shorter prefixes was
+\emph{never} separately inserted as its own word, which would still
+disqualify it. Since every node on a word's path through the trie
+corresponds to exactly one specific prefix of that word, checking the
+end-of-word flag at every node along the path is precisely equivalent to
+checking, for every prefix length, whether that prefix was itself
+inserted as a complete word.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Insert every word into a trie (as in
+        Section~\ref{sec:trie-implement}).
+  \item For each word $w$ (processed, say, in sorted order so that ties
+        are resolved automatically by encountering the lexicographically
+        smaller one first):
+  \begin{enumerate}
+    \item Walk $w$'s path; at each node, check the end-of-word flag; if
+          any check fails, discard $w$.
+    \item If $w$ survives the full walk and is longer than the current
+          best answer (or ties in length but is lexicographically
+          smaller, naturally handled by sorted-order processing), update
+          the best answer.
+  \end{enumerate}
+  \item Return the best answer found (or empty string if none
+        qualified).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{words} = [\texttt{"a"}, \texttt{"banana"},
+\texttt{"app"}, \texttt{"appl"}, \texttt{"ap"}, \texttt{"apply"},
+\texttt{"apple"}]$.}
+
+Sorted: \texttt{"a", "ap", "app", "appl", "apple", "apply", "banana"}.
+
+\begin{itemize}
+  \item \texttt{"a"}: path is just the node for \texttt{a}; it is marked
+        end-of-word (since \texttt{"a"} itself was inserted). Qualifies,
+        length $1$. Best so far: \texttt{"a"}.
+  \item \texttt{"ap"}: nodes for \texttt{a}, \texttt{ap}; both marked
+        (since \texttt{"a"} and \texttt{"ap"} were both inserted).
+        Qualifies, length $2$. Best so far: \texttt{"ap"}.
+  \item \texttt{"app"}: nodes for \texttt{a}, \texttt{ap}, \texttt{app}
+        all marked. Qualifies, length $3$. Best so far: \texttt{"app"}.
+  \item \texttt{"appl"}: all four prefix nodes marked. Qualifies, length
+        $4$. Best so far: \texttt{"appl"}.
+  \item \texttt{"apple"}: all five prefix nodes marked (every prefix
+        from \texttt{"a"} to \texttt{"apple"} was inserted). Qualifies,
+        length $5$. Best so far: \texttt{"apple"}.
+  \item \texttt{"apply"}: prefix \texttt{"appl"} is marked, but at the
+        final node (\texttt{"apply"}), it is marked too -- but wait, we
+        need \emph{every} prefix; \texttt{"apply"} shares
+        \texttt{"a","ap","app","appl"} with \texttt{"apple"} (all
+        marked), and \texttt{"apply"} itself was inserted, so it also
+        qualifies at length $5$ -- tied with \texttt{"apple"}. Since
+        \texttt{"apple"} was already recorded and is lexicographically
+        smaller than \texttt{"apply"}, we keep \texttt{"apple"}.
+  \item \texttt{"banana"}: the node for \texttt{b} is not marked
+        end-of-word as a 1-letter prefix unless \texttt{"b"} itself was
+        inserted -- it was not. Disqualified immediately.
+\end{itemize}
+
+Final answer: \texttt{"apple"}.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TrieNode {
+    TrieNode* children[26] = {nullptr};
+    bool isEnd = false;
+};
+
+class Trie {
+public:
+    TrieNode* root = new TrieNode();
+
+    void insert(string& word) {
+        TrieNode* node = root;
+        for (char c : word) {
+            int idx = c - 'a';
+            if (!node->children[idx]) node->children[idx] = new TrieNode();
+            node = node->children[idx];
+        }
+        node->isEnd = true;
+    }
+
+    bool allPrefixesExist(string& word) {
+        TrieNode* node = root;
+        for (char c : word) {
+            int idx = c - 'a';
+            if (!node->children[idx] || !node->children[idx]->isEnd) {
+                return false;
+            }
+            node = node->children[idx];
+        }
+        return true;
+    }
+};
+
+string longestCompleteString(vector<string>& words) {
+    Trie trie;
+    for (string& w : words) trie.insert(w);
+
+    sort(words.begin(), words.end());
+
+    string best = "";
+    for (string& w : words) {
+        if (trie.allPrefixesExist(w) && w.size() > best.size()) {
+            best = w;
+        }
+    }
+    return best;
+}
+
+int main() {
+    vector<string> words = {"a","banana","app","appl","ap","apply","apple"};
+    cout << longestCompleteString(words) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Inserting all words costs $O(N)$, where $N$ is
+the total number of characters across all words. Sorting costs
+$O(N \log n)$ (comparing $n$ words). Checking every word's path costs
+another $O(N)$ total. Overall:
+\[
+  O(N \log n).
+\]
+\textbf{Space Complexity.} $O(\Sigma \cdot N)$ for the trie.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a problem's condition is phrased as ``true for every prefix,''
+the trie check needs to inspect every node along a path, not just the
+final destination -- a small but easy-to-miss generalization of plain
+$\textit{search}$ from Section~\ref{sec:trie-implement}.
+\end{takeawaybox}

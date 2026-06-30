@@ -1,0 +1,195 @@
+\section{Unique Paths}
+\label{sec:dp-unique-paths}
+
+\problemstatement{A robot starts at the top-left corner of an
+$m \times n$ grid and wants to reach the bottom-right corner, moving only
+\textbf{right} or \textbf{down} at each step. Count the number of unique
+paths.}
+
+\begin{patternbox}
+\emph{``Number of paths through a grid, moving only right or down''} is
+the cleanest possible grid-DP recurrence: a path arrives at cell
+$(i,j)$ from exactly one of two neighbors -- directly above, $(i-1,j)$,
+or directly to the left, $(i,j-1)$ -- and since every path to $(i,j)$ is
+either one of these two cases, the count of paths to $(i,j)$ is their
+\textbf{sum}, exactly mirroring the DP 1D chapter's Climbing Stairs
+``sum over a fixed set of predecessors,'' just with the predecessors now
+arranged on two grid axes instead of one line.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $\textit{ways}(i,j)$ be the number of unique paths from $(0,0)$ to
+$(i,j)$. Since the only moves are right and down, the last move into
+$(i,j)$ came from $(i-1,j)$ (a down-move) or $(i,j-1)$ (a right-move):
+\[
+  \textit{ways}(i,j) = \textit{ways}(i-1,j) + \textit{ways}(i,j-1).
+\]
+Base case: $\textit{ways}(0,0) = 1$ (the trivial path of staying put);
+any $\textit{ways}(i,j)$ with $i<0$ or $j<0$ is treated as $0$
+(non-existent, out-of-grid predecessors contribute nothing).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePathsRecursive(int i, int j) {
+    if (i == 0 && j == 0) return 1;
+    if (i < 0 || j < 0) return 0;
+
+    int fromAbove = uniquePathsRecursive(i - 1, j);
+    int fromLeft  = uniquePathsRecursive(i, j - 1);
+    return fromAbove + fromLeft;
+}
+
+int main() {
+    int m = 3, n = 7;
+    cout << uniquePathsRecursive(m - 1, n - 1) << endl; // 28
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^{m+n})$ -- each call branches into two, with
+recursion depth up to $m+n$.
+\textbf{Space.} $O(m+n)$ for the recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePathsMemo(int i, int j, vector<vector<int>>& memo) {
+    if (i == 0 && j == 0) return 1;
+    if (i < 0 || j < 0) return 0;
+    if (memo[i][j] != -1) return memo[i][j];
+
+    int fromAbove = uniquePathsMemo(i - 1, j, memo);
+    int fromLeft  = uniquePathsMemo(i, j - 1, memo);
+    return memo[i][j] = fromAbove + fromLeft;
+}
+
+int main() {
+    int m = 3, n = 7;
+    vector<vector<int>> memo(m, vector<int>(n, -1));
+    cout << uniquePathsMemo(m - 1, n - 1, memo) << endl; // 28
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(m \cdot n)$ -- one $O(1)$ computation per distinct
+$(i,j)$ pair.
+\textbf{Space.} $O(m \cdot n)$ memo $+$ $O(m+n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePathsTabulation(int m, int n) {
+    vector<vector<int>> dp(m, vector<int>(n, 0));
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i == 0 && j == 0) {
+                dp[i][j] = 1;
+                continue;
+            }
+            int fromAbove = (i > 0) ? dp[i-1][j] : 0;
+            int fromLeft  = (j > 0) ? dp[i][j-1] : 0;
+            dp[i][j] = fromAbove + fromLeft;
+        }
+    }
+    return dp[m - 1][n - 1];
+}
+
+int main() {
+    cout << uniquePathsTabulation(3, 7) << endl; // 28
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $m=3$, $n=3$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+ & $j=0$ & $j=1$ & $j=2$ \\ \hline
+$i=0$ & 1 & 1 & 1 \\ \hline
+$i=1$ & 1 & 2 & 3 \\ \hline
+$i=2$ & 1 & 3 & 6
+\end{tabular}
+\end{center}
+
+The first row and first column are all $1$s (only one way to reach any
+cell along the top edge or left edge: a straight line of moves). Every
+other cell is the sum of its top and left neighbors, e.g.\ $dp[2][2] =
+dp[1][2]+dp[2][1] = 3+3=6$. The answer for a $3\times3$ grid is $6$.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(m \cdot n)$.
+\textbf{Space.} $O(m \cdot n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{ideabox}[Only the Previous Row Is Ever Needed]
+Computing row $i$ only reads from row $i-1$ (directly above) and from
+\emph{within} row $i$ itself (directly left, already computed earlier in
+the same row's left-to-right scan). No row before $i-1$ is ever needed
+again once row $i$ is being filled, so a single 1D array, reused and
+updated in place across rows, suffices.
+\end{ideabox}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int uniquePathsSpaceOptimized(int m, int n) {
+    vector<int> prevRow(n, 0);
+
+    for (int i = 0; i < m; i++) {
+        vector<int> currentRow(n, 0);
+        for (int j = 0; j < n; j++) {
+            if (i == 0 && j == 0) {
+                currentRow[j] = 1;
+                continue;
+            }
+            int fromAbove = prevRow[j];
+            int fromLeft  = (j > 0) ? currentRow[j-1] : 0;
+            currentRow[j] = fromAbove + fromLeft;
+        }
+        prevRow = currentRow;
+    }
+    return prevRow[n - 1];
+}
+
+int main() {
+    cout << uniquePathsSpaceOptimized(3, 7) << endl; // 28
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(m \cdot n)$.
+\textbf{Space.} $O(n)$ for the single rolling row, instead of
+$O(m \cdot n)$ for the full table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Grid DP's space optimization mirrors 1D DP's exactly, just one dimension
+up: instead of two rolling \emph{scalars} (Fibonacci, House Robber), we
+keep two rolling \emph{rows} (or, with more care, overwrite a single row
+in place, since the left-neighbor read within a row happens before that
+position is overwritten in a left-to-right scan). Whenever a grid
+recurrence only reads from the immediately preceding row and the current
+row, this reduction from $O(mn)$ to $O(n)$ space is always available.
+\end{takeawaybox}

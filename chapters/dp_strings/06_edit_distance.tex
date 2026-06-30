@@ -1,0 +1,212 @@
+\section{Edit Distance}
+\label{sec:dp-edit-distance}
+
+\problemstatement{Given two strings $s_1$ (length $n$) and $s_2$ (length
+$m$), find the minimum number of operations -- \textbf{insert},
+\textbf{delete}, or \textbf{replace} a single character -- needed to
+transform $s_1$ into $s_2$.}
+
+\begin{patternbox}
+This is Section~\ref{sec:dp-lcs}'s match/mismatch template, extended:
+the \textbf{match} case is unchanged (no operation needed, advance both
+pointers for free), but the \textbf{mismatch} case is no longer a simple
+``discard one side'' -- it now branches into \textbf{three} possible
+operations, each costing $1$ and corresponding to a different way of
+advancing the two pointers.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+\[
+  f(i,j) =
+  \begin{cases}
+    f(i{-}1,j{-}1) & \text{if } s_1[i{-}1]=s_2[j{-}1], \\
+    1 + \min\big(f(i{-}1,j{-}1),\ f(i{-}1,j),\ f(i,j{-}1)\big) & \text{otherwise.}
+  \end{cases}
+\]
+
+On a mismatch, three operations are available, each mapping to a
+specific pointer movement: \textbf{replace} $s_1[i-1]$ with
+$s_2[j-1]$ (both characters consumed, advance both pointers --
+$f(i{-}1,j{-}1)$); \textbf{delete} $s_1[i-1]$ (advance only $s_1$'s
+pointer, leaving $s_2[j-1]$ still to be matched -- $f(i{-}1,j)$); or
+\textbf{insert} a copy of $s_2[j-1]$ into $s_1$ (this newly-inserted
+character matches $s_2[j-1]$ for free, so only $s_2$'s pointer advances
+-- $f(i,j{-}1)$). We pay $1$ for whichever operation is used, plus the
+cost of solving the resulting smaller sub-problem, and take the cheapest
+option.
+
+Base cases: $f(0,j)=j$ (transform an empty $s_1$ into $s_2$'s first $j$
+characters by $j$ insertions), $f(i,0)=i$ (transform $s_1$'s first $i$
+characters into an empty string by $i$ deletions).
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int editDistanceRecursive(int i, int j, string& s1, string& s2) {
+    if (i == 0) return j;
+    if (j == 0) return i;
+
+    if (s1[i - 1] == s2[j - 1]) {
+        return editDistanceRecursive(i - 1, j - 1, s1, s2);
+    }
+    int replace = editDistanceRecursive(i - 1, j - 1, s1, s2);
+    int del     = editDistanceRecursive(i - 1, j, s1, s2);
+    int insert  = editDistanceRecursive(i, j - 1, s1, s2);
+    return 1 + min({replace, del, insert});
+}
+
+int main() {
+    string s1 = "horse", s2 = "ros";
+    cout << editDistanceRecursive(s1.size(), s2.size(), s1, s2) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(3^{n+m})$ in the worst case -- three branches per
+mismatch.
+\textbf{Space.} $O(n+m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int editDistanceMemo(int i, int j, string& s1, string& s2,
+                      vector<vector<int>>& memo) {
+    if (i == 0) return j;
+    if (j == 0) return i;
+    if (memo[i][j] != -1) return memo[i][j];
+
+    if (s1[i - 1] == s2[j - 1]) {
+        return memo[i][j] = editDistanceMemo(i - 1, j - 1, s1, s2, memo);
+    }
+    int replace = editDistanceMemo(i - 1, j - 1, s1, s2, memo);
+    int del     = editDistanceMemo(i - 1, j, s1, s2, memo);
+    int insert  = editDistanceMemo(i, j - 1, s1, s2, memo);
+    return memo[i][j] = 1 + min({replace, del, insert});
+}
+
+int main() {
+    string s1 = "horse", s2 = "ros";
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> memo(n + 1, vector<int>(m + 1, -1));
+    cout << editDistanceMemo(n, m, s1, s2, memo) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ memo $+$ $O(n+m)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int editDistanceTabulation(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+    for (int j = 0; j <= m; j++) dp[0][j] = j;
+    for (int i = 0; i <= n; i++) dp[i][0] = i;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = 1 + min({dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]});
+            }
+        }
+    }
+    return dp[n][m];
+}
+
+int main() {
+    string s1 = "horse", s2 = "ros";
+    cout << editDistanceTabulation(s1, s2) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $s_1=\texttt{"horse"}$, $s_2=\texttt{"ros"}$.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+ & \texttt{""} & \texttt{r} & \texttt{o} & \texttt{s} \\ \hline
+\texttt{""} & 0 & 1 & 2 & 3 \\ \hline
+\texttt{h} & 1 & 1 & 2 & 3 \\ \hline
+\texttt{o} & 2 & 2 & 1 & 2 \\ \hline
+\texttt{r} & 3 & 2 & 2 & 2 \\ \hline
+\texttt{s} & 4 & 3 & 3 & 2 \\ \hline
+\texttt{e} & 5 & 4 & 4 & 3
+\end{tabular}
+\end{center}
+
+The answer is $\textit{dp}[5][3]=3$: one optimal sequence is
+\texttt{"horse"} $\to$ \texttt{"rorse"} (replace \texttt{h}$\to$\texttt{r})
+$\to$ \texttt{"rose"} (delete the second \texttt{r}) $\to$
+\texttt{"ros"} (delete \texttt{e}): $3$ operations.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(n \cdot m)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int editDistanceSpaceOptimized(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<int> prev(m + 1), current(m + 1);
+    for (int j = 0; j <= m; j++) prev[j] = j;
+
+    for (int i = 1; i <= n; i++) {
+        current[0] = i;
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                current[j] = prev[j - 1];
+            } else {
+                current[j] = 1 + min({prev[j - 1], prev[j], current[j - 1]});
+            }
+        }
+        prev = current;
+    }
+    return prev[m];
+}
+
+int main() {
+    string s1 = "horse", s2 = "ros";
+    cout << editDistanceSpaceOptimized(s1, s2) << endl; // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot m)$.
+\textbf{Space.} $O(m)$ for two rolling rows.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Edit Distance generalizes the LCS template's mismatch case from ``pick
+the better of two discards'' to ``pick the cheapest of three specific
+operations,'' each mapping to a distinct, intuitive pointer movement.
+Once this three-way branch is understood, Delete Operations
+(Section~\ref{sec:dp-delete-operations}) is recoverable as the special
+case where only the delete operation is permitted.
+\end{takeawaybox}

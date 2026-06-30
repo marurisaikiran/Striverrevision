@@ -1,0 +1,96 @@
+\section{Partition Equal Subset Sum}
+\label{sec:dp-partition-equal-subset}
+
+\problemstatement{Given an array $\textit{arr}$, determine whether it can
+be partitioned into \textbf{two} subsets with \textbf{equal} sum.}
+
+\begin{patternbox}
+\emph{``Partition into two equal-sum subsets''} reduces directly to
+Section~\ref{sec:dp-subset-sum-target}: if the whole array can be split
+into two subsets of equal sum $S$, then the total sum must be $2S$ (so
+an \textbf{odd} total sum makes this immediately impossible), and finding
+one subset summing to exactly $S = \textit{totalSum}/2$ automatically
+gives the other subset too (everything not in the first subset).
+\end{patternbox}
+
+\subsection*{Understanding the reduction}
+
+No new recurrence needs deriving: compute $\textit{totalSum}$; if it is
+odd, return \texttt{false} immediately. Otherwise, ask exactly
+Section~\ref{sec:dp-subset-sum-target}'s question with target
+$\textit{totalSum}/2$. If a subset summing to $\textit{totalSum}/2$
+exists, the remaining elements necessarily sum to the same value
+(since the two parts must add up to $\textit{totalSum} =
+2 \times \textit{totalSum}/2$), giving a valid equal partition.
+
+\subsection*{All Four Approaches}
+
+Every one of the four stages is Section~\ref{sec:dp-subset-sum-target}'s
+implementation, called with $k = \textit{totalSum}/2$. Only the
+space-optimized version is shown here, to avoid repeating the identical
+code four times.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool subsetSumSpaceOptimized(vector<int>& arr, int k) {
+    int n = arr.size();
+    vector<bool> prev(k + 1, false);
+
+    prev[0] = true;
+    if (arr[0] <= k) prev[arr[0]] = true;
+
+    for (int index = 1; index < n; index++) {
+        vector<bool> current(k + 1, false);
+        current[0] = true;
+        for (int target = 1; target <= k; target++) {
+            bool notPick = prev[target];
+            bool pick = (arr[index] <= target) ? prev[target - arr[index]] : false;
+            current[target] = notPick || pick;
+        }
+        prev = current;
+    }
+    return prev[k];
+}
+
+bool canPartition(vector<int>& arr) {
+    int totalSum = accumulate(arr.begin(), arr.end(), 0);
+    if (totalSum % 2 != 0) return false;
+
+    return subsetSumSpaceOptimized(arr, totalSum / 2);
+}
+
+int main() {
+    vector<int> arr = {1, 5, 11, 5};
+    cout << (canPartition(arr) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,5,11,5]$.}
+
+$\textit{totalSum} = 22$, even, so target $= 11$. Running
+Section~\ref{sec:dp-subset-sum-target}'s subset-sum check for target
+$11$: the subset $\{5,5,1\}$ sums to $11$ -- found, so the answer is
+\texttt{true}. The complementary subset $\{11\}$ also sums to $11$,
+confirming the equal partition $\{1,5,5\}$ and $\{11\}$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot \textit{totalSum})$, inherited
+directly from Section~\ref{sec:dp-subset-sum-target}'s subset-sum DP
+with $k = \textit{totalSum}/2$.
+\textbf{Space Complexity.} $O(\textit{totalSum})$ for the rolling row
+(space-optimized version).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Before deriving a new DP recurrence, always check whether the problem is
+a thin wrapper around one already solved -- here, an odd-sum early exit
+plus a single call to subset-sum with a derived target. This is the same
+``reduce to an already-solved sub-problem'' instinct already exercised
+for House Robber II's circular-array reduction back in
+the DP 1D chapter.
+\end{takeawaybox}

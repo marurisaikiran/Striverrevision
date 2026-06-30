@@ -1,0 +1,63 @@
+\chapter{Dynamic Programming: 2D/3D DP and DP on Grids}
+\chapterepigraph{A 1D DP table has one knob: which earlier position(s) a
+state depends on. A grid DP table has two -- row and column -- and the
+only genuinely new idea in this chapter is that a cell's recurrence now
+reads from \emph{neighbors in two directions} instead of \emph{earlier
+points on one line}. Everything else, all four stages, transfers
+unchanged.}
+
+\section{From a Line to a Grid}
+\label{sec:dp-grids-intro}
+
+Every problem in the DP 1D chapter (Fibonacci through House Robber II)
+indexed its DP state by a single integer (a position along an array).
+This chapter's problems index state by \textbf{two} integers (a row and
+a column), because the underlying problem is itself naturally laid out on
+a grid. The four-stage methodology from the DP 1D chapter's introduction --
+recursion, memoization, tabulation, space optimization -- applies
+identically; only the \emph{shape} of the memo array and the tabulation
+loop changes, from a 1D array scanned in one direction to a 2D array
+filled row by row (or column by column).
+
+\begin{patternbox}[How to Recognise a Grid DP Problem and Its Recurrence]
+\begin{itemize}
+  \item \textbf{``Number of paths / minimum-cost path from top-left to
+        bottom-right, moving only right or down''} -- the recurrence at
+        cell $(i,j)$ combines the answers at $(i-1,j)$ (arrived from
+        above) and $(i,j-1)$ (arrived from the left), summed for
+        counting paths, or minimized/maximized for cost.
+  \item \textbf{``Minimum/maximum path sum from the top of a triangle (or
+        any row) to the bottom''} -- the recurrence at $(i,j)$ combines
+        the two cells reachable \emph{from} it in the next row (or the
+        two reachable \emph{into} it from the previous row, depending on
+        which direction the recursion scans), rather than from directly
+        above/left -- the exact indices depend on whether you formulate
+        top-down or bottom-up first.
+  \item \textbf{``Choose one of several options each day/step, but the
+        same option cannot be chosen on two consecutive
+        days/steps''} -- a state with \emph{two} dimensions where one is
+        not spatial at all: the position (day/step) and \emph{which
+        option was just used}, so the recurrence can exclude the
+        previous day's choice when picking the best current option.
+  \item \textbf{``Two agents/paths moving simultaneously through the
+        same grid''} -- a \textbf{3D} DP state (one shared row/step index,
+        plus one column index per agent), since both agents' positions
+        must be tracked together to correctly avoid double-counting
+        cells they both visit.
+\end{itemize}
+\end{patternbox}
+
+This chapter moves through exactly these four variations in order,
+starting with the cleanest two-direction grid recurrence (Unique Paths)
+and ending with the full 3D, two-agent recurrence (Ninja and his
+Friends), which is this chapter's capstone, exactly as Largest BST in a
+Binary Tree and the LFU Cache closed their respective chapters.
+
+\newpage
+
+\input{chapters/dp_grids/01_unique_paths.tex}
+\input{chapters/dp_grids/02_unique_paths_2.tex}
+\input{chapters/dp_grids/03_minimum_path_sum.tex}
+\input{chapters/dp_grids/04_triangle.tex}
+\input{chapters/dp_grids/05_ninja_training.tex}
+\input{chapters/dp_grids/06_ninja_and_friends.tex}

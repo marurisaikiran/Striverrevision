@@ -1,0 +1,133 @@
+\section{Number of Islands II}
+\label{sec:graph-number-of-islands-2}
+
+\problemstatement{Given an $m \times n$ grid initially entirely water,
+and a sequence of positions where land is added \textbf{one cell at a
+time}, return the number of islands \textbf{after each addition}.}
+
+\begin{patternbox}
+\emph{``Track connected components as elements are added one at a
+time''} is exactly what Disjoint Set is built for, in contrast to the
+Graph Basics chapter's Number of Islands (a single, static, one-shot
+count via traversal): here, the grid \textbf{changes incrementally},
+and re-running a full DFS/BFS after every single addition would cost
+$O(mn)$ per step. Disjoint Set instead updates the island count in
+near-constant time per addition.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain a Disjoint Set over all grid cells (indexed as
+        $r \times \textit{cols} + c$), and an $\textit{islandCount}$
+        starting at $0$.
+  \item For each new land position $(r,c)$: if it's already land
+        (a duplicate addition), record the current count unchanged and
+        continue. Otherwise, mark it land and increment
+        $\textit{islandCount}$ by $1$ (a brand new, isolated island).
+  \item Check all $4$ neighbors: for each neighbor that is already
+        land and in a \textbf{different} Disjoint Set group, union
+        them and \textbf{decrement} $\textit{islandCount}$ by $1$
+        (two previously separate islands just merged into one).
+  \item Record $\textit{islandCount}$ as the answer for this step.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent, size;
+public:
+    DisjointSet(int n) : parent(n), size(n, 1) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(int x, int y) {
+        int rootX = find(x), rootY = find(y);
+        if (rootX == rootY) return;
+        if (size[rootX] < size[rootY]) swap(rootX, rootY);
+        parent[rootY] = rootX;
+        size[rootX] += size[rootY];
+    }
+};
+
+vector<int> numIslands2(int m, int n, vector<vector<int>>& positions) {
+    DisjointSet ds(m * n);
+    vector<vector<bool>> isLand(m, vector<bool>(n, false));
+    int islandCount = 0;
+    vector<int> result;
+
+    int dr[] = {-1, 1, 0, 0};
+    int dc[] = {0, 0, -1, 1};
+
+    for (auto& pos : positions) {
+        int r = pos[0], c = pos[1];
+        if (isLand[r][c]) {
+            result.push_back(islandCount);
+            continue;
+        }
+
+        isLand[r][c] = true;
+        islandCount++;
+
+        for (int dir = 0; dir < 4; dir++) {
+            int nr = r + dr[dir], nc = c + dc[dir];
+            if (nr >= 0 && nr < m && nc >= 0 && nc < n && isLand[nr][nc]) {
+                int idA = r * n + c, idB = nr * n + nc;
+                if (ds.find(idA) != ds.find(idB)) {
+                    ds.unite(idA, idB);
+                    islandCount--;
+                }
+            }
+        }
+        result.push_back(islandCount);
+    }
+    return result;
+}
+
+int main() {
+    vector<vector<int>> positions = {{0,0},{0,1},{1,2},{1,0},{0,2}};
+    for (int x : numIslands2(3, 3, positions)) cout << x << " ";
+    cout << endl; // 1 1 2 2 1
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $m=n=3$,
+$\textit{positions}=[(0,0),(0,1),(1,2),(1,0),(0,2)]$.}
+
+Add $(0,0)$: new island, count $=1$. No land neighbors. Result: $1$.
+Add $(0,1)$: new island, count $=2$; neighbor $(0,0)$ is land, union,
+count $=1$. Result: $1$. Add $(1,2)$: new island, count $=2$; no land
+neighbors yet. Result: $2$. Add $(1,0)$: new island, count $=3$;
+neighbor $(0,0)$ is land (same group as $(0,1)$), union, count $=2$.
+Result: $2$. Add $(0,2)$: new island, count $=3$; neighbor $(1,2)$ is
+land, union, count $=2$; neighbor $(0,1)$ is land and -- after the
+previous union -- in a \textbf{different} group from $(0,2)$'s newly
+merged group, union again, count $=1$. Result: $1$. Final sequence:
+$1,1,2,2,1$ -- the last addition, $(0,2)$, happens to bridge
+\emph{two} previously separate islands at once, dropping the count by
+$2$ in a single step.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(k \cdot \alpha(mn))$ for $k$ position
+updates, each doing a constant number of Disjoint Set operations.
+\textbf{Space Complexity.} $O(mn)$ for the Disjoint Set and the
+\textit{isLand} grid.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This problem is the clearest illustration in this chapter of Disjoint
+Set's core advantage over re-traversal: when connectivity needs to be
+queried or updated \textbf{repeatedly} as a structure changes
+incrementally, Disjoint Set answers each update in near-constant time,
+where a fresh DFS/BFS per update would be asymptotically far slower.
+\end{takeawaybox}

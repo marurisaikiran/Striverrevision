@@ -1,0 +1,124 @@
+\section{Prim's Algorithm (Minimum Spanning Tree)}
+\label{sec:graph-prim}
+
+\problemstatement{Same as Section~\ref{sec:graph-kruskal}: find a
+Minimum Spanning Tree of a weighted, connected, undirected graph --
+this time by \textbf{growing a single tree} outward from one starting
+node, rather than considering all edges globally sorted by weight.}
+
+\begin{patternbox}
+\emph{``Grow a tree, always extending it as cheaply as possible''}
+mirrors the Graph Shortest Path chapter's Dijkstra's algorithm almost exactly: a
+priority queue always offers the \textbf{cheapest available edge}
+connecting some node already in the tree to some node not yet in it.
+The key difference from Dijkstra: the priority queue tracks the
+\textbf{edge weight to join the tree}, not the \textbf{cumulative
+distance from a source} -- a node already close to the tree via one
+cheap edge is preferred even if a different, longer path from the
+start node exists.
+\end{patternbox}
+
+\subsection*{Why this also satisfies the cut property}
+
+At every step, the tree built so far and the remaining nodes form a
+cut (a partition into two groups). Prim's always picks the
+\textbf{cheapest edge crossing that specific cut} -- exactly the
+greedy choice the cut property (Section~\ref{sec:graph-kruskal})
+guarantees is always safe to include in \emph{some} MST. Kruskal's
+considers cuts implicitly through global edge sorting; Prim's
+considers one specific, growing cut at each step.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain a $\textit{inMST}$ boolean array and a min-heap of
+        $(\textit{weight}, \textit{node})$ pairs, starting with
+        $(0, \textit{anyStartNode})$.
+  \item Pop the smallest-weight entry; if its node is already in the
+        MST, skip (stale entry, exactly as in Dijkstra). Otherwise,
+        mark it in the MST and add its weight to the total.
+  \item For every neighbor of the newly added node not yet in the
+        MST, push $(\textit{edgeWeight}, \textit{neighbor})$.
+  \item Repeat until every node is in the MST.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int primMST(int n, vector<vector<pair<int,int>>>& adj) {
+    vector<bool> inMST(n, false);
+    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> pq;
+    pq.push({0, 0}); // start from node 0, weight 0
+    int totalWeight = 0;
+
+    while (!pq.empty()) {
+        auto [weight, node] = pq.top();
+        pq.pop();
+        if (inMST[node]) continue; // stale entry
+
+        inMST[node] = true;
+        totalWeight += weight;
+
+        for (auto& [neighbor, edgeWeight] : adj[node]) {
+            if (!inMST[neighbor]) {
+                pq.push({edgeWeight, neighbor});
+            }
+        }
+    }
+    return totalWeight;
+}
+
+int main() {
+    int n = 4;
+    vector<vector<pair<int,int>>> adj(n);
+    auto addEdge = [&](int u, int v, int w) {
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    };
+    addEdge(0, 1, 4); addEdge(0, 2, 1); addEdge(1, 2, 2);
+    addEdge(1, 3, 5); addEdge(2, 3, 8);
+
+    cout << primMST(n, adj) << endl; // 8
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Same graph as Section~\ref{sec:graph-kruskal}'s example,
+starting from node $0$.}
+
+Heap: $[(0,0)]$. Pop $(0,0)$: add $0$ to MST, total $=0$; push
+neighbors $(4,1)$ and $(1,2)$. Heap: $[(1,2),(4,1)]$. Pop $(1,2)$
+(smallest): add $2$, total $=1$; push $2$'s neighbors not in MST:
+$(2,1)$ (edge $1{-}2$, weight $2$) and $(8,3)$ (edge $2{-}3$, weight
+$8$). Heap: $[(2,1),(4,1)_{\text{stale dup}},(8,3)]$. Pop $(2,1)$:
+add $1$, total $=3$; push $1$'s remaining neighbor not in MST: $(5,3)$
+(edge $1{-}3$, weight $5$). Heap now has both $(5,3)$ and $(8,3)$ for
+node $3$. Pop $(4,1)_{\text{stale}}$: $1$ already in MST, skip. Pop
+$(5,3)$ (smaller than the $(8,3)$ entry): add $3$, total $=8$. Final
+MST weight: $8$ -- matching Kruskal's result on the same graph, as
+expected (both algorithms always find \emph{a} minimum spanning tree,
+and when the MST is unique, as here, the total weight necessarily
+agrees).
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(E \log V)$ -- each edge can trigger one
+heap push, each costing $O(\log V)$.
+\textbf{Space Complexity.} $O(V)$ for \textit{inMST}, plus $O(E)$ for
+the heap in the worst case.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Kruskal's and Prim's solve the identical problem from two different
+angles -- global edge sorting versus local frontier growth -- and
+which is preferable depends on graph density: Kruskal's
+$O(E\log E)$ favors sparse graphs (few edges to sort), while Prim's
+$O(E\log V)$ with an adjacency-list-based heap favors graphs where $V$
+is comparatively small relative to $E$. Both reuse machinery already
+built earlier in this book: Kruskal's reuses Disjoint Set, Prim's
+reuses Dijkstra's exact priority-queue frontier-expansion shape.
+\end{takeawaybox}

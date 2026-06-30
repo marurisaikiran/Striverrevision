@@ -1,0 +1,178 @@
+\section{Maximum Sum Combination}
+\label{sec:heap-max-sum-combination}
+
+\problemstatement{We are given two arrays $A$ and $B$, each of size $N$,
+and an integer $K$. Consider every possible pair sum $A[i]+B[j]$ for
+$0 \le i,j < N$ (there are $N^2$ such pairs). Find the $K$ \textbf{largest}
+pair sums, in descending order, \textbf{without} computing all $N^2$ sums.}
+
+\begin{patternbox}
+\emph{``$K$ largest sums formed by combining one element from each of two
+(sorted) collections''} is a generalization of Kth Largest
+(Section~\ref{sec:heap-kth-largest}) to a combinatorially large candidate
+space: there are $N^2$ possible pairs, far too many to generate and sort
+when $K \ll N^2$. The keyword to notice is that the candidate sums have
+\textbf{internal structure} (they come from a grid of sorted index pairs),
+which a heap can exploit to generate only the $K$ largest sums directly,
+without ever materializing the rest.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Sort both $A$ and $B$ in \textbf{descending} order first. Now,
+$A[0]+B[0]$ is guaranteed to be the single largest possible sum (the
+largest element of each array, paired together). Crucially, once we know
+$A[0]+B[0]$ is the maximum, the \emph{next}-largest sum must come from
+either decreasing the $A$-index to $1$ (pairing $A[1]$ with $B[0]$) or
+decreasing the $B$-index to $1$ (pairing $A[0]$ with $B[1]$) -- no other
+pair can exceed both of these, since both arrays are sorted descending,
+and any pair using indices further from $(0,0)$ in either coordinate can
+only be smaller than at least one of these two candidates.
+
+\begin{ideabox}[Greedy Choice, Powered by a Max-Heap over Index Pairs]
+Maintain a max-heap of candidate \emph{index pairs} $(i,j)$, keyed by
+$A[i]+B[j]$, along with a \textit{visited} set to avoid pushing the same
+pair twice. Start with $(0,0)$ in the heap. Repeat $K$ times: pop the pair
+with the largest sum, record that sum, then push $(i+1,j)$ and $(i,j+1)$
+(if within bounds and not already visited) as the next candidates that
+could potentially be the next-largest sum.
+\end{ideabox}
+
+\subsection*{Why only two neighbors need to be considered at each step}
+
+This is the same idea as merging $k$ sorted lists
+(Section~\ref{sec:heap-merge-k-lists}), generalized to a 2D grid of sorted
+candidates rather than $k$ separate 1D lists: because both $A$ and $B$ are
+sorted descending, the sum $A[i]+B[j]$ is non-increasing as $i$ or $j$
+increases (holding the other fixed) -- so the grid of all possible sums is
+itself ``sorted'' along both axes, exactly like the row/column-sorted
+matrices in Sections~\ref{sec:bs-search-2d-matrix}--\ref{sec:bs-matrix-median}.
+Once a pair $(i,j)$ has been popped as the current maximum, the only pairs
+that could possibly be the \emph{next}-largest, among those not yet
+considered, are its immediate neighbors $(i+1,j)$ and $(i,j+1)$ -- every
+other still-uncovered pair is reachable only by passing through one of
+these two first, so they are never skipped over by this expansion rule.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $A$ and $B$ in descending order.
+  \item Initialize a max-heap (by sum) with the single pair $(0,0)$;
+        mark $(0,0)$ visited.
+  \item Repeat $K$ times:
+  \begin{enumerate}
+    \item Pop $(i,j)$ with the largest sum $A[i]+B[j]$; record this sum.
+    \item If $i+1 < N$ and $(i+1,j)$ not visited: push it; mark
+          visited.
+    \item If $j+1 < N$ and $(i,j+1)$ not visited: push it; mark
+          visited.
+  \end{enumerate}
+  \item Return the $K$ recorded sums.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Maximum Sum Combination}
+\begin{algorithmic}[1]
+\Procedure{MaxSumCombination}{$A, B, K$}
+  \State sort $A, B$ descending
+  \State $\textit{heap} \gets$ max-heap with $(A[0]+B[0], 0, 0)$
+  \State mark $(0,0)$ visited
+  \State $\textit{result} \gets$ empty list
+  \For{$\textit{count} \gets 1$ to $K$}
+    \State $(\textit{sum}, i, j) \gets$ pop maximum
+    \State append \textit{sum} to \textit{result}
+    \If{$i+1<N$ \textbf{and} $(i{+}1,j)$ not visited}
+      \State push $(A[i{+}1]+B[j], i{+}1, j)$; mark visited
+    \EndIf
+    \If{$j+1<N$ \textbf{and} $(i,j{+}1)$ not visited}
+      \State push $(A[i]+B[j{+}1], i, j{+}1)$; mark visited
+    \EndIf
+  \EndFor
+  \State \Return \textit{result}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $A = [3,2]$, $B = [1,4]$, $K = 2$. Sorted descending:
+$A=[3,2]$, $B=[4,1]$.}
+
+\begin{itemize}
+  \item Start: heap $=\{(7,0,0)\}$ (sum $A[0]+B[0]=3+4=7$). Visited
+        $=\{(0,0)\}$.
+  \item Pop $(7,0,0)$: record $7$. Push $(1,0)$: sum
+        $A[1]+B[0]=2+4=6$. Push $(0,1)$: sum $A[0]+B[1]=3+1=4$. Heap
+        $=\{6,4\}$. Visited $=\{(0,0),(1,0),(0,1)\}$.
+  \item Pop $(6,1,0)$: record $6$. $K=2$ reached; stop.
+\end{itemize}
+
+The top $2$ sums are $[7,6]$. Checking by hand: all four pair sums are
+$3{+}4=7$, $3{+}1=4$, $2{+}4=6$, $2{+}1=3$; sorted descending,
+$[7,6,4,3]$, and the top $2$ are indeed $[7,6]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> maxSumCombination(vector<int> A, vector<int> B, int K) {
+    int n = A.size();
+    sort(A.rbegin(), A.rend());
+    sort(B.rbegin(), B.rend());
+
+    // (sum, i, j)
+    priority_queue<tuple<int,int,int>> maxHeap;
+    set<pair<int,int>> visited;
+
+    maxHeap.push({A[0] + B[0], 0, 0});
+    visited.insert({0, 0});
+
+    vector<int> result;
+    while (K-- > 0 && !maxHeap.empty()) {
+        auto [sum, i, j] = maxHeap.top();
+        maxHeap.pop();
+        result.push_back(sum);
+
+        if (i + 1 < n && !visited.count({i+1, j})) {
+            maxHeap.push({A[i+1] + B[j], i+1, j});
+            visited.insert({i+1, j});
+        }
+        if (j + 1 < n && !visited.count({i, j+1})) {
+            maxHeap.push({A[i] + B[j+1], i, j+1});
+            visited.insert({i, j+1});
+        }
+    }
+    return result;
+}
+
+int main() {
+    vector<int> A = {3, 2};
+    vector<int> B = {1, 4};
+    for (int x : maxSumCombination(A, B, 2)) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting costs $O(N \log N)$. The main loop runs
+$K$ times, each doing $O(1)$ pushes/pops of $O(\log K)$ cost (the heap
+never holds more than $O(K)$ candidate pairs), giving an overall time
+complexity of
+\[
+  O(N \log N + K \log K).
+\]
+\textbf{Space Complexity.} $O(K)$ for the heap and visited set.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``$K$ largest/smallest results from combining elements of two or more
+sorted collections'' generalizes the merge-$k$-sorted-lists idea
+(Section~\ref{sec:heap-merge-k-lists}) to a combinatorial candidate space:
+instead of $k$ separate sequences, the candidates form an implicit sorted
+grid, and a heap explores that grid one ``neighbor expansion'' at a time,
+from the best candidate outward, generating exactly the $K$ best results
+without ever enumerating the rest.
+\end{takeawaybox}

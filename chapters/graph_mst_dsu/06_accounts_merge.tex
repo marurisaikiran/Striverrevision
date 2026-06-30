@@ -1,0 +1,134 @@
+\section{Accounts Merge}
+\label{sec:graph-accounts-merge}
+
+\problemstatement{Given a list of accounts, each formatted as
+$[\textit{name}, \textit{email}_1, \textit{email}_2, \ldots]$, merge
+any accounts that share \textbf{at least one} email in common (the
+same person may have multiple accounts with overlapping email sets).
+Return the merged accounts, each with its emails sorted, name listed
+first.}
+
+\begin{patternbox}
+\emph{``Merge groups that share any common element''} is Disjoint Set
+over \textbf{account indices}: for every email seen, if it has already
+been seen belonging to some earlier account, union the current account
+with that earlier one. Accounts ending up with the same root after all
+unions belong to the same person and should be merged.
+\end{patternbox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize a Disjoint Set over account \textbf{indices}
+        (\emph{not} emails -- emails are not the nodes here, accounts
+        are).
+  \item Maintain a hash map from email to the \textbf{first} account
+        index seen owning it. For each account $i$, for each of its
+        emails: if the email has been seen before (owned by account
+        $j$), $\textit{unite}(i,j)$; otherwise, record $i$ as this
+        email's owner.
+  \item Group every email by the \textbf{root} of its originating
+        account index.
+  \item For each group, output $[\textit{name}, \text{sorted emails}]$
+        (the name can be taken from any account in the group, since
+        merged accounts are assumed to share the same name).
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent;
+public:
+    DisjointSet(int n) : parent(n) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(int x, int y) {
+        parent[find(x)] = find(y);
+    }
+};
+
+vector<vector<string>> accountsMerge(vector<vector<string>>& accounts) {
+    int n = accounts.size();
+    DisjointSet ds(n);
+    unordered_map<string, int> emailOwner;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 1; j < (int)accounts[i].size(); j++) {
+            string& email = accounts[i][j];
+            if (emailOwner.find(email) != emailOwner.end()) {
+                ds.unite(i, emailOwner[email]);
+            } else {
+                emailOwner[email] = i;
+            }
+        }
+    }
+
+    unordered_map<int, set<string>> grouped;
+    for (auto& [email, ownerIndex] : emailOwner) {
+        grouped[ds.find(ownerIndex)].insert(email);
+    }
+
+    vector<vector<string>> result;
+    for (auto& [root, emails] : grouped) {
+        vector<string> merged;
+        merged.push_back(accounts[root][0]); // name
+        merged.insert(merged.end(), emails.begin(), emails.end());
+        result.push_back(merged);
+    }
+    return result;
+}
+
+int main() {
+    vector<vector<string>> accounts = {
+        {"John", "johnsmith@mail.com", "john_newyork@mail.com"},
+        {"John", "johnsmith@mail.com", "john00@mail.com"},
+        {"Mary", "mary@mail.com"}
+    };
+    for (auto& acc : accountsMerge(accounts)) {
+        for (string& s : acc) cout << s << " ";
+        cout << endl;
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the three accounts above.}
+
+Account $0$: email \texttt{johnsmith@mail.com} unseen, owner $=0$;
+email \texttt{john\_newyork@mail.com} unseen, owner $=0$. Account $1$:
+email \texttt{johnsmith@mail.com} \textbf{already owned by account
+$0$} -- $\textit{unite}(1,0)$; email \texttt{john00@mail.com} unseen,
+owner $=1$. Account $2$: email \texttt{mary@mail.com} unseen, owner
+$=2$. Grouping by root: accounts $0$ and $1$ share a root (merged via
+the shared email), contributing all three of their emails sorted
+together under name \texttt{"John"}; account $2$ stands alone under
+\texttt{"Mary"}. Final: two merged account groups.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\sum |\textit{emails}| \cdot \alpha(n) +
+\sum |\textit{emails}| \log(\sum |\textit{emails}|))$ -- unioning
+costs near-constant time per email, and sorting each group's emails
+(via \texttt{set}) contributes the logarithmic factor.
+\textbf{Space Complexity.} $O(\sum |\textit{emails}|)$ for the email
+ownership map and grouped output.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The subtlety in this problem is recognizing that the Disjoint Set's
+\textbf{nodes} are accounts, not emails -- emails are merely the
+\emph{evidence} used to decide which accounts to union. This same
+\textit{``the connectivity evidence and the thing being grouped are
+different''} pattern reappears throughout real-world entity-resolution
+problems (matching user profiles, deduplicating records) well beyond
+this specific email-based example.
+\end{takeawaybox}

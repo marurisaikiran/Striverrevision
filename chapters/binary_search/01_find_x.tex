@@ -1,0 +1,173 @@
+\section{Binary Search to Find X in a Sorted Array}
+\label{sec:bs-find-x}
+
+\problemstatement{We are given an array $\textit{arr}$ of $n$ elements,
+sorted in increasing order, and a target value $X$. We must determine the
+index of $X$ in the array if it is present, and return $-1$ if it is not.
+We must do this faster than the obvious $O(n)$ linear scan.}
+
+\begin{patternbox}
+\emph{``Sorted array''} appearing anywhere in a problem statement,
+combined with a request to \emph{find/locate} a specific value or the
+boundary of some property, is the single most reliable trigger for binary
+search in this entire chapter. The reason a sorted array enables binary
+search is precisely the monotonicity property from
+Section~\ref{sec:bs-intro}: define $P(i) = (\textit{arr}[i] \ge X)$; because
+the array is sorted, $P$ is \texttt{false} for every index before $X$'s
+position and \texttt{true} from $X$'s position onward (or, if $X$ is
+absent, from the position where elements first exceed $X$ onward) -- a
+single crossover, which is exactly what binary search is built to find.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If the array were unsorted, knowing that $\textit{arr}[\textit{mid}] \ne X$
+would tell us nothing about where $X$ might be -- it could be anywhere
+among the remaining elements, so we would have no choice but to check them
+all. Sortedness changes this completely: if
+$\textit{arr}[\textit{mid}] < X$, then because every element to the left of
+$\textit{mid}$ is even smaller (the array is sorted in increasing order),
+\emph{none} of them can equal $X$ either, so the entire left half can be
+discarded in one step. Symmetrically, if $\textit{arr}[\textit{mid}] > X$,
+the entire right half can be discarded. Only when
+$\textit{arr}[\textit{mid}] = X$ do we stop, having found the answer.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is the set of indices $\{0, 1, \dots, n-1\}$. We
+maintain a search window $[\textit{lo}, \textit{hi}]$, initially the whole
+array, and repeatedly look at the midpoint, using the comparison with $X$ to
+discard exactly the half of the window that provably cannot contain $X$.
+\end{ideabox}
+
+\subsection*{Why halving the search space each time is correct}
+
+Each comparison at $\textit{mid}$ produces one of exactly three outcomes,
+and in every outcome we either find the answer immediately or can prove
+that an entire half of the remaining window is irrelevant. Since no element
+is ever incorrectly discarded (the sortedness guarantee makes every
+discard provably safe) and the window strictly shrinks by roughly half on
+every iteration, the process must terminate, either by finding $X$ or by
+the window becoming empty ($\textit{lo} > \textit{hi}$), at which point we
+can safely conclude $X$ is not present.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo} + (\textit{hi}-\textit{lo})/2$.
+    \item If $\textit{arr}[\textit{mid}] = X$: return $\textit{mid}$.
+    \item If $\textit{arr}[\textit{mid}] < X$: $\textit{lo} \gets
+          \textit{mid}+1$.
+    \item Otherwise: $\textit{hi} \gets \textit{mid}-1$.
+  \end{enumerate}
+  \item If the loop ends without returning, return $-1$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Binary Search}
+\begin{algorithmic}[1]
+\Procedure{BinarySearch}{$\textit{arr}, X$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo} + (\textit{hi}-\textit{lo})/2$
+    \If{$\textit{arr}[\textit{mid}] = X$}
+      \State \Return \textit{mid}
+    \ElsIf{$\textit{arr}[\textit{mid}] < X$}
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \EndIf
+  \EndWhile
+  \State \Return $-1$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [-1, 0, 3, 5, 9, 12]$, $X = 9$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=5$: $\textit{mid}=2$,
+        $\textit{arr}[2]=3 < 9$. $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=5$: $\textit{mid}=4$,
+        $\textit{arr}[4]=9 = 9$. Return $4$.
+\end{itemize}
+
+The answer is index $4$.
+
+Now take $X = 2$ on the same array.
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=5$: $\textit{mid}=2$,
+        $\textit{arr}[2]=3 > 2$. $\textit{hi}=1$.
+  \item $\textit{lo}=0,\textit{hi}=1$: $\textit{mid}=0$,
+        $\textit{arr}[0]=-1 < 2$. $\textit{lo}=1$.
+  \item $\textit{lo}=1,\textit{hi}=1$: $\textit{mid}=1$,
+        $\textit{arr}[1]=0 < 2$. $\textit{lo}=2$.
+  \item $\textit{lo}=2 > \textit{hi}=1$: loop ends. Return $-1$.
+\end{itemize}
+
+The answer is $-1$: $2$ is not present in the array.
+
+\subsection*{C++ implementation (iterative and recursive)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+// Iterative version
+int binarySearch(vector<int>& arr, int X) {
+    int lo = 0, hi = arr.size() - 1;
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == X) return mid;
+        else if (arr[mid] < X) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return -1;
+}
+
+// Recursive version
+int binarySearchRecursive(vector<int>& arr, int lo, int hi, int X) {
+    if (lo > hi) return -1;
+
+    int mid = lo + (hi - lo) / 2;
+    if (arr[mid] == X) return mid;
+    else if (arr[mid] < X) return binarySearchRecursive(arr, mid + 1, hi, X);
+    else return binarySearchRecursive(arr, lo, mid - 1, X);
+}
+
+int main() {
+    vector<int> arr = {-1, 0, 3, 5, 9, 12};
+    cout << "Iterative: " << binarySearch(arr, 9) << endl;
+    cout << "Recursive: "
+         << binarySearchRecursive(arr, 0, arr.size() - 1, 9) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each iteration (or recursive call) discards at
+least half of the remaining search window, so the window shrinks from size
+$n$ to size $0$ in at most $\lceil \log_2 n \rceil + 1$ steps, giving
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} The iterative version uses only the three
+scalar variables \textit{lo}, \textit{hi}, \textit{mid}, giving $O(1)$
+space. The recursive version uses $O(\log n)$ space for the call stack,
+since the recursion depth equals the number of halvings performed.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Binary search's correctness rests entirely on being able to \emph{prove},
+at each step, that an entire half of the remaining search space cannot
+contain the answer. In plain array search this proof comes directly from
+sortedness; every other binary search problem in this chapter is really
+asking you to find or construct an equivalent monotonicity proof in a
+different setting.
+\end{takeawaybox}

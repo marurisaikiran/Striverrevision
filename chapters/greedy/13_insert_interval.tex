@@ -1,0 +1,218 @@
+\section{Insert Interval}
+\label{sec:insert-interval}
+
+\problemstatement{We are given a list of intervals $\textit{intervals}$ that
+is already sorted by start time and contains no overlaps (it represents,
+say, a calendar of existing non-conflicting events). We are also given one
+new interval $\textit{newInterval}$. We must insert
+$\textit{newInterval}$ into the list, merging it with any existing
+intervals it overlaps, so that the result is still a list of intervals
+sorted by start time with no overlaps.}
+
+\begin{patternbox}
+\emph{``The existing intervals are already sorted and non-overlapping; insert
+one new interval and merge where necessary''} is a strong hint that we do
+not need to re-sort or re-scan everything from scratch -- the existing order
+is a resource we should exploit with a single linear pass, split into three
+natural phases (intervals entirely before the new one, intervals overlapping
+the new one, intervals entirely after). Whenever a problem promises that the
+input is already sorted, a greedy single pass that respects that order is
+almost always available, replacing what would otherwise look like a
+sort-and-merge operation.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Because the existing intervals are sorted by start time and mutually
+non-overlapping, as we scan through them from left to right, each interval
+falls into exactly one of three categories relative to
+$\textit{newInterval} = [\textit{ns}, \textit{ne}]$:
+
+\begin{enumerate}
+  \item \textbf{Entirely before}: the interval's end is strictly less than
+        $\textit{ns}$. It cannot overlap $\textit{newInterval}$ at all, and
+        because the list is sorted, every interval we have not yet visited
+        could still potentially overlap, but every interval already
+        confirmed to end before $\textit{ns}$ can be output immediately,
+        unchanged.
+  \item \textbf{Overlapping}: the interval's start is at most
+        $\textit{ne}$ and its end is at least $\textit{ns}$. Any such
+        interval must be merged into a single growing interval together
+        with $\textit{newInterval}$ and every other overlapping interval.
+  \item \textbf{Entirely after}: the interval's start is strictly greater
+        than $\textit{ne}$. Once we reach such an interval, we know
+        $\textit{newInterval}$ (possibly already merged with some earlier
+        intervals) is finished growing, because the remaining intervals,
+        being sorted, can only start even later.
+\end{enumerate}
+
+\begin{ideabox}[Greedy Choice]
+Scan the existing sorted intervals once, left to right. First, copy every
+interval that ends strictly before $\textit{newInterval}$ starts directly
+into the answer, untouched. Next, while the current interval overlaps the
+(possibly already-growing) new interval, absorb it by extending the new
+interval's start to the minimum of the two starts and its end to the maximum
+of the two ends. Once no more intervals overlap, insert this final merged
+interval into the answer. Finally, copy every remaining interval directly
+into the answer, untouched.
+\end{ideabox}
+
+\subsection*{Why a single pass suffices}
+
+This works cleanly because of two facts guaranteed by the problem: the
+existing intervals are sorted by start time, and they do not overlap each
+other. Sortedness means that once we pass an interval ending before
+$\textit{ns}$, no later interval can also need to be classified as
+``entirely before'' incorrectly -- the boundary between ``before'' and
+``possibly overlapping'' is crossed exactly once as we scan forward.
+Non-overlap among the existing intervals means that, when merging the
+overlapping group, we never need to worry about two existing intervals
+needing to be merged with each other independently of
+$\textit{newInterval}$ -- they only ever come into contact with each other
+\emph{through} their shared overlap with the growing merged interval. This
+is what allows the entire operation to be a single $O(n)$ pass with no
+need to sort or to revisit any interval more than once.
+
+\subsection*{Algorithm}
+
+Write $[s_i, e_i]$ for $\textit{intervals}[i]$, and $[\textit{ns},
+\textit{ne}]$ for the (possibly growing) new interval.
+
+\begin{enumerate}
+  \item Initialize an empty result list and an index $i \gets 0$.
+  \item \textbf{Phase 1.} While $i < n$ and $e_i < \textit{ns}$: append
+        $[s_i, e_i]$ to the result; $i \gets i+1$.
+  \item \textbf{Phase 2.} While $i < n$ and $s_i \le \textit{ne}$: merge by
+        setting $\textit{ns} \gets \min(\textit{ns}, s_i)$ and
+        $\textit{ne} \gets \max(\textit{ne}, e_i)$; $i \gets i+1$. Once the
+        loop ends, append the final merged $[\textit{ns}, \textit{ne}]$ to
+        the result.
+  \item \textbf{Phase 3.} While $i < n$: append $[s_i, e_i]$ to the result;
+        $i \gets i+1$.
+  \item Return the result.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Insert Interval}
+\begin{algorithmic}[1]
+\Procedure{InsertInterval}{\textit{intervals}, \textit{newInterval}}
+  \State $\textit{result} \gets$ empty list, $i \gets 0$, $n \gets \text{length}(\textit{intervals})$
+  \While{$i < n$ \textbf{and} $\textit{intervals}[i].\textit{end} < \textit{newInterval}.\textit{start}$}
+    \State append $\textit{intervals}[i]$ to \textit{result}; $i \gets i+1$
+  \EndWhile
+  \While{$i < n$ \textbf{and} $\textit{intervals}[i].\textit{start} \le \textit{newInterval}.\textit{end}$}
+    \State $\textit{newInterval}.\textit{start} \gets \min(\textit{newInterval}.\textit{start}, \textit{intervals}[i].\textit{start})$
+    \State $\textit{newInterval}.\textit{end} \gets \max(\textit{newInterval}.\textit{end}, \textit{intervals}[i].\textit{end})$
+    \State $i \gets i + 1$
+  \EndWhile
+  \State append \textit{newInterval} to \textit{result}
+  \While{$i < n$}
+    \State append $\textit{intervals}[i]$ to \textit{result}; $i \gets i+1$
+  \EndWhile
+  \State \Return \textit{result}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{intervals} = [[1,3],[6,9]]$ and
+$\textit{newInterval} = [2,5]$.}
+
+\begin{itemize}
+  \item \textbf{Phase 1}: check $[1,3]$. Is $3 < 2$? No. Phase 1 ends with
+        nothing copied, $i=0$.
+  \item \textbf{Phase 2}: check $[1,3]$. Is $1 \le 5$? Yes, overlaps. Merge:
+        $\textit{newInterval} = [\min(2,1), \max(5,3)] = [1,5]$. $i=1$.
+        Check $[6,9]$. Is $6 \le 5$? No. Phase 2 ends. Append $[1,5]$ to
+        result.
+  \item \textbf{Phase 3}: append $[6,9]$ unchanged.
+\end{itemize}
+
+The result is $[[1,5],[6,9]]$.
+
+Now take $\textit{intervals} = [[1,2],[3,5],[6,7],[8,10],[12,16]]$ and
+$\textit{newInterval} = [4,8]$.
+
+\begin{itemize}
+  \item \textbf{Phase 1}: $[1,2]$ has end $2 < 4$, copy it. $[3,5]$ has end
+        $5 \not< 4$, stop. Result so far: $[[1,2]]$, $i$ points at $[3,5]$.
+  \item \textbf{Phase 2}: $[3,5]$: start $3 \le 8$, overlaps. Merge:
+        $\textit{newInterval}=[\min(4,3),\max(8,5)]=[3,8]$. Next, $[6,7]$:
+        start $6\le8$, overlaps. Merge: $[\min(3,6),\max(8,7)]=[3,8]$
+        (unchanged). Next, $[8,10]$: start $8\le8$, overlaps. Merge:
+        $[\min(3,8),\max(8,10)]=[3,10]$. Next, $[12,16]$: start $12\le10$?
+        No, stop. Append $[3,10]$ to result.
+  \item \textbf{Phase 3}: append $[12,16]$ unchanged.
+\end{itemize}
+
+The result is $[[1,2],[3,10],[12,16]]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<vector<int>> insertInterval(vector<vector<int>>& intervals,
+                                    vector<int>& newInterval) {
+    vector<vector<int>> result;
+    int n = intervals.size();
+    int i = 0;
+
+    // Phase 1: intervals ending before newInterval starts
+    while (i < n && intervals[i][1] < newInterval[0]) {
+        result.push_back(intervals[i]);
+        i++;
+    }
+
+    // Phase 2: merge all overlapping intervals
+    while (i < n && intervals[i][0] <= newInterval[1]) {
+        newInterval[0] = min(newInterval[0], intervals[i][0]);
+        newInterval[1] = max(newInterval[1], intervals[i][1]);
+        i++;
+    }
+    result.push_back(newInterval);
+
+    // Phase 3: remaining intervals
+    while (i < n) {
+        result.push_back(intervals[i]);
+        i++;
+    }
+
+    return result;
+}
+
+int main() {
+    vector<vector<int>> intervals = {{1,2},{3,5},{6,7},{8,10},{12,16}};
+    vector<int> newInterval = {4, 8};
+
+    auto result = insertInterval(intervals, newInterval);
+    for (auto& iv : result) {
+        cout << "[" << iv[0] << "," << iv[1] << "] ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each of the $n$ existing intervals is visited
+exactly once across the three phases combined (no interval is revisited),
+and each visit does constant work, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} The result list holds at most $n+1$ intervals, so
+the space complexity is $O(n)$ for the output (no other significant
+auxiliary storage is used).
+\end{complexitybox}
+
+\begin{takeawaybox}
+When the input is explicitly guaranteed to already be sorted, look for a
+single linear pass with a small, fixed number of phases (here:
+before-overlap-after) instead of reapplying a general sort-and-merge
+algorithm. Exploiting a sortedness guarantee given for free in the problem
+statement is itself a greedy-style optimization: it converts an
+$O(n \log n)$ general merge into an $O(n)$ specialized one.
+\end{takeawaybox}

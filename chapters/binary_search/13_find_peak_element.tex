@@ -1,0 +1,164 @@
+\section{Find Peak Element}
+\label{sec:bs-peak-1d}
+
+\problemstatement{We are given an array $\textit{arr}$ of $n$ distinct
+integers (no two adjacent elements are equal), where the array is
+conceptually bordered by $-\infty$ on both ends (i.e.\ $\textit{arr}[-1] =
+\textit{arr}[n] = -\infty$). An index $i$ is a \textbf{peak} if
+$\textit{arr}[i]$ is strictly greater than both of its neighbors. We must
+find the index of \textbf{any one} peak element, in $O(\log n)$ time.}
+
+\begin{patternbox}
+This problem has \textbf{no sortedness at all} -- the array can be
+completely jumbled. This is the most important lesson in this section:
+the keyword to look for is not ``sorted,'' but the guarantee of a
+\textbf{boundary condition combined with a local comparison rule} that
+forces a peak to exist and forces a specific monotonic structure on the
+direction of ``ascent.'' Whenever you see ``array bordered by $-\infty$''
+or an equivalent guarantee (e.g.\ ``the array is strictly increasing then
+strictly decreasing''), suspect a peak-finding binary search even though no
+sortedness is mentioned.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Consider the midpoint $\textit{mid}$ and compare $\textit{arr}[\textit{mid}]$
+to its right neighbor $\textit{arr}[\textit{mid}+1]$ (treating an
+out-of-range neighbor as $-\infty$ per the problem's border convention).
+
+\begin{itemize}
+  \item If $\textit{arr}[\textit{mid}] < \textit{arr}[\textit{mid}+1]$:
+        the sequence is ``climbing'' at \textit{mid}. Because the array is
+        bordered by $-\infty$ on the right end too, \emph{somewhere} to the
+        right of \textit{mid} the climbing must eventually stop and turn
+        into a peak (it cannot climb forever, since it must come back down
+        to $-\infty$ at the far border) -- so a peak is guaranteed to exist
+        in $(\textit{mid}, \textit{hi}]$.
+  \item If $\textit{arr}[\textit{mid}] > \textit{arr}[\textit{mid}+1]$:
+        the sequence is ``descending'' at \textit{mid}, meaning
+        \textit{mid} is locally higher than its right neighbor. By a
+        symmetric argument applied leftward (the array is bordered by
+        $-\infty$ on the left too), a peak is guaranteed to exist somewhere
+        in $[\textit{lo}, \textit{mid}]$, \emph{including possibly
+        \textit{mid} itself}.
+\end{itemize}
+
+\begin{ideabox}[Greedy Choice]
+If $\textit{arr}[\textit{mid}] < \textit{arr}[\textit{mid}+1]$, discard the
+left half including \textit{mid}, since a peak is guaranteed further
+right: $\textit{lo} \gets \textit{mid}+1$. Otherwise, discard the right
+half excluding \textit{mid}, since a peak is guaranteed at \textit{mid} or
+further left: $\textit{hi} \gets \textit{mid}$.
+\end{ideabox}
+
+\subsection*{Why a peak is always guaranteed to exist in the kept half}
+
+This is an existence argument, not a uniqueness or value-comparison
+argument, which makes it a structurally different kind of binary search
+correctness proof from the rest of this chapter. The guarantee rests
+entirely on the $-\infty$ borders: if we always move \emph{toward}
+increasing values, we are guaranteed to eventually hit a local maximum
+before falling off either border, because the function value cannot
+increase forever in a finite array, and any point where increase changes
+to decrease (or where increase meets the $-\infty$ border with the array
+ascending all the way to its last real element) is, by definition, a peak.
+This is the same idea used to prove that a continuous function climbing
+from $-\infty$ must have a maximum -- a discrete, array-based analogue.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$.
+  \item While $\textit{lo} < \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item If $\textit{arr}[\textit{mid}] < \textit{arr}[\textit{mid}+1]$:
+          $\textit{lo} \gets \textit{mid}+1$.
+    \item Else: $\textit{hi} \gets \textit{mid}$.
+  \end{enumerate}
+  \item Return \textit{lo} (equivalently \textit{hi}; they have converged).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Find Peak Element}
+\begin{algorithmic}[1]
+\Procedure{FindPeak}{\textit{arr}}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$
+  \While{$\textit{lo} < \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \If{$\textit{arr}[\textit{mid}] < \textit{arr}[\textit{mid}+1]$}
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid}$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{lo}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1, 2, 1, 3, 5, 6, 4]$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=6$: $\textit{mid}=3$,
+        $\textit{arr}[3]=3 < \textit{arr}[4]=5$. $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=6$: $\textit{mid}=5$,
+        $\textit{arr}[5]=6 < \textit{arr}[6]=4$? No. $\textit{hi}=5$.
+  \item $\textit{lo}=4,\textit{hi}=5$: $\textit{mid}=4$,
+        $\textit{arr}[4]=5 < \textit{arr}[5]=6$. $\textit{lo}=5$.
+  \item $\textit{lo}=5=\textit{hi}$: loop ends.
+\end{itemize}
+
+The peak index is $5$, where $\textit{arr}[5]=6$, which is indeed greater
+than both neighbors $\textit{arr}[4]=5$ and $\textit{arr}[6]=4$. (Index $1$,
+where $\textit{arr}[1]=2$, is also a valid peak; the problem only requires
+\emph{any} one peak, and this algorithm happens to converge to the one on
+the side it explored.)
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int findPeak(vector<int>& arr) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1;
+
+    while (lo < hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] < arr[mid + 1]) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 1, 3, 5, 6, 4};
+    cout << "Peak index: " << findPeak(arr) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The search window halves each iteration, giving
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Binary search does not require sortedness -- it requires a monotonic,
+provable rule for discarding half the search space. Here, the rule comes
+from a local ascent/descent comparison plus a boundary guarantee, not from
+any global ordering of the array's values. Whenever you see ``find a local
+maximum/minimum,'' check whether boundary conditions and a single local
+comparison can replace the sortedness argument used elsewhere in this
+chapter.
+\end{takeawaybox}

@@ -1,0 +1,126 @@
+\section{Check if an Array Represents a Heap}
+\label{sec:heap-check-array}
+
+\problemstatement{Given an array $\textit{arr}[0..n-1]$, determine whether
+it represents a valid \textbf{max-heap} when interpreted as a complete
+binary tree in level order (every parent at index $i$ should be $\ge$ its
+children at $2i+1$ and $2i+2$).}
+
+\begin{patternbox}
+This is a direct test of the array-as-tree arithmetic from
+Section~\ref{sec:heap-implement}: the keyword is simply \emph{``does this
+array, read as a complete binary tree, satisfy the heap invariant
+everywhere.''} There is no clever algorithm to discover -- the entire
+exercise is checking the invariant at every internal node using the
+$\textit{left}(i) = 2i+1$, $\textit{right}(i) = 2i+2$ formulas directly.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+A leaf node (one with no children, i.e.\ $2i+1 \ge n$) trivially satisfies
+the heap property, since it has nothing to compare against. So we only need
+to check internal nodes -- indices $i$ with $2i+1 < n$ -- and verify that
+$\textit{arr}[i] \ge \textit{arr}[2i+1]$ (when the left child exists) and
+$\textit{arr}[i] \ge \textit{arr}[2i+2]$ (when the right child exists). If
+every internal node passes both checks, the whole array is a valid
+max-heap, because the heap property is purely local: validity at every
+parent-child pair, checked independently, is both necessary and sufficient
+for the global invariant to hold (there is no broader ordering constraint
+a heap is required to satisfy beyond these local pairwise comparisons).
+
+\begin{ideabox}[Why Checking Only Internal Nodes Suffices]
+The heap property is defined entirely in terms of parent-versus-children
+comparisons. A node with no children imposes no constraint of its own, so
+the full set of constraints to verify is exactly the set of (parent, child)
+pairs that exist in the array -- checking every internal node against its
+existing children covers all of them exactly once.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For $i \gets 0$ to $n-1$, while $2i+1 < n$ (i.e.\ $i$ is internal):
+  \begin{enumerate}
+    \item If $2i+1 < n$ and $\textit{arr}[i] < \textit{arr}[2i+1]$: return
+          \texttt{false}.
+    \item If $2i+2 < n$ and $\textit{arr}[i] < \textit{arr}[2i+2]$: return
+          \texttt{false}.
+  \end{enumerate}
+  \item If every internal node passes, return \texttt{true}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Check Array Represents a Max-Heap}
+\begin{algorithmic}[1]
+\Procedure{IsHeap}{\textit{arr}}
+  \For{$i \gets 0$ to $n-1$}
+    \State $\textit{left} \gets 2i+1$, $\textit{right} \gets 2i+2$
+    \If{$\textit{left} < n$ \textbf{and} $\textit{arr}[i] < \textit{arr}[\textit{left}]$}
+      \State \Return \textbf{false}
+    \EndIf
+    \If{$\textit{right} < n$ \textbf{and} $\textit{arr}[i] < \textit{arr}[\textit{right}]$}
+      \State \Return \textbf{false}
+    \EndIf
+  \EndFor
+  \State \Return \textbf{true}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [90, 15, 10, 7, 12, 2, 7, 3]$.}
+
+\begin{itemize}
+  \item $i=0$ (value $90$): children at $1,2$ are $15,10$. $90 \ge 15$ and
+        $90 \ge 10$. OK.
+  \item $i=1$ (value $15$): children at $3,4$ are $7,12$. $15 \ge 7$ and
+        $15 \ge 12$. OK.
+  \item $i=2$ (value $10$): children at $5,6$ are $2,7$. $10 \ge 2$ and
+        $10 \ge 7$. OK.
+  \item $i=3$ (value $7$): child at $7$ is $3$ (no right child, index $8$
+        out of range). $7 \ge 3$. OK.
+  \item $i=4,5,6,7$: no children ($2i+1 \ge 8$). Trivially OK.
+\end{itemize}
+
+Every internal node passes, so the array is a valid max-heap.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isHeap(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n; i++) {
+        int left = 2 * i + 1, right = 2 * i + 2;
+        if (left < n && arr[i] < arr[left]) return false;
+        if (right < n && arr[i] < arr[right]) return false;
+    }
+    return true;
+}
+
+int main() {
+    vector<int> arr = {90, 15, 10, 7, 12, 2, 7, 3};
+    cout << (isHeap(arr) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each index is visited once with constant work,
+giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The heap property is purely local (parent versus its own children), never
+global -- a heap is not required to be sorted in any stronger sense. This
+is precisely why heap operations are $O(\log n)$ rather than $O(n \log n)$:
+restoring a single local violation after an insertion or removal never
+requires re-examining the whole structure.
+\end{takeawaybox}

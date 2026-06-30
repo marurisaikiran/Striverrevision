@@ -1,0 +1,199 @@
+\section{Task Scheduler}
+\label{sec:heap-task-scheduler}
+
+\problemstatement{We are given an array $\textit{tasks}$, where each
+element is a task type (e.g.\ a character), and an integer $n$, the
+\textbf{cooldown}: the same task type cannot be executed again until at
+least $n$ units of time have passed since its last execution (the CPU may
+sit \textbf{idle} for a unit of time if no eligible task is available).
+Find the \textbf{minimum total time} needed to execute all tasks.}
+
+\begin{patternbox}
+\emph{``Always schedule whichever task type currently has the most
+remaining occurrences (subject to a cooldown), repeatedly''} is a
+perpetually-resorted greedy priority -- exactly the
+\emph{``schedule/group with a cost or cooldown that always prefers the
+largest remaining count first''} keyword pattern from
+Section~\ref{sec:heap-intro}. Scheduling the most frequent task type first,
+whenever it is eligible, spreads out the most demanding task type as early
+and as evenly as possible, minimizing the idle time it would otherwise
+force later.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Intuitively, the task type with the highest remaining count is the most
+constraining: if we delay it, we are more likely to be forced into idle
+slots later, because its cooldown keeps recurring. So at every time step,
+we should greedily execute whichever \emph{eligible} task type currently
+has the largest remaining count. A max-heap keyed by remaining count gives
+us this ``most frequent remaining task'' in $O(\log d)$ time, where $d$ is
+the number of distinct task types (at most $26$ for lowercase letters, so
+effectively a small constant).
+
+\begin{ideabox}[Greedy Choice, Powered by a Max-Heap]
+Count the frequency of each task type and push these counts into a
+max-heap. Process time in chunks of $n+1$ consecutive units (one full
+cooldown cycle): within each chunk, repeatedly pop the most frequent
+remaining task type, decrement its count, and execute it in the next time
+slot; if its count is still positive after decrementing, set it aside
+(it cannot be reused within this same cooldown cycle) to be pushed back
+into the heap only after the chunk completes. If both the heap and the
+set-aside list are empty before filling all $n+1$ slots of the current
+chunk, stop immediately (no trailing idle time is needed); otherwise, any
+unfilled slots in the chunk count as idle time.
+\end{ideabox}
+
+\subsection*{Why processing in cooldown-sized chunks is correct}
+
+Within a single chunk of $n+1$ consecutive time slots, no task type can
+appear twice (that is exactly what the cooldown $n$ forbids -- a task
+executed at the start of a chunk cannot be executed again until at least
+$n$ slots later, which is precisely the boundary of the next chunk). So a
+chunk can hold at most one execution of each distinct task type, and
+greedily filling each chunk with the currently most-frequent remaining
+task types (up to $\min(d, n+1)$ of them, where $d$ is how many distinct
+types still have remaining work) never wastes an opportunity: any
+slot left empty in a chunk after all distinct remaining types have been
+used \emph{must} be idle, because no task is eligible. Choosing the
+\emph{most frequent} remaining types to fill each chunk (rather than any
+other selection) is what minimizes the number of future chunks that will
+be forced to leave slots idle, since it depletes the most constraining
+task types fastest, evening out the workload as quickly as possible.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Count the frequency of each task type; push all counts into a
+        max-heap.
+  \item Initialize $\textit{time} \gets 0$.
+  \item While the heap is not empty:
+  \begin{enumerate}
+    \item $\textit{tempList} \gets$ empty list (tasks used this cycle,
+          temporarily held out of the heap).
+    \item For $i \gets 0$ to $n$ ($n+1$ slots in this cycle):
+    \begin{enumerate}
+      \item If the heap is not empty: pop the largest count, decrement
+            it by $1$; if still $>0$, append it to $\textit{tempList}$.
+      \item $\textit{time} \gets \textit{time}+1$.
+      \item If the heap is empty and $\textit{tempList}$ is empty: break
+            out of this inner loop early (no trailing idle needed).
+    \end{enumerate}
+    \item Push every count in $\textit{tempList}$ back onto the heap.
+  \end{enumerate}
+  \item Return \textit{time}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Task Scheduler}
+\begin{algorithmic}[1]
+\Procedure{LeastInterval}{\textit{tasks}, $n$}
+  \State count frequencies; push all into max-heap \textit{heap}
+  \State $\textit{time} \gets 0$
+  \While{\textit{heap} is not empty}
+    \State $\textit{temp} \gets$ empty list
+    \For{$i \gets 0$ to $n$}
+      \If{\textit{heap} is not empty}
+        \State $c \gets$ pop maximum; $c \gets c - 1$
+        \If{$c > 0$} append $c$ to \textit{temp} \EndIf
+      \EndIf
+      \State $\textit{time} \gets \textit{time} + 1$
+      \If{\textit{heap} is empty \textbf{and} \textit{temp} is empty}
+        \State \textbf{break}
+      \EndIf
+    \EndFor
+    \State push every count in \textit{temp} back onto \textit{heap}
+  \EndWhile
+  \State \Return \textit{time}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{tasks} = [A,A,A,B,B,B]$, $n = 2$.}
+
+Counts: $A{:}3, B{:}3$. Heap $=\{3_A, 3_B\}$.
+
+\begin{itemize}
+  \item \textbf{Cycle 1} ($3$ slots, since $n+1=3$): pop $A$ (or $B$;
+        ties broken arbitrarily), decrement to $2$, set aside. Slot
+        used, $\textit{time}=1$. Pop $B$, decrement to $2$, set aside.
+        Slot used, $\textit{time}=2$. Heap now empty, temp has
+        $\{2_A, 2_B\}$ but temp is not empty, so we still fill the third
+        slot: heap is empty, so this slot is idle. $\textit{time}=3$.
+        Push $2_A, 2_B$ back: heap $=\{2_A, 2_B\}$.
+  \item \textbf{Cycle 2}: pop $A$ (decrement to $1$, set aside),
+        $\textit{time}=4$. Pop $B$ (decrement to $1$, set aside),
+        $\textit{time}=5$. Third slot: heap empty, temp not empty, idle.
+        $\textit{time}=6$. Push $1_A, 1_B$ back.
+  \item \textbf{Cycle 3}: pop $A$ (decrement to $0$, do not set aside),
+        $\textit{time}=7$. Pop $B$ (decrement to $0$, do not set aside),
+        $\textit{time}=8$. Now heap is empty and temp is empty: break
+        early, no third idle slot needed.
+\end{itemize}
+
+Total time is $8$, matching the well-known schedule
+$A,B,\text{idle},A,B,\text{idle},A,B$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int leastInterval(vector<char>& tasks, int n) {
+    unordered_map<char,int> freq;
+    for (char t : tasks) freq[t]++;
+
+    priority_queue<int> maxHeap;
+    for (auto& [ch, c] : freq) maxHeap.push(c);
+
+    int time = 0;
+    while (!maxHeap.empty()) {
+        vector<int> temp;
+        int slots = n + 1;
+
+        for (int i = 0; i < slots; i++) {
+            if (!maxHeap.empty()) {
+                int c = maxHeap.top() - 1;
+                maxHeap.pop();
+                if (c > 0) temp.push_back(c);
+            }
+            time++;
+            if (maxHeap.empty() && temp.empty()) break;
+        }
+        for (int c : temp) maxHeap.push(c);
+    }
+    return time;
+}
+
+int main() {
+    vector<char> tasks = {'A','A','A','B','B','B'};
+    cout << "Minimum time: " << leastInterval(tasks, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} There are at most $d \le 26$ distinct task
+types, so the heap has size $O(1)$ from a complexity standpoint, and the
+total number of pop/push operations is bounded by the total task count
+$N$ (each task is popped and re-pushed $O(1)$ times across all cycles in
+the typical analysis), giving
+\[
+  O(N \log d) = O(N),
+\]
+effectively linear in the number of tasks.
+\textbf{Space Complexity.} $O(d)$ for the frequency map and heap.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A closed-form formula also exists for this specific problem
+($\textit{answer} = \max(N, (\textit{maxFreq}-1)(n+1) + \textit{numTasksWithMaxFreq})$),
+but the heap-based simulation shown here generalizes better: it directly
+extends to variants with per-task-type costs, partial cooldowns, or other
+constraints where a clean closed form may not exist, while the
+underlying ``always schedule the currently most-constraining option'' greedy
+idea remains unchanged.
+\end{takeawaybox}

@@ -1,0 +1,174 @@
+\section{Jump Game II}
+\label{sec:jump-game-2}
+
+\problemstatement{We are given an array $\textit{nums}$ of length $n$, where
+$\textit{nums}[i]$ is the maximum number of steps we may jump forward from
+index $i$. It is guaranteed that index $n-1$ is reachable from index $0$.
+Starting at index $0$, we must find the \textbf{minimum number of jumps}
+required to reach index $n-1$.}
+
+\begin{patternbox}
+This is the natural sequel to Section~\ref{sec:jump-game}: the keywords
+change from \emph{``is it possible''} to \emph{``minimum number of
+jumps,''} which upgrades the problem from a feasibility check to an
+optimization. Whenever a reachability-horizon greedy problem is upgraded to
+ask for the \emph{minimum number of steps/jumps/levels} to get somewhere,
+that is a strong signal to think in terms of \emph{BFS levels} -- here,
+each ``level'' is exactly one jump, and we want to know how many levels it
+takes for the frontier of reachable positions to engulf the last index. We
+will see that this BFS-by-levels idea can be implemented without an actual
+queue, using two horizon variables instead.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Think of the jumps as expanding in waves, exactly like breadth-first search
+on a graph where node $i$ has an edge to every node in
+$[i+1, i+\textit{nums}[i]]$. After $0$ jumps, we have only reached index $0$.
+After $1$ jump, we have reached every index reachable directly from index
+$0$ -- a contiguous range $[1, \textit{nums}[0]]$. After $2$ jumps, we have
+reached every index reachable from \emph{any} index in that first range, and
+so on. The number of jumps needed to first include index $n-1$ in the
+reachable range is exactly the answer we want.
+
+The key realization is that we do not need an actual BFS queue holding every
+individual index. Instead, at each ``wave'' (each fixed number of jumps used
+so far), we only need to know the boundary of the current range, and the
+farthest index reachable by spending one more jump from anywhere inside the
+current range.
+
+\begin{ideabox}[Greedy Choice]
+Maintain two horizons: $\textit{currentEnd}$, the farthest index reachable
+using the jumps counted so far, and $\textit{farthest}$, the farthest index
+reachable using \emph{one more} jump from anywhere within the current
+range. Scan left to right; for every index $i$ within the current range,
+update $\textit{farthest} \gets \max(\textit{farthest}, i +
+\textit{nums}[i])$. The instant we finish processing the current range (when
+$i$ reaches $\textit{currentEnd}$), we have exhausted everything reachable
+with the current jump count, so we commit to spending one more jump:
+increment the jump counter and set $\textit{currentEnd} \gets
+\textit{farthest}$, beginning the next wave.
+\end{ideabox}
+
+\subsection*{Why this greedy expansion is correct}
+
+This is exactly BFS, level by level, except that instead of storing every
+node at the current level in a queue, we only ever need the single number
+$\textit{farthest}$ -- the best possible reach from \emph{any} node at the
+current level -- because, just as in Jump Game~I, every index between the
+previous horizon and the new farthest reach is automatically included in
+this level's frontier the moment any node within the previous range can
+reach it. We never need to know \emph{which} specific index within the
+current range produced the best $\textit{farthest}$ value, only the value
+itself, since the next wave starts from the entire new range regardless of
+which earlier index unlocked it. This is what allows an $O(n)$ single pass
+to replace what would otherwise look like an explicit multi-source BFS.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{jumps} \gets 0$, $\textit{currentEnd} \gets 0$,
+        $\textit{farthest} \gets 0$.
+  \item For $i \gets 0$ to $n-2$ (we never need to jump \emph{from} the last
+        index):
+  \begin{enumerate}
+    \item $\textit{farthest} \gets \max(\textit{farthest},\, i +
+          \textit{nums}[i])$.
+    \item If $i = \textit{currentEnd}$: this wave is exhausted, so spend one
+          more jump. $\textit{jumps} \gets \textit{jumps} + 1$;
+          $\textit{currentEnd} \gets \textit{farthest}$.
+  \end{enumerate}
+  \item Return \textit{jumps}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Jump Game II (Minimum Jumps)}
+\begin{algorithmic}[1]
+\Procedure{MinJumps}{\textit{nums}}
+  \State $n \gets \text{length}(\textit{nums})$
+  \State $\textit{jumps} \gets 0$, $\textit{currentEnd} \gets 0$, $\textit{farthest} \gets 0$
+  \For{$i \gets 0$ to $n-2$}
+    \State $\textit{farthest} \gets \max(\textit{farthest}, i + \textit{nums}[i])$
+    \If{$i = \textit{currentEnd}$}
+      \State $\textit{jumps} \gets \textit{jumps} + 1$
+      \State $\textit{currentEnd} \gets \textit{farthest}$
+    \EndIf
+  \EndFor
+  \State \Return \textit{jumps}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [2, 3, 1, 1, 4]$ ($n=5$, indices $0..4$).}
+
+Start with $\textit{jumps}=0$, $\textit{currentEnd}=0$,
+$\textit{farthest}=0$. We loop $i$ from $0$ to $3$ (i.e.\ $n-2=3$).
+
+\begin{itemize}
+  \item $i=0$: $\textit{farthest} = \max(0, 0+2) = 2$. Since
+        $i = 0 = \textit{currentEnd}$, spend a jump: $\textit{jumps}=1$,
+        $\textit{currentEnd} = 2$.
+  \item $i=1$: $\textit{farthest} = \max(2, 1+3) = 4$. Since
+        $i = 1 \ne \textit{currentEnd}=2$, no new jump yet.
+  \item $i=2$: $\textit{farthest} = \max(4, 2+1) = 4$. Since
+        $i = 2 = \textit{currentEnd}$, spend a jump: $\textit{jumps}=2$,
+        $\textit{currentEnd} = 4$.
+  \item $i=3$: $\textit{farthest} = \max(4, 3+1) = 4$. Since
+        $i = 3 \ne \textit{currentEnd}=4$, no new jump.
+\end{itemize}
+
+The loop ends (we stop before $i=4$, the last index). The answer is
+$\textit{jumps} = 2$: jump from index $0$ to index $1$ (using $\textit{nums}[0]=2$
+to reach as far as index $1$, the start of the best next wave), then jump
+from index $1$ directly to index $4$ using $\textit{nums}[1]=3$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int minJumps(vector<int>& nums) {
+    int n = nums.size();
+    int jumps = 0, currentEnd = 0, farthest = 0;
+
+    for (int i = 0; i < n - 1; i++) {
+        farthest = max(farthest, i + nums[i]);
+        if (i == currentEnd) {
+            jumps++;
+            currentEnd = farthest;
+        }
+    }
+    return jumps;
+}
+
+int main() {
+    vector<int> nums = {2, 3, 1, 1, 4};
+    cout << "Minimum jumps: " << minJumps(nums) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The single loop visits each of the first $n-1$
+indices exactly once, doing constant work per index, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} We maintain only three scalar variables
+($\textit{jumps}$, $\textit{currentEnd}$, $\textit{farthest}$), so the space
+complexity is $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A feasibility-horizon greedy (Section~\ref{sec:jump-game}) upgrades cleanly
+into a minimum-steps greedy by reframing it as implicit, level-by-level BFS:
+track the boundary of the current wave (\textit{currentEnd}) and the best
+reach achievable from anywhere inside that wave (\textit{farthest}); each
+time the scan catches up to the current boundary, a new wave -- one more
+jump -- begins. This pattern of ``BFS without an explicit queue, using two
+horizon pointers'' generalizes to any problem phrased as ``minimum number of
+steps to extend reach to a target.''
+\end{takeawaybox}

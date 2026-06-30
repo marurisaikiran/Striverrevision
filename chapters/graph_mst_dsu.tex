@@ -1,0 +1,65 @@
+\chapter{Graphs: Minimum Spanning Tree and Disjoint Set}
+\chapterepigraph{A spanning tree connects every node using the fewest
+possible edges, with no cycles. A minimum spanning tree does the same
+at the lowest possible total weight. Answering ``would adding this
+edge create a cycle'' efficiently -- without re-running a traversal
+every time -- is what the Disjoint Set data structure is built for, and
+once it exists, an entire family of ``group things by connectivity''
+problems falls out almost for free.}
+
+\section{The Disjoint Set Data Structure}
+\label{sec:graph-disjoint-set}
+
+A \textbf{Disjoint Set} (also called \textbf{Union-Find}) maintains a
+collection of nodes partitioned into disjoint groups, supporting two
+operations efficiently: $\textit{find}(x)$ (which group is $x$ in?)
+and $\textit{union}(x,y)$ (merge $x$'s and $y$'s groups). Both run in
+\textbf{nearly constant} amortized time with two optimizations:
+
+\begin{ideabox}[Path Compression and Union by Size/Rank]
+\begin{itemize}
+  \item \textbf{Path compression}: during $\textit{find}(x)$, after
+        walking up to the group's root, point every node visited along
+        the way \textbf{directly} to the root -- flattening the tree
+        so future lookups for those nodes are immediate.
+  \item \textbf{Union by size (or rank)}: when merging two groups,
+        attach the \textbf{smaller} group's root under the
+        \textbf{larger} group's root, keeping the resulting tree
+        shallow rather than letting it grow into a long chain.
+\end{itemize}
+Together, these two optimizations give nearly $O(1)$ amortized time
+per operation (formally $O(\alpha(n))$, the inverse Ackermann
+function, which is $\le 4$ for any practically sized input).
+\end{ideabox}
+
+\begin{patternbox}[What This Chapter Covers]
+\begin{itemize}
+  \item \textbf{Disjoint Set itself (Section~\ref{sec:graph-disjoint-set-impl})}.
+  \item \textbf{Kruskal's (Section~\ref{sec:graph-kruskal})} and
+        \textbf{Prim's (Section~\ref{sec:graph-prim})} algorithms for
+        building a Minimum Spanning Tree -- one sorts edges and uses
+        Disjoint Set to reject cycle-forming edges, the other grows a
+        single tree greedily using a priority queue, mirroring
+        Dijkstra's frontier expansion.
+  \item \textbf{Number of Operations to Make Network Connected
+        (Section~\ref{sec:graph-network-connected})}, \textbf{Most
+        Stones Removed (Section~\ref{sec:graph-most-stones-removed})},
+        \textbf{Accounts Merge (Section~\ref{sec:graph-accounts-merge})},
+        \textbf{Number of Islands II (Section~\ref{sec:graph-number-of-islands-2})},
+        and \textbf{Making a Large Island (Section~\ref{sec:graph-making-large-island})}:
+        five problems that are not MST problems at all, but where
+        Disjoint Set's efficient \emph{grouping} (not minimum-weight
+        connecting) is exactly the tool needed.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/graph_mst_dsu/01_disjoint_set.tex}
+\input{chapters/graph_mst_dsu/02_kruskal.tex}
+\input{chapters/graph_mst_dsu/03_prim.tex}
+\input{chapters/graph_mst_dsu/04_network_connected.tex}
+\input{chapters/graph_mst_dsu/05_most_stones_removed.tex}
+\input{chapters/graph_mst_dsu/06_accounts_merge.tex}
+\input{chapters/graph_mst_dsu/07_number_of_islands_2.tex}
+\input{chapters/graph_mst_dsu/08_making_large_island.tex}

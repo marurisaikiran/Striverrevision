@@ -1,0 +1,149 @@
+\section{Stock Span Problem}
+\label{sec:sq-stock-span}
+
+\noindent We now turn to the final group of problems in this chapter: a
+handful of practical implementation and design problems that each combine
+stacks or queues with a hash map or other auxiliary structure to solve a
+real-world-flavored task efficiently.
+
+\problemstatement{We are given the price of a stock on successive days,
+arriving one at a time (a stream). For each new day's price, compute its
+\textbf{span}: the number of consecutive days, ending with and including
+today, for which today's price is greater than or equal to each of those
+days' prices.}
+
+\begin{patternbox}
+\emph{``For each new arrival, look backward and count a contiguous run
+based on a comparison''} is the \emph{previous} greater/smaller-element
+family from Section~\ref{sec:sq-next-smaller}, but with a twist: we need
+a \textbf{count} (the span length), not just the nearest qualifying
+index. The key efficiency idea is that, instead of storing every
+individual day on the stack, we can store \textbf{(price, span) pairs}
+and merge spans together as we pop -- avoiding ever re-scanning days that
+have already been absorbed into a previous day's span.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The span of today's price is $1$ (counting today itself) plus the spans
+of every immediately preceding day whose price is $\le$ today's price,
+chained backward as far as this holds. If we stored only raw prices on
+the stack, computing this span naively would require popping one day at a
+time and could cost $O(n)$ per query in the worst case, but with no way
+to skip over runs that were already resolved. Storing the \emph{span}
+\emph{alongside} each price lets us absorb an entire previously-resolved
+run in a single pop, rather than one day at a time.
+
+\begin{ideabox}[Stack of (Price, Span) Pairs, Merging on Pop]
+Maintain a stack of $(\textit{price}, \textit{span})$ pairs. For each new
+price $p$: initialize $\textit{currentSpan} \gets 1$. While the stack is
+not empty and its top's price $\le p$: pop the top, and add its
+\textit{span} to $\textit{currentSpan}$ (this whole already-resolved run
+is absorbed in one step, not re-examined day by day). Push
+$(p, \textit{currentSpan})$, and report $\textit{currentSpan}$ as today's
+span.
+\end{ideabox}
+
+\subsection*{Why absorbing a popped pair's entire span (not just its price) is correct}
+
+If the top of the stack is a pair $(\textit{price}', \textit{span}')$
+with $\textit{price}' \le p$, then \emph{every} day within that pair's
+already-computed span also has a price $\le \textit{price}' \le p$ (that
+is precisely what the pair's span certifies, by the inductive
+construction of the algorithm) -- so all of those days extend today's
+span too, and we can add the whole count $\textit{span}'$ in one step
+rather than re-deriving it. This amortizes the total work: each day is
+pushed exactly once and, across its entire lifetime, can only be merged
+away (absorbed into a later pair) once, giving linear total work despite
+some individual days having large spans.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack of (price, span) pairs.
+  \item For each new price $p$:
+  \begin{enumerate}
+    \item $\textit{currentSpan} \gets 1$.
+    \item While the stack is not empty and its top's price $\le p$: pop
+          $(\textit{price}', \textit{span}')$;
+          $\textit{currentSpan} \gets \textit{currentSpan} +
+          \textit{span}'$.
+    \item Push $(p, \textit{currentSpan})$.
+    \item Report $\textit{currentSpan}$.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Prices arrive in order: $100, 80, 60, 70, 60, 75, 85$.}
+
+\begin{itemize}
+  \item $100$: stack empty. span$=1$. Push $(100,1)$. Report $1$.
+  \item $80$: top $(100,1)$, price $100>80$, no merge. span$=1$. Push
+        $(80,1)$. Report $1$.
+  \item $60$: top $(80,1)$, $80>60$, no merge. span$=1$. Push $(60,1)$.
+        Report $1$.
+  \item $70$: top $(60,1)$, $60\le70$: merge, span$=1+1=2$, pop. New top
+        $(80,1)$, $80>70$, stop. Push $(70,2)$. Report $2$.
+  \item $60$: top $(70,2)$, $70>60$, no merge. span$=1$. Push $(60,1)$.
+        Report $1$.
+  \item $75$: top $(60,1)$, $60\le75$: merge, span$=1+1=2$, pop. Top
+        $(70,2)$, $70\le75$: merge, span$=2+2=4$, pop. Top $(80,1)$,
+        $80>75$, stop. Push $(75,4)$. Report $4$.
+  \item $85$: top $(75,4)$, $75\le85$: merge, span$=1+4=5$, pop. Top
+        $(80,1)$, $80\le85$: merge, span$=5+1=6$, pop. Top $(100,1)$,
+        $100>85$, stop. Push $(85,6)$. Report $6$.
+\end{itemize}
+
+Spans: $[1,1,1,2,1,4,6]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class StockSpanner {
+    stack<pair<int,int>> st; // (price, span)
+
+public:
+    int next(int price) {
+        int span = 1;
+        while (!st.empty() && st.top().first <= price) {
+            span += st.top().second;
+            st.pop();
+        }
+        st.push({price, span});
+        return span;
+    }
+};
+
+int main() {
+    StockSpanner spanner;
+    for (int p : {100, 80, 60, 70, 60, 75, 85}) {
+        cout << spanner.next(p) << " ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each day is pushed once and merged away
+(popped) at most once across its entire lifetime, giving
+\[
+  O(1) \text{ amortized per day}, \qquad O(n) \text{ total for } n \text{
+  days}.
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack in the worst case
+(strictly decreasing prices, where every day stays on the stack).
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a monotonic-stack problem needs a \emph{count} of absorbed elements
+rather than just the nearest boundary, store that count directly inside
+each stack entry and merge counts on pop -- this avoids re-deriving the
+count from scratch every time and keeps the whole algorithm at amortized
+$O(1)$ per arrival, even for a problem (like this one) where the answer is
+a span length, not a position.
+\end{takeawaybox}

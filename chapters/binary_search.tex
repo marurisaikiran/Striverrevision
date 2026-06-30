@@ -1,0 +1,128 @@
+\chapter{Binary Search}
+\chapterepigraph{Binary search is not a trick for sorted arrays. It is a
+trick for any space of candidate answers in which feasibility is monotonic
+-- once you see that monotonicity, the array itself becomes optional.}
+
+\section{What Is Binary Search, Really?}
+\label{sec:bs-intro}
+
+Most students first meet binary search as a way to find a target value in a
+sorted array: compare the middle element to the target, and discard half the
+array based on the result. That description is correct, but it is also
+dangerously narrow, because it hides the actual reason binary search works
+behind the specific setting of ``a sorted array.'' The real requirement is
+much more general, and recognizing it is what lets you apply binary search
+to problems that do not look anything like array search at first glance.
+
+\begin{ideabox}[The One Property Binary Search Actually Needs]
+Binary search applies whenever you are searching over a totally ordered
+space of candidates (indices, integers, real numbers, even configurations)
+on which some predicate $P$ is \textbf{monotonic} -- that is, $P$ is
+\texttt{false} for a prefix of the space and \texttt{true} for the remaining
+suffix (or vice versa), with a single crossover point. If such a predicate
+exists, binary search finds the crossover point in $O(\log(\text{range}))$
+evaluations of $P$, regardless of what $P$ actually computes or how
+expensive each evaluation is.
+\end{ideabox}
+
+In classical array search, the candidate space is the array's indices
+$0, 1, \dots, n-1$, and the predicate is $P(i) = (\textit{arr}[i] \ge
+\textit{target})$ -- which is monotonic precisely because the array is
+sorted. But the same machinery works just as well when the candidate space
+is, say, every integer capacity a ship could have, or every possible eating
+speed for Koko's bananas, or every real number that could be a square root --
+as long as we can answer ``does this candidate satisfy the requirement, or
+not'' in a way that flips exactly once as the candidate increases. This
+chapter is organized around exactly that distinction.
+
+\subsection*{Three Flavors of Binary Search in This Chapter}
+
+\begin{patternbox}[How to Tell Which Flavor You Are Facing]
+\begin{itemize}
+  \item \textbf{Binary search on a 1D array
+        (Sections~\ref{sec:bs-find-x}--\ref{sec:bs-peak-1d}).} The keywords
+        are usually \emph{``sorted array,''} \emph{``rotated sorted
+        array,''} or \emph{``find an index/value such that...''} The
+        candidate space is literally the array's indices, and $\textit{lo},
+        \textit{hi}$ start as $0$ and $n-1$.
+  \item \textbf{Binary search on the answer
+        (Sections~\ref{sec:bs-sqrt}--\ref{sec:bs-kth-element}).} The
+        keywords are \emph{``minimize the maximum ...''},
+        \emph{``maximize the minimum ...''}, or \emph{``find the smallest/
+        largest value such that some condition holds.''} Here there may be
+        no array to search at all -- the candidate space is a numeric
+        range of possible answers (e.g.\ every integer from $1$ to
+        $10^9$), and we binary search directly on that range, using a
+        helper feasibility check (often itself an $O(n)$ scan) as the
+        monotonic predicate.
+  \item \textbf{Binary search on a 2D array
+        (Sections~\ref{sec:bs-row-max-ones}--\ref{sec:bs-matrix-median}).}
+        The keywords are \emph{``row-wise and/or column-wise sorted
+        matrix.''} Here the candidate space is two-dimensional, and the
+        technique is usually to either flatten the 2D index space into a
+        1D one, or to run a 1D binary search independently along each row
+        or column, or to binary search on the answer (as above) using a
+        2D-aware feasibility check.
+\end{itemize}
+The single most important habit to build in this chapter is translating a
+problem's wording into ``what is the candidate space, and what is the
+monotonic predicate that flips exactly once across it'' \emph{before}
+writing any code. Once those two things are identified, the
+\texttt{while(lo <= hi)} skeleton is almost always the same.
+\end{patternbox}
+
+\subsection*{The Skeleton, and Where Bugs Actually Come From}
+
+Nearly every binary search bug comes from getting one of three things
+wrong: the loop condition (\texttt{lo <= hi} vs.\ \texttt{lo < hi}), the
+update after a comparison (\texttt{mid - 1} / \texttt{mid + 1} vs.\
+\texttt{mid} itself), or an integer-overflow in the midpoint computation.
+We will use the convention
+\[
+  \textit{mid} = \textit{lo} + (\textit{hi} - \textit{lo}) / 2
+\]
+throughout this chapter, rather than $(\textit{lo}+\textit{hi})/2$, because
+it avoids overflow when $\textit{lo}$ and $\textit{hi}$ are both close to
+the maximum representable integer -- a habit worth having permanently, even
+in problems where the bound is small enough that it would not matter today.
+
+Each section in this chapter follows the same structure used in the Greedy
+chapter: a precise problem statement and the keywords that identify it;
+identification of the candidate space and the monotonic predicate; the
+algorithm in words and in formal pseudocode; a hand-traced dry run; complete
+compilable C++ code; and a careful time/space complexity analysis.
+
+\newpage
+
+\input{chapters/binary_search/01_find_x.tex}
+\input{chapters/binary_search/02_lower_bound.tex}
+\input{chapters/binary_search/03_upper_bound.tex}
+\input{chapters/binary_search/04_search_insert_position.tex}
+\input{chapters/binary_search/05_floor_ceil.tex}
+\input{chapters/binary_search/06_first_last_occurrence.tex}
+\input{chapters/binary_search/07_count_occurrences.tex}
+\input{chapters/binary_search/08_search_rotated_1.tex}
+\input{chapters/binary_search/09_search_rotated_2.tex}
+\input{chapters/binary_search/10_find_minimum_rotated.tex}
+\input{chapters/binary_search/11_how_many_rotations.tex}
+\input{chapters/binary_search/12_single_element.tex}
+\input{chapters/binary_search/13_find_peak_element.tex}
+\input{chapters/binary_search/14_sqrt.tex}
+\input{chapters/binary_search/15_nth_root.tex}
+\input{chapters/binary_search/16_koko_bananas.tex}
+\input{chapters/binary_search/17_min_days_bouquets.tex}
+\input{chapters/binary_search/18_smallest_divisor.tex}
+\input{chapters/binary_search/19_ship_packages.tex}
+\input{chapters/binary_search/20_kth_missing_positive.tex}
+\input{chapters/binary_search/21_aggressive_cows.tex}
+\input{chapters/binary_search/22_book_allocation.tex}
+\input{chapters/binary_search/23_split_array_largest_sum.tex}
+\input{chapters/binary_search/24_painters_partition.tex}
+\input{chapters/binary_search/25_minimize_max_distance_gas_stations.tex}
+\input{chapters/binary_search/26_median_two_sorted_arrays.tex}
+\input{chapters/binary_search/27_kth_element_two_arrays.tex}
+\input{chapters/binary_search/28_row_with_max_ones.tex}
+\input{chapters/binary_search/29_search_2d_matrix.tex}
+\input{chapters/binary_search/30_search_2d_matrix_2.tex}
+\input{chapters/binary_search/31_find_peak_element_2d.tex}
+\input{chapters/binary_search/32_matrix_median.tex}

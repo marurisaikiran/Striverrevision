@@ -1,0 +1,180 @@
+\section{Koko Eating Bananas}
+\label{sec:bs-koko}
+
+\problemstatement{There are $n$ piles of bananas, where pile $i$ has
+$\textit{piles}[i]$ bananas. Koko can eat at most $k$ bananas from a single
+pile in one hour (if a pile has fewer than $k$ bananas, she finishes that
+pile in that hour and cannot start another pile in the same hour). Koko
+wants to eat all the bananas within $h$ hours. Find the
+\textbf{minimum} integer eating speed $k$ that allows her to finish within
+$h$ hours.}
+
+\begin{patternbox}
+\emph{``Find the minimum speed/rate/capacity such that some task completes
+within a time/resource limit''} is the archetypal \emph{binary search on
+the answer} problem. The two keywords to look for together are
+\textbf{``minimize the (speed/capacity/rate)''} and a \textbf{feasibility
+constraint} (here, a deadline of $h$ hours) that becomes easier to satisfy
+as the candidate answer increases. This combination -- minimize $x$ subject
+to ``feasible($x$)'' becoming \texttt{true} once $x$ is large enough -- is
+the single most common shape of binary-search-on-the-answer problems on
+this sheet, and Koko Eating Bananas is its canonical introduction.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For a fixed candidate speed $k$, the number of hours Koko needs to finish
+pile $i$ is $\lceil \textit{piles}[i] / k \rceil$ (she needs a whole extra
+hour for any remainder), so the total hours needed across all piles is
+\[
+  \textit{hoursNeeded}(k) = \sum_{i=1}^{n} \left\lceil
+  \frac{\textit{piles}[i]}{k} \right\rceil.
+\]
+As $k$ increases, each term $\lceil \textit{piles}[i]/k \rceil$ can only
+decrease or stay the same (eating faster never requires more hours for the
+same pile), so $\textit{hoursNeeded}(k)$ is a non-increasing function of
+$k$. Define the feasibility predicate
+$P(k) = (\textit{hoursNeeded}(k) \le h)$. Since $\textit{hoursNeeded}$ is
+non-increasing in $k$, $P$ is \texttt{false} for small $k$ and
+\texttt{true} from some crossover point onward -- exactly the monotonic
+structure binary search needs, with the answer being the smallest $k$
+where $P$ becomes \texttt{true}.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is integer eating speeds $k \in [1, \max(\textit{piles})]$
+(eating faster than the largest pile is never useful, since any pile is
+finished in exactly one hour once $k$ reaches its size). The predicate is
+$P(k) = (\textit{hoursNeeded}(k) \le h)$, and we want the smallest $k$
+where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why this reduces feasibility-checking to a simple scan}
+
+The crucial design decision is to separate two concerns: \emph{deciding
+which $k$ to try next} (binary search's job) and \emph{checking whether a
+specific $k$ works} (a simple $O(n)$ linear scan over the piles, summing
+up $\lceil \textit{piles}[i]/k \rceil$ for the fixed candidate $k$). This
+separation is the heart of every binary-search-on-the-answer problem: we
+never need to reason about the feasibility check's internal monotonicity
+in $i$ -- only about the feasibility \emph{function as a whole}'s
+monotonicity in the single candidate parameter $k$, which we established
+above using a much simpler, purely algebraic argument (more bananas per
+hour can never increase the hours needed).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 1$,
+        $\textit{hi} \gets \max(\textit{piles})$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Compute $\textit{hoursNeeded}(\textit{mid})$ by summing
+          $\lceil \textit{piles}[i] / \textit{mid} \rceil$ over all piles.
+    \item If $\textit{hoursNeeded}(\textit{mid}) \le h$: this speed works;
+          record it and try slower: $\textit{hi} \gets \textit{mid}-1$.
+    \item Else: too slow; speed up: $\textit{lo} \gets \textit{mid}+1$.
+  \end{enumerate}
+  \item Return the recorded answer (equivalently, $\textit{lo}$ once the
+        loop ends).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Koko Eating Bananas}
+\begin{algorithmic}[1]
+\Procedure{MinEatingSpeed}{\textit{piles}, $h$}
+  \State $\textit{lo} \gets 1$, $\textit{hi} \gets \max(\textit{piles})$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{hours} \gets \sum_i \lceil \textit{piles}[i] / \textit{mid} \rceil$
+    \If{$\textit{hours} \le h$}
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \EndIf
+  \EndWhile
+  \State \Return \textit{lo}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{piles} = [3, 6, 7, 11]$, $h = 8$.}
+
+$\max(\textit{piles}) = 11$.
+
+\begin{itemize}
+  \item $\textit{lo}=1,\textit{hi}=11$: $\textit{mid}=6$. Hours:
+        $\lceil3/6\rceil+\lceil6/6\rceil+\lceil7/6\rceil+\lceil11/6\rceil
+        = 1+1+2+2=6 \le 8$. Feasible. $\textit{hi}=5$.
+  \item $\textit{lo}=1,\textit{hi}=5$: $\textit{mid}=3$. Hours:
+        $\lceil3/3\rceil+\lceil6/3\rceil+\lceil7/3\rceil+\lceil11/3\rceil
+        =1+2+3+4=10 > 8$. Infeasible. $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=5$: $\textit{mid}=4$. Hours:
+        $\lceil3/4\rceil+\lceil6/4\rceil+\lceil7/4\rceil+\lceil11/4\rceil
+        =1+2+2+3=8 \le 8$. Feasible. $\textit{hi}=3$.
+  \item $\textit{lo}=4 > \textit{hi}=3$: loop ends.
+\end{itemize}
+
+The answer is $\textit{lo} = 4$: the minimum eating speed is $4$ bananas
+per hour.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+long long hoursNeeded(vector<int>& piles, int k) {
+    long long hours = 0;
+    for (int p : piles) {
+        hours += (p + k - 1) / k; // ceil(p / k)
+    }
+    return hours;
+}
+
+int minEatingSpeed(vector<int>& piles, int h) {
+    int lo = 1, hi = *max_element(piles.begin(), piles.end());
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (hoursNeeded(piles, mid) <= h) {
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> piles = {3, 6, 7, 11};
+    cout << "Minimum eating speed: "
+         << minEatingSpeed(piles, 8) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The candidate speed range $[1, \max(\textit{piles})]$
+halves each iteration ($O(\log(\max(\textit{piles})))$ iterations), and
+each feasibility check costs $O(n)$ to scan all piles, giving an overall
+time complexity of
+\[
+  O(n \log(\max(\textit{piles}))).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The general recipe for binary search on the answer: (1) identify the
+quantity being minimized or maximized as the candidate; (2) write a
+feasibility function that, for a fixed candidate, answers a yes/no
+question with a simple (often linear) computation; (3) prove that
+feasibility is monotonic in the candidate using simple algebraic reasoning
+about the feasibility function's components; (4) binary search the
+candidate range using that feasibility check as the predicate. Every
+remaining ``binary search on the answer'' problem in this chapter follows
+exactly this four-step recipe.
+\end{takeawaybox}

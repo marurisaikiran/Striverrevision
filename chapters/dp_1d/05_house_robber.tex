@@ -1,0 +1,191 @@
+\section{House Robber}
+\label{sec:dp-house-robber}
+
+\problemstatement{Given an array $\textit{nums}$ where
+$\textit{nums}[i]$ is the amount of money in house $i$, find the maximum
+total amount that can be robbed without ever robbing two
+\textbf{adjacent} houses.}
+
+\begin{patternbox}
+\emph{``Maximum sum, no two adjacent elements chosen''} is a different
+recurrence \emph{shape} from every problem so far in this chapter: those
+were all ``combine answers from a fixed set of earlier positions''
+(summed, for counting, or minimized, for cost). This one is a genuine
+\textbf{include-or-exclude choice} at every position -- structurally the
+same choice as the pick/not-pick recursion from
+the Recursion chapter's Power Set section, but now resolved by \textbf{maximizing}
+rather than branching into both options forever.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(i)$ be the maximum amount robbable considering only houses $0$
+through $i$. At house $i$, there are exactly two choices: \textbf{rob}
+house $i$ (gaining $\textit{nums}[i]$, but then house $i-1$ \emph{must}
+be skipped, so we add the best answer from $f(i-2)$), or \textbf{skip}
+house $i$ entirely (carrying forward $f(i-1)$ unchanged, since skipping
+loses nothing already secured). We take whichever choice is larger:
+\[
+  f(i) = \max\big(f(i-1),\ f(i-2) + \textit{nums}[i]\big).
+\]
+Base cases: $f(0) = \textit{nums}[0]$ (only one house, must take it for
+the best possible answer at this point), and, treating an empty prefix
+before index $0$ as contributing $0$, we can write $f(-1)=0$ for
+notational convenience when computing $f(1) = \max(f(0), f(-1) +
+\textit{nums}[1]) = \max(\textit{nums}[0], \textit{nums}[1])$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int robRecursive(int i, vector<int>& nums) {
+    if (i == 0) return nums[0];
+    if (i < 0) return 0;
+
+    int skip = robRecursive(i - 1, nums);
+    int take = robRecursive(i - 2, nums) + nums[i];
+    return max(skip, take);
+}
+
+int main() {
+    vector<int> nums = {1, 2, 3, 1};
+    int n = nums.size();
+    cout << robRecursive(n - 1, nums) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int robMemo(int i, vector<int>& nums, vector<int>& memo) {
+    if (i == 0) return nums[0];
+    if (i < 0) return 0;
+    if (memo[i] != -1) return memo[i];
+
+    int skip = robMemo(i - 1, nums, memo);
+    int take = robMemo(i - 2, nums, memo) + nums[i];
+    return memo[i] = max(skip, take);
+}
+
+int main() {
+    vector<int> nums = {1, 2, 3, 1};
+    int n = nums.size();
+    vector<int> memo(n, -1);
+    cout << robMemo(n - 1, nums, memo) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int robTabulation(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> dp(n);
+    dp[0] = nums[0];
+
+    for (int i = 1; i < n; i++) {
+        int skip = dp[i - 1];
+        int take = (i >= 2 ? dp[i - 2] : 0) + nums[i];
+        dp[i] = max(skip, take);
+    }
+    return dp[n - 1];
+}
+
+int main() {
+    vector<int> nums = {1, 2, 3, 1};
+    cout << robTabulation(nums) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{nums} = [1,2,3,1]$.}
+
+\begin{itemize}
+  \item $\textit{dp}[0] = 1$.
+  \item $\textit{dp}[1] = \max(\textit{dp}[0],\ 0+2) = \max(1,2) = 2$.
+  \item $\textit{dp}[2] = \max(\textit{dp}[1],\ \textit{dp}[0]+3) =
+        \max(2,\ 1+3) = \max(2,4) = 4$.
+  \item $\textit{dp}[3] = \max(\textit{dp}[2],\ \textit{dp}[1]+1) =
+        \max(4,\ 2+1) = \max(4,3) = 4$.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+$i$ & 0 & 1 & 2 & 3 \\ \hline
+$\textit{nums}[i]$ & 1 & 2 & 3 & 1 \\ \hline
+$\textit{dp}[i]$ & 1 & 2 & 4 & 4
+\end{tabular}
+\end{center}
+
+The answer is $\textit{dp}[3]=4$, achieved by robbing houses $0$ and
+$2$ (values $1+3=4$), which beats robbing house $1$ alone or house $3$
+alone or houses $1,3$ together ($2+1=3$).
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(n)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int robSpaceOptimized(vector<int>& nums) {
+    int n = nums.size();
+    int prev2 = 0, prev1 = nums[0];
+
+    for (int i = 1; i < n; i++) {
+        int skip = prev1;
+        int take = prev2 + nums[i];
+        int current = max(skip, take);
+        prev2 = prev1;
+        prev1 = current;
+    }
+    return prev1;
+}
+
+int main() {
+    vector<int> nums = {1, 2, 3, 1};
+    cout << robSpaceOptimized(nums) << endl; // 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n)$.
+\textbf{Space.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Maximum sum subject to a no-two-adjacent constraint'' is solved by an
+include-or-exclude recurrence at every position, maximized rather than
+summed -- the DP analogue of the pick/not-pick backtracking tree from
+the Recursion chapter's Power Set section, but resolved in $O(n)$ instead of
+$O(2^n)$ because we only need the \emph{best} outcome at each position,
+not every possible outcome. Section~\ref{sec:dp-house-robber-2} adapts
+this exact recurrence to a circular arrangement of houses.
+\end{takeawaybox}

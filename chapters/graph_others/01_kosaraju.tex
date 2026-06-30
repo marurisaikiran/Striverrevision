@@ -1,0 +1,141 @@
+\section{Strongly Connected Components (Kosaraju's Algorithm)}
+\label{sec:graph-kosaraju}
+
+\problemstatement{Given a directed graph, find its \textbf{Strongly
+Connected Components} (SCCs) -- maximal groups of nodes where every
+node can reach every other node in the same group via directed
+edges.}
+
+\begin{patternbox}
+\emph{``Group nodes that can all reach each other''} is solved by
+Kosaraju's algorithm: run DFS once to compute a finish-time order
+(exactly the Graph Topological Sort chapter's finish-time idea), then
+run DFS \textbf{again} on the graph with every edge \textbf{reversed},
+processing nodes in \textbf{decreasing} finish-time order -- each DFS
+launched in this second pass visits exactly one complete SCC.
+\end{patternbox}
+
+\subsection*{Why reversing edges and using finish-time order works}
+
+Reversing every edge preserves SCCs exactly (if $u$ and $v$ can reach
+each other in the original graph, they can still reach each other with
+every edge flipped) but \textbf{destroys} inter-SCC reachability in a
+specific, useful direction: collapsing each SCC into a single
+``super-node'' produces a DAG (the \textbf{condensation} of the
+graph), and processing nodes in decreasing finish-time order from the
+\emph{first} DFS guarantees the first unvisited node encountered in
+the second pass always belongs to a \textbf{source} SCC (no incoming
+edges from any other not-yet-visited SCC) of the \emph{original}
+condensation -- which is a \textbf{sink} SCC once edges are reversed.
+Starting DFS there in the reversed graph cannot leak into any other
+SCC, since reversed edges now only point \emph{into} this SCC from
+elsewhere, not out of it.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Run DFS over the original graph from every unvisited node,
+        pushing each node onto a stack when it finishes (identical to
+        topological sort's DFS approach).
+  \item Build the transposed graph (every edge reversed).
+  \item Pop the stack one node at a time; for every still-unvisited
+        node, run DFS on the \textbf{transposed} graph -- everything
+        reached in this one DFS call is exactly one SCC.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void fillOrder(int node, vector<vector<int>>& adj, vector<bool>& visited, stack<int>& order) {
+    visited[node] = true;
+    for (int neighbor : adj[node]) {
+        if (!visited[neighbor]) fillOrder(neighbor, adj, visited, order);
+    }
+    order.push(node);
+}
+
+void collectSCC(int node, vector<vector<int>>& transposed, vector<bool>& visited,
+                 vector<int>& component) {
+    visited[node] = true;
+    component.push_back(node);
+    for (int neighbor : transposed[node]) {
+        if (!visited[neighbor]) collectSCC(neighbor, transposed, visited, component);
+    }
+}
+
+vector<vector<int>> kosaraju(int n, vector<vector<int>>& adj) {
+    vector<bool> visited(n, false);
+    stack<int> order;
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) fillOrder(i, adj, visited, order);
+    }
+
+    vector<vector<int>> transposed(n);
+    for (int u = 0; u < n; u++) {
+        for (int v : adj[u]) transposed[v].push_back(u);
+    }
+
+    fill(visited.begin(), visited.end(), false);
+    vector<vector<int>> sccs;
+    while (!order.empty()) {
+        int node = order.top();
+        order.pop();
+        if (!visited[node]) {
+            vector<int> component;
+            collectSCC(node, transposed, visited, component);
+            sccs.push_back(component);
+        }
+    }
+    return sccs;
+}
+
+int main() {
+    int n = 5;
+    vector<vector<int>> adj(n);
+    adj[0] = {2}; adj[2] = {1}; adj[1] = {0}; adj[0].push_back(3); adj[3] = {4};
+
+    for (auto& scc : kosaraju(n, adj)) {
+        for (int x : scc) cout << x << " ";
+        cout << endl;
+    }
+    // 0 1 2   (one SCC)
+    // 3        (its own SCC)
+    // 4        (its own SCC)
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take edges $0{\to}2,2{\to}1,1{\to}0,0{\to}3,3{\to}4$.}
+
+First DFS (finish-time order, starting from $0$): visits $0\to2\to1$
+(back to $0$, already visiting, skip), $1$ finishes first (push),
+$2$ finishes (push), then $0$ continues to $3\to4$, $4$ finishes
+(push), $3$ finishes (push), $0$ finishes (push). Stack
+(bottom-to-top): $1,2,4,3,0$. Transposed graph: $2{\to}0,1{\to}2,0{\to}1,
+3{\to}0,4{\to}3$. Second DFS, popping stack top-to-bottom: pop $0$
+first -- DFS on transposed graph from $0$: $0\to1\to2\to0$ (visited,
+stop) -- component $\{0,1,2\}$. Pop $3$ (next unvisited): DFS from $3$
+on transposed graph: $3\to0$ (visited, stop) -- component $\{3\}$.
+Pop $4$: component $\{4\}$. Three SCCs: $\{0,1,2\}$, $\{3\}$, $\{4\}$
+-- correctly identifying the $3$-cycle as one SCC and the two
+remaining nodes (no return path) as singleton SCCs.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- two full DFS passes plus
+building the transpose, each linear in the graph size.
+\textbf{Space Complexity.} $O(V+E)$ for the transposed adjacency list,
+plus $O(V)$ for the stack and visited arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Kosaraju's algorithm is this book's clearest demonstration that
+\textbf{reversing} a directed graph's edges is sometimes itself the
+key algorithmic move -- not just bookkeeping, but the step that turns
+an otherwise hard global structure question into two simple, linear
+DFS passes.
+\end{takeawaybox}

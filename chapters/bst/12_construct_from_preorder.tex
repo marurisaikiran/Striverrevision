@@ -1,0 +1,157 @@
+\section{Construct a BST from Preorder Traversal}
+\label{sec:bst-construct-preorder}
+
+\problemstatement{Given an array representing the preorder traversal of a
+BST (root, then left subtree, then right subtree, with no duplicate
+values), reconstruct the BST and return its root.}
+
+\begin{patternbox}
+\emph{``Reconstruct a BST from one traversal''} works only because the
+traversal is specifically \textbf{preorder} \emph{and} the tree is
+specifically a \textbf{BST} -- the very first element is always the root,
+and the BST invariant (combined with knowing each value's relationship to
+the root) is enough to tell us, for every subsequent element, whether it
+belongs in the left subtree or the right, without needing a second
+traversal (like inorder) to disambiguate, the way general binary tree
+reconstruction usually requires.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In a preorder traversal of a BST, the first value is the root. Every
+value immediately following it that is \textbf{less than} the root
+belongs to the root's \emph{left} subtree -- and because of how preorder
+works (left subtree fully traversed before any of the right subtree
+begins), \emph{all} such smaller values appear contiguously, immediately
+after the root, before any larger value appears. The first value that is
+\textbf{greater} than the root marks the start of the right subtree, and
+every later value will also be greater than the root.
+
+\begin{ideabox}[Build with an Upper Bound, Consuming a Shared Pointer]
+Maintain a single index pointer into the preorder array, shared across
+all recursive calls (advanced every time a node is consumed). Define
+$\textsc{Build}(\textit{upperBound})$: if the pointer is exhausted, or
+the next value to consume exceeds $\textit{upperBound}$, return null
+(this value belongs to some ancestor's other subtree, not here). Otherwise,
+consume the next value as a new node; recursively build its left subtree
+with $\textit{upperBound}$ tightened to this new node's value; then
+recursively build its right subtree with the \emph{original}
+$\textit{upperBound}$ unchanged (everything remaining that is still
+$\le$ the original bound, but now also $>$ this node's value, belongs on
+the right).
+\end{ideabox}
+
+\subsection*{Why a single shared pointer and a bound (not an explicit split search) suffices}
+
+The key insight is that we never need to explicitly search for ``where
+the left subtree ends and the right subtree begins'' -- the recursive
+calls naturally stop consuming values the moment they encounter one that
+violates the current $\textit{upperBound}$, which is exactly the boundary
+between subtrees. Because the shared pointer only ever advances (never
+resets or searches backward), each value in the preorder array is
+considered, and consumed, exactly once across the entire construction,
+regardless of how deeply nested its eventual position in the tree is.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize a shared index $i \gets 0$.
+  \item $\textsc{Build}(\textit{upperBound})$:
+  \begin{enumerate}
+    \item If $i \ge n$ or $\textit{preorder}[i] > \textit{upperBound}$:
+          return null.
+    \item Create a new node with value $\textit{preorder}[i]$;
+          increment $i$.
+    \item Recursively set this node's left child to
+          $\textsc{Build}(\textit{node.val})$.
+    \item Recursively set this node's right child to
+          $\textsc{Build}(\textit{upperBound})$ (the original bound).
+    \item Return this node.
+  \end{enumerate}
+  \item Call $\textsc{Build}(+\infty)$ at the top level.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{preorder} = [8,5,1,7,10,12]$.}
+
+\begin{itemize}
+  \item $\textsc{Build}(+\infty)$: consume $8$ ($i \to 1$). Node $8$.
+  \item Left: $\textsc{Build}(8)$: consume $5$ ($5\le8$, $i\to2$). Node
+        $5$.
+  \begin{itemize}
+    \item Left: $\textsc{Build}(5)$: consume $1$ ($1\le5$, $i\to3$).
+          Node $1$. Left: $\textsc{Build}(1)$: next is $7>1$, return
+          null. Right: $\textsc{Build}(5)$: next is $7>5$, return null.
+          Node $1$ is a leaf.
+    \item Right: $\textsc{Build}(8)$: consume $7$ ($7\le8$, $i\to4$).
+          Node $7$. Left: $\textsc{Build}(7)$: next is $10>7$, return
+          null. Right: $\textsc{Build}(8)$: next is $10>8$, return null.
+          Node $7$ is a leaf.
+  \end{itemize}
+  \item Right of $8$: $\textsc{Build}(+\infty)$: consume $10$
+        ($i\to5$). Node $10$.
+  \begin{itemize}
+    \item Left: $\textsc{Build}(10)$: next is $12>10$, return null.
+    \item Right: $\textsc{Build}(+\infty)$: consume $12$ ($i\to6$).
+          Node $12$, a leaf.
+  \end{itemize}
+\end{itemize}
+
+Resulting tree: root $8$, left child $5$ (children $1,7$), right child
+$10$ (right child $12$).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+TreeNode* build(vector<int>& preorder, int& i, int upperBound) {
+    if (i >= (int)preorder.size() || preorder[i] > upperBound) {
+        return nullptr;
+    }
+    TreeNode* node = new TreeNode(preorder[i++]);
+    node->left = build(preorder, i, node->val);
+    node->right = build(preorder, i, upperBound);
+    return node;
+}
+
+TreeNode* bstFromPreorder(vector<int>& preorder) {
+    int i = 0;
+    return build(preorder, i, INT_MAX);
+}
+
+int main() {
+    vector<int> preorder = {8, 5, 1, 7, 10, 12};
+    TreeNode* root = bstFromPreorder(preorder);
+    cout << "Root: " << root->val << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each element of the preorder array is consumed
+exactly once, with $O(1)$ work per element, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(h)$ for the recursion stack, plus $O(n)$
+for the $n$ nodes created.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Reconstructing a tree from a single traversal is only possible when that
+traversal, combined with some known structural invariant (here, the BST
+property), removes all ambiguity about subtree boundaries. The ``pass a
+bound downward, consume from a shared pointer'' technique used here is a
+direct cousin of Validate BST's (Section~\ref{sec:bst-validate}) bound-passing
+recursion, repurposed for construction instead of verification.
+\end{takeawaybox}

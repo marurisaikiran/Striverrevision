@@ -1,0 +1,128 @@
+\section{Search in a Binary Search Tree}
+\label{sec:bst-search}
+
+\problemstatement{Given the root of a binary search tree and a target
+value $X$, find and return the subtree rooted at the node whose value
+equals $X$, or return null if no such node exists.}
+
+\begin{patternbox}
+\emph{``Search for a value in a BST''} is the tree-shaped restatement of
+ordinary binary search (the Binary Search chapter's opening section): the BST invariant
+plays exactly the role sortedness played there, letting a single
+comparison at each node discard an entire subtree (half the remaining
+candidates) rather than requiring us to check it at all.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+At any node, comparing $X$ to that node's value tells us everything we
+need: if $X$ equals the node's value, we are done. If $X$ is smaller, the
+BST invariant guarantees that \emph{every} value in the right subtree is
+even larger than the current node, so $X$ cannot possibly be there --
+discard the right subtree entirely and recurse left. Symmetrically, if
+$X$ is larger, discard the left subtree and recurse right.
+
+\begin{ideabox}[One Comparison, One Subtree Discarded]
+At each node: if the node is null, $X$ is not present (return null). If
+$X$ equals the node's value, return this node. If $X<$ the node's value,
+recurse into the left child. If $X>$ the node's value, recurse into the
+right child.
+\end{ideabox}
+
+\subsection*{Why this is exactly binary search, with depth playing the role of $\log n$ steps}
+
+Each step travels one level deeper into the tree and provably eliminates
+an entire subtree from consideration, using the same discard argument as
+array-based binary search: the eliminated subtree's values are
+\emph{all} on the wrong side of $X$, guaranteed by the BST invariant, so
+none of them need to be checked individually. Because each step descends
+exactly one level, the total number of steps is bounded by the tree's
+height -- $O(\log n)$ for a balanced tree, though note this degrades to
+$O(n)$ for a degenerate (linked-list-shaped) tree, a distinction worth
+remembering throughout this chapter.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the current node is null: return null.
+  \item If $X =$ current node's value: return the current node.
+  \item If $X <$ current node's value: recurse into the left child.
+  \item Else: recurse into the right child.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Search in a BST}
+\begin{algorithmic}[1]
+\Procedure{SearchBST}{\textit{root}, $X$}
+  \If{$\textit{root} = \text{null}$} \Return \text{null} \EndIf
+  \If{$X = \textit{root}.\textit{val}$} \Return \textit{root} \EndIf
+  \If{$X < \textit{root}.\textit{val}$}
+    \State \Return \Call{SearchBST}{$\textit{root}.\textit{left}$, $X$}
+  \Else
+    \State \Return \Call{SearchBST}{$\textit{root}.\textit{right}$, $X$}
+  \EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take the BST
+$\begin{smallmatrix} & & 5 & & \\ & 3 & & 8 & \\ 1 & & 4 & & 9
+\end{smallmatrix}$ (root $5$; left child $3$ with children $1,4$; right
+child $8$ with right child $9$), searching for $X=4$.}
+
+\begin{itemize}
+  \item At $5$: $4<5$, go left to $3$.
+  \item At $3$: $4>3$, go right to $4$.
+  \item At $4$: $4=4$, found. Return this node.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+TreeNode* searchBST(TreeNode* root, int X) {
+    if (root == nullptr || root->val == X) return root;
+    if (X < root->val) return searchBST(root->left, X);
+    return searchBST(root->right, X);
+}
+
+int main() {
+    TreeNode* root = new TreeNode(5);
+    root->left = new TreeNode(3);
+    root->right = new TreeNode(8);
+    root->left->left = new TreeNode(1);
+    root->left->right = new TreeNode(4);
+    root->right->right = new TreeNode(9);
+
+    TreeNode* found = searchBST(root, 4);
+    cout << (found ? found->val : -1) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(h)$, where $h$ is the tree's height --
+$O(\log n)$ for a balanced BST, $O(n)$ in the worst case for a
+degenerate, linked-list-shaped tree.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack (or $O(1)$ if
+rewritten iteratively, since no backtracking is ever needed).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Every BST operation in this chapter that walks from the root toward a
+single target (search, insert, floor/ceil, predecessor/successor)
+inherits this exact $O(h)$ complexity and this exact ``one comparison,
+one subtree discarded'' justification. Internalizing it once here saves
+re-deriving it in every later section.
+\end{takeawaybox}

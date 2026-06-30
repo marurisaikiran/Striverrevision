@@ -1,0 +1,229 @@
+\section{Job Sequencing Problem}
+\label{sec:job-sequencing}
+
+\problemstatement{We are given $n$ jobs, where the $i$-th job has a deadline
+$\textit{deadline}[i]$ and a profit $\textit{profit}[i]$. Every job takes
+exactly one unit of time to complete, and only one job can be processed at
+any given unit of time (time slots are $1, 2, 3, \dots$). A job earns its
+profit only if it is completed at or before its deadline. We must choose
+which jobs to schedule, and at which time slots, so as to \textbf{maximize
+total profit}; we are also asked to report how many jobs end up being
+scheduled.}
+
+\begin{patternbox}
+\emph{``Each job has a deadline and a profit; schedule jobs (each taking one
+unit of time) to maximize total profit''} is the signature of the
+\emph{Job Sequencing Problem}. The two keywords to notice together are
+\textbf{``profit, maximize''} (suggesting we should prioritize high-value
+jobs first) and \textbf{``deadline''} (suggesting that, once we have decided
+\emph{which} jobs to take, we still need a rule for placing them into time
+slots without violating their deadlines). This combination -- rank by value,
+then place greedily as late as possible -- is a different flavor of greedy
+from interval scheduling, and is often paired conceptually with the Disjoint
+Set Union (Union-Find) data structure for an even faster slot-finding step.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Two separate questions are tangled together here: \emph{which} jobs should
+we choose to do, and \emph{when} should we do each chosen job. Profit is
+earned per job, independent of which legal slot it occupies, so among
+several candidate sets of jobs we might choose, more total profit is always
+better, with no benefit to a particular schedule beyond it being legal at
+all. This suggests considering jobs in decreasing order of profit, and
+greedily trying to fit each one in, since a job with higher profit is always
+worth taking over a lower-profit job if there is room for only one of them.
+
+Once we decide to take a particular job with deadline $d$, the only real
+question is \emph{which} slot among $1, 2, \dots, d$ to place it in. Here a
+second, equally important greedy idea applies: place the job in the
+\textbf{latest} available slot not exceeding its deadline, rather than the
+earliest. The reasoning is that an early slot is more valuable to keep
+\emph{open}, because it can still accommodate jobs with very tight (small)
+deadlines that arrive later in our profit-sorted processing order, whereas a
+late slot close to $d$ is useless to any job whose deadline is smaller than
+$d$ anyway.
+
+\begin{ideabox}[Greedy Choice]
+Sort all jobs in decreasing order of profit. For each job, in this order,
+scan backward from its deadline toward slot $1$ and place it in the first
+free slot found. If no free slot exists at or before its deadline, skip this
+job permanently -- it can never be scheduled later, since slots only get
+more occupied as we proceed, not less.
+\end{ideabox}
+
+\subsection*{Why processing by profit, and placing as late as possible, is correct}
+
+Consider why we never want to revisit a profit-order decision. Once a
+higher-profit job has successfully claimed a slot, no later (lower-profit)
+job can ever displace it without decreasing total profit, so committing
+immediately, in profit order, is safe -- this is the same "highest value
+first" exchange argument used throughout greedy scheduling: if some optimal
+solution skipped a higher-profit job $J$ to make room for a lower-profit job
+$J'$ that conflicts with it, swapping $J$ in for $J'$ (which is always
+possible, since $J$ has at least as early a deadline requirement satisfied
+by any slot $J'$ could use, or an even more flexible range) cannot decrease,
+and may increase, total profit.
+
+Placing each accepted job as late as possible within its own deadline window
+is the secondary greedy choice that makes the slot-assignment feasible
+without any backtracking. By reserving early slots for as long as possible,
+we never block a future job (processed later, because it has lower profit)
+that might desperately need one of those early slots due to having a very
+small deadline -- a job with deadline $1$ has nowhere else to go, so an
+early slot occupied unnecessarily by an earlier, more flexible job would be
+a wasted opportunity that greedy avoids by always preferring the latest
+legal slot first.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort the jobs in decreasing order of profit.
+  \item Let $\textit{maxDeadline}$ be the largest deadline among all jobs.
+        Create a boolean array $\textit{slot}[1..\textit{maxDeadline}]$,
+        all initially free.
+  \item Initialize $\textit{countJobs} \gets 0$ and
+        $\textit{totalProfit} \gets 0$.
+  \item For each job, in decreasing profit order, with deadline $d$:
+  \begin{enumerate}
+    \item Scan $t$ from $\min(d, \textit{maxDeadline})$ down to $1$:
+    \begin{enumerate}
+      \item If $\textit{slot}[t]$ is free: mark it occupied, increment
+            $\textit{countJobs}$, add this job's profit to
+            $\textit{totalProfit}$, and stop scanning (break out of this
+            inner loop) -- the job has been placed.
+    \end{enumerate}
+    \item If no free slot was found in the scan, this job is permanently
+          skipped.
+  \end{enumerate}
+  \item Return $\textit{countJobs}$ and $\textit{totalProfit}$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Job Sequencing}
+\begin{algorithmic}[1]
+\Procedure{JobSequencing}{\textit{jobs}}
+  \State sort \textit{jobs} in decreasing order of profit
+  \State $\textit{maxDeadline} \gets \max_i \textit{deadline}[i]$
+  \State $\textit{slot}[1..\textit{maxDeadline}] \gets$ all free
+  \State $\textit{countJobs} \gets 0$, $\textit{totalProfit} \gets 0$
+  \For{each job $(d, p)$ in sorted order}
+    \For{$t \gets \min(d, \textit{maxDeadline})$ \textbf{down to} $1$}
+      \If{$\textit{slot}[t]$ is free}
+        \State mark $\textit{slot}[t]$ occupied
+        \State $\textit{countJobs} \gets \textit{countJobs} + 1$
+        \State $\textit{totalProfit} \gets \textit{totalProfit} + p$
+        \State \textbf{break}
+      \EndIf
+    \EndFor
+  \EndFor
+  \State \Return $(\textit{countJobs}, \textit{totalProfit})$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take jobs with (deadline, profit) pairs:
+$(4,20), (1,10), (1,40), (1,30)$.}
+
+Sorted by decreasing profit:
+$(1,40), (1,30), (4,20), (1,10)$.
+
+Slots $1, 2, 3, 4$ all start free.
+
+\begin{itemize}
+  \item Job $(1,40)$: scan from $t=1$ down to $1$. Slot $1$ is free; place
+        it there. $\textit{countJobs}=1$, $\textit{totalProfit}=40$.
+        Slots: $[1{=}\text{occupied}, 2,3,4{=}\text{free}]$.
+  \item Job $(1,30)$: scan from $t=1$ down to $1$. Slot $1$ is occupied.
+        No free slot found within its deadline. Skip this job.
+  \item Job $(4,20)$: scan from $t=4$ down to $1$. Slot $4$ is free; place
+        it there. $\textit{countJobs}=2$, $\textit{totalProfit}=60$.
+        Slots: $[1{=}\text{occ}, 2,3{=}\text{free}, 4{=}\text{occ}]$.
+  \item Job $(1,10)$: scan from $t=1$ down to $1$. Slot $1$ is occupied.
+        Skip.
+\end{itemize}
+
+The final result is $\textit{countJobs} = 2$ jobs scheduled, with
+$\textit{totalProfit} = 60$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Job {
+    int id;
+    int deadline;
+    int profit;
+};
+
+pair<int,int> jobSequencing(vector<Job>& jobs) {
+    sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b) {
+        return a.profit > b.profit;
+    });
+
+    int maxDeadline = 0;
+    for (auto& job : jobs) {
+        maxDeadline = max(maxDeadline, job.deadline);
+    }
+
+    vector<bool> slot(maxDeadline + 1, false); // 1-indexed
+    int countJobs = 0, totalProfit = 0;
+
+    for (auto& job : jobs) {
+        for (int t = min(job.deadline, maxDeadline); t >= 1; t--) {
+            if (!slot[t]) {
+                slot[t] = true;
+                countJobs++;
+                totalProfit += job.profit;
+                break;
+            }
+        }
+    }
+    return {countJobs, totalProfit};
+}
+
+int main() {
+    vector<Job> jobs = {
+        {1, 4, 20},
+        {2, 1, 10},
+        {3, 1, 40},
+        {4, 1, 30}
+    };
+
+    auto result = jobSequencing(jobs);
+    cout << "Jobs done: " << result.first << endl;
+    cout << "Total profit: " << result.second << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting the $n$ jobs by profit costs
+$O(n \log n)$. For each job, scanning backward through slots costs up to
+$O(\textit{maxDeadline})$ in the worst case, giving a total of
+$O(n \cdot \textit{maxDeadline})$ for the slot-placement phase. Hence the
+overall time complexity is
+\[
+  O(n \log n + n \cdot \textit{maxDeadline}).
+\]
+This can be improved to $O(n \log n + n \log n) = O(n \log n)$ overall by
+using a Disjoint Set Union structure (covered in Chapter~6) to jump directly
+to the latest free slot at or before a given deadline, rather than scanning
+slot by slot.
+\textbf{Space Complexity.} We use a boolean array of size
+$O(\textit{maxDeadline})$ to track slot occupancy, so the space complexity
+is $O(\textit{maxDeadline})$, in addition to $O(n)$ for sorting the jobs.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem combines \emph{``maximize total value''} with
+\emph{``each item also has a deadline/capacity constraint on where it can
+be placed,''} a two-layer greedy often applies: sort by value to decide
+\emph{which} items to take, and within that order, place each accepted item
+as late (or otherwise as flexibly) as possible so as not to block items that
+have less placement freedom and are still waiting to be considered.
+\end{takeawaybox}

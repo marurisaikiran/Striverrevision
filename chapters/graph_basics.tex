@@ -1,0 +1,81 @@
+\chapter{Graphs: Basics and Traversals}
+\chapterepigraph{A graph is nothing more than a collection of states and
+the moves that connect them. Once a problem's ``states'' and ``valid
+moves'' are identified, traversing the graph -- visiting every reachable
+state exactly once -- answers a surprising number of questions that
+don't look like graph problems at first glance.}
+
+\section{Representing a Graph, and the Two Ways to Walk It}
+\label{sec:graph-basics-intro}
+
+A graph is a set of \textbf{nodes} (vertices) and \textbf{edges}
+(connections between nodes, which may be directed or undirected,
+weighted or unweighted). The standard representation for sparse graphs
+(the vast majority of interview problems) is an \textbf{adjacency
+list}: an array (or hash map) where index $i$ holds a list of every
+node directly reachable from node $i$.
+
+\begin{patternbox}[Recognizing a Graph Problem]
+A problem is a graph problem in disguise whenever it describes
+\textbf{states} and \textbf{transitions between states} -- grid cells
+and their neighbors, people and their connections, words and
+single-character edits, courses and their prerequisites. The moment a
+problem can be rephrased as ``starting from X, what can I reach by
+repeatedly taking valid moves,'' a graph traversal applies.
+\end{patternbox}
+
+\begin{ideabox}[Depth-First Search vs. Breadth-First Search]
+Both traversals visit every node reachable from a start node exactly
+once, using a $\textit{visited}$ array to avoid repeats (and infinite
+loops in cyclic graphs) -- they differ only in \textbf{which data
+structure} drives the order of exploration:
+\begin{itemize}
+  \item \textbf{DFS} uses a \textbf{stack} (often the recursion call
+        stack itself): go as deep as possible down one path before
+        backtracking. Natural for problems about \emph{connectivity}
+        and \emph{exhaustive exploration} (does a path exist, what is
+        everything reachable).
+  \item \textbf{BFS} uses an explicit \textbf{queue}: explore all
+        nodes at distance $1$ before any node at distance $2$. Natural
+        for problems about \emph{shortest distance in an unweighted
+        graph} or \emph{level-by-level} processing (multi-source
+        spreading, like fire or rot spreading outward).
+\end{itemize}
+\end{ideabox}
+
+\begin{patternbox}[What This Chapter Covers]
+\begin{itemize}
+  \item \textbf{DFS Traversal (Section~\ref{sec:graph-dfs})} and
+        \textbf{BFS Traversal (Section~\ref{sec:graph-bfs})}: the two
+        foundational walks, established once and reused by name in
+        every later chapter.
+  \item \textbf{Number of Provinces (Section~\ref{sec:graph-number-of-provinces})}:
+        counting connected components -- run a traversal from every
+        unvisited node, counting how many traversals it takes.
+  \item \textbf{Clone a Graph (Section~\ref{sec:graph-clone-graph})}:
+        a traversal that builds a parallel copy of the graph as it
+        visits, using a hash map to avoid duplicating already-cloned
+        nodes.
+  \item \textbf{Rotten Oranges (Section~\ref{sec:graph-rotten-oranges})},
+        \textbf{Flood Fill (Section~\ref{sec:graph-flood-fill})}, and
+        \textbf{01 Matrix (Section~\ref{sec:graph-01-matrix})}: treating
+        a grid as an implicit graph (each cell a node, its $4$ neighbors
+        its edges), with the first and last introducing
+        \textbf{multi-source BFS} -- starting a single BFS from
+        \emph{every} source simultaneously.
+  \item \textbf{Number of Islands (Section~\ref{sec:graph-number-of-islands})}:
+        Number of Provinces' connected-component counting, applied to
+        an implicit grid graph instead of an explicit adjacency list.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/graph_basics/01_dfs_traversal.tex}
+\input{chapters/graph_basics/02_bfs_traversal.tex}
+\input{chapters/graph_basics/03_number_of_provinces.tex}
+\input{chapters/graph_basics/04_clone_graph.tex}
+\input{chapters/graph_basics/05_rotten_oranges.tex}
+\input{chapters/graph_basics/06_flood_fill.tex}
+\input{chapters/graph_basics/07_01_matrix.tex}
+\input{chapters/graph_basics/08_number_of_islands.tex}

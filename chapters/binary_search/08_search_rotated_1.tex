@@ -1,0 +1,192 @@
+\section{Search in a Rotated Sorted Array I}
+\label{sec:bs-rotated-1}
+
+\problemstatement{An array that was originally sorted in increasing order
+has been \textbf{rotated} at some unknown pivot -- for example,
+$[0,1,2,4,5,6,7]$ rotated at index $3$ becomes $[4,5,6,7,0,1,2]$. All
+elements are distinct. Given such a rotated array $\textit{arr}$ and a
+target $X$, find the index of $X$, or return $-1$ if it is not present.
+We must still achieve $O(\log n)$ time.}
+
+\begin{patternbox}
+\emph{``Rotated sorted array''} is a clear signal that plain binary search
+(Section~\ref{sec:bs-find-x}) cannot be applied directly, because the array
+as a whole is no longer globally sorted -- comparing
+$\textit{arr}[\textit{mid}]$ to $X$ no longer tells us which half to
+discard. But the keyword \emph{``sorted, then rotated''} carries a crucial
+piece of remaining structure: although the \emph{whole} array is not
+sorted, \textbf{at least one of the two halves split at any midpoint always
+is}. Whenever a problem mentions rotation, immediately look for this
+``one half is always sorted'' structure, since it is what restores binary
+search's monotonic-discard guarantee.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Pick any midpoint $\textit{mid}$ in a rotated sorted array. The two halves
+$[\textit{lo}, \textit{mid}]$ and $[\textit{mid}, \textit{hi}]$ cannot both
+contain the rotation pivot (the single place where a larger element is
+immediately followed by a smaller one) -- the pivot lies in at most one of
+the two halves, so the other half is guaranteed to be a genuinely sorted,
+unrotated run of increasing values. We can detect which half is sorted with
+one comparison: if $\textit{arr}[\textit{lo}] \le
+\textit{arr}[\textit{mid}]$, the left half is sorted; otherwise, the right
+half must be sorted.
+
+\begin{ideabox}[Greedy Decision at Each Step]
+At each step, first determine which half is sorted using
+$\textit{arr}[\textit{lo}] \le \textit{arr}[\textit{mid}]$. Then, check
+whether $X$ could possibly lie within that sorted half's value range (using
+ordinary comparisons, since that half really is sorted). If $X$'s value
+falls within the sorted half's range, discard the other half and recurse
+into the sorted half; otherwise, $X$ (if present at all) must be in the
+\emph{other} half, so discard the sorted half and recurse into the
+unsorted-looking half instead -- which, on the next iteration, will itself
+be split into one sorted and one possibly-unsorted piece, maintaining the
+invariant.
+\end{ideabox}
+
+\subsection*{Why this discard rule is correct}
+
+The key invariant maintained throughout is that the current search window
+$[\textit{lo}, \textit{hi}]$ is itself a rotated sorted array (a
+sub-array of the original, which inherits the ``rotated sorted'' structure
+since removing elements from one end of a rotated sorted run leaves a
+smaller rotated sorted run). At every step we identify a genuinely sorted
+half by comparing its endpoints directly -- a valid comparison because that
+half truly has no rotation inside it. If $X$ lies within that sorted half's
+numeric range (i.e.\ between its smallest and largest values), it can only
+be found there, since the other half's values lie entirely outside this
+range (otherwise the sortedness of the identified half, combined with the
+single-rotation-point structure, would be violated). So discarding the
+half that provably cannot contain $X$ is always safe, exactly mirroring the
+discard argument from ordinary binary search, just with one extra
+case-split to first identify which half is safe to reason about directly.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item If $\textit{arr}[\textit{mid}] = X$: return \textit{mid}.
+    \item If $\textit{arr}[\textit{lo}] \le \textit{arr}[\textit{mid}]$
+          (left half is sorted):
+    \begin{itemize}
+      \item If $\textit{arr}[\textit{lo}] \le X < \textit{arr}[\textit{mid}]$:
+            search left, $\textit{hi} \gets \textit{mid}-1$.
+      \item Else: search right, $\textit{lo} \gets \textit{mid}+1$.
+    \end{itemize}
+    \item Otherwise (right half is sorted):
+    \begin{itemize}
+      \item If $\textit{arr}[\textit{mid}] < X \le \textit{arr}[\textit{hi}]$:
+            search right, $\textit{lo} \gets \textit{mid}+1$.
+      \item Else: search left, $\textit{hi} \gets \textit{mid}-1$.
+    \end{itemize}
+  \end{enumerate}
+  \item If the loop ends without returning, return $-1$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Search in Rotated Sorted Array (Distinct Elements)}
+\begin{algorithmic}[1]
+\Procedure{SearchRotated}{$\textit{arr}, X$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \If{$\textit{arr}[\textit{mid}] = X$} \Return \textit{mid} \EndIf
+    \If{$\textit{arr}[\textit{lo}] \le \textit{arr}[\textit{mid}]$}
+      \If{$\textit{arr}[\textit{lo}] \le X$ \textbf{and} $X < \textit{arr}[\textit{mid}]$}
+        \State $\textit{hi} \gets \textit{mid} - 1$
+      \Else
+        \State $\textit{lo} \gets \textit{mid} + 1$
+      \EndIf
+    \Else
+      \If{$\textit{arr}[\textit{mid}] < X$ \textbf{and} $X \le \textit{arr}[\textit{hi}]$}
+        \State $\textit{lo} \gets \textit{mid} + 1$
+      \Else
+        \State $\textit{hi} \gets \textit{mid} - 1$
+      \EndIf
+    \EndIf
+  \EndWhile
+  \State \Return $-1$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [4,5,6,7,0,1,2]$, $X = 0$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=6$: $\textit{mid}=3$,
+        $\textit{arr}[3]=7 \ne 0$. Is $\textit{arr}[0]=4 \le
+        \textit{arr}[3]=7$? Yes, left half sorted. Is
+        $4 \le 0 < 7$? No ($0 < 4$). So search right:
+        $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=6$: $\textit{mid}=5$,
+        $\textit{arr}[5]=1 \ne 0$. Is $\textit{arr}[4]=0 \le
+        \textit{arr}[5]=1$? Yes, left half sorted. Is
+        $0 \le 0 < 1$? Yes. Search left: $\textit{hi}=4$.
+  \item $\textit{lo}=4,\textit{hi}=4$: $\textit{mid}=4$,
+        $\textit{arr}[4]=0 = 0$. Return $4$.
+\end{itemize}
+
+The answer is index $4$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int searchRotated(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1;
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == X) return mid;
+
+        if (arr[lo] <= arr[mid]) { // left half sorted
+            if (arr[lo] <= X && X < arr[mid]) {
+                hi = mid - 1;
+            } else {
+                lo = mid + 1;
+            }
+        } else { // right half sorted
+            if (arr[mid] < X && X <= arr[hi]) {
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+    }
+    return -1;
+}
+
+int main() {
+    vector<int> arr = {4, 5, 6, 7, 0, 1, 2};
+    cout << "Index of 0: " << searchRotated(arr, 0) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each iteration discards at least one full half
+of the current window, exactly as in ordinary binary search, giving
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When an array's global sortedness is broken in one specific, structured way
+(here, a single rotation point), look for a local property that still
+holds at every step of binary search -- here, ``at least one of the two
+halves around any midpoint is genuinely sorted.'' Identifying and exploiting
+that local invariant is what lets binary search survive structural
+violations of global sortedness.
+\end{takeawaybox}

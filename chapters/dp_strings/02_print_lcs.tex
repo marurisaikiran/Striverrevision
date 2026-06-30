@@ -1,0 +1,143 @@
+\section{Print the Longest Common Subsequence}
+\label{sec:dp-print-lcs}
+
+\problemstatement{Given two strings $s_1$ and $s_2$, construct (not just
+measure the length of) one valid longest common subsequence.}
+
+\begin{patternbox}
+\emph{``Print/construct the actual solution, not just its length/count''}
+is a new keyword pattern this chapter introduces: once a tabulation table
+is built, \textbf{walking it backward} from the final answer cell,
+re-deriving at each step which recurrence case produced that cell's
+value, reconstructs an actual optimal solution -- without needing any new
+DP derivation, only a careful reverse walk through the already-computed
+table.
+\end{patternbox}
+
+\subsection*{Understanding the reconstruction}
+
+The Section~\ref{sec:dp-lcs} tabulation table $\textit{dp}[i][j]$ must be
+built in full first (this requires the complete $O(nm)$ table, not the
+space-optimized $O(m)$ rolling-row version, since reconstruction needs
+to look back arbitrarily far). Starting at $\textit{dp}[n][m]$, walk
+backward: if $s_1[i-1] = s_2[j-1]$, this character is part of the LCS --
+record it and move diagonally to $(i-1,j-1)$. Otherwise, move to
+whichever of $(i-1,j)$ or $(i,j-1)$ has the larger $\textit{dp}$ value
+(matching whichever branch the forward recurrence actually took to
+produce $\textit{dp}[i][j]$'s value). Continue until reaching a row or
+column of $0$. The characters recorded, read in reverse order (since we
+walked backward from the end), form one valid LCS.
+
+\subsection*{Why retracing the recurrence's decision backward is correct}
+
+The tabulation table already encodes, implicitly, which choice (match,
+or which discard) was responsible for each cell's value -- we simply
+need to recompute that same comparison once more during the backward
+walk, since the table only stores the resulting \emph{length}, not which
+branch produced it. Because the forward recurrence's correctness was
+already established in Section~\ref{sec:dp-lcs}, redoing its exact
+decision rule in reverse is guaranteed to retrace a genuine optimal path
+through the table, character by character, until the base case (an
+empty prefix) is reached.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the full $\textit{dp}$ table as in
+        Section~\ref{sec:dp-lcs}'s tabulation.
+  \item $i \gets n$, $j \gets m$, $\textit{result} \gets \texttt{""}$.
+  \item While $i>0$ and $j>0$:
+  \begin{enumerate}
+    \item If $s_1[i-1] = s_2[j-1]$: prepend $s_1[i-1]$ to
+          $\textit{result}$; $i \gets i-1$, $j \gets j-1$.
+    \item Else if $\textit{dp}[i-1][j] \ge \textit{dp}[i][j-1]$:
+          $i \gets i-1$.
+    \item Else: $j \gets j-1$.
+  \end{enumerate}
+  \item Return \textit{result}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Using Section~\ref{sec:dp-lcs}'s table for $s_1=\texttt{"abcde"}$,
+$s_2=\texttt{"ace"}$.}
+
+\begin{itemize}
+  \item Start at $(i,j)=(5,3)$: $s_1[4]=\texttt{'e'}$,
+        $s_2[2]=\texttt{'e'}$, match. Record \texttt{'e'}. Move to
+        $(4,2)$.
+  \item $(4,2)$: $s_1[3]=\texttt{'d'}$, $s_2[1]=\texttt{'c'}$, no
+        match. $\textit{dp}[3][2]=2 \ge \textit{dp}[4][1]=1$: move to
+        $(3,2)$.
+  \item $(3,2)$: $s_1[2]=\texttt{'c'}$, $s_2[1]=\texttt{'c'}$, match.
+        Record \texttt{'c'}. Move to $(2,1)$.
+  \item $(2,1)$: $s_1[1]=\texttt{'b'}$, $s_2[0]=\texttt{'a'}$, no
+        match. $\textit{dp}[1][1]=1 \ge \textit{dp}[2][0]=0$: move to
+        $(1,1)$.
+  \item $(1,1)$: $s_1[0]=\texttt{'a'}$, $s_2[0]=\texttt{'a'}$, match.
+        Record \texttt{'a'}. Move to $(0,0)$. Loop ends ($i=0$).
+\end{itemize}
+
+Characters recorded, in the order found (backward): \texttt{e, c, a}.
+Reversing gives \texttt{"ace"} -- the LCS itself.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string printLCS(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                dp[i][j] = 1 + dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+
+    string result;
+    int i = n, j = m;
+    while (i > 0 && j > 0) {
+        if (s1[i - 1] == s2[j - 1]) {
+            result.push_back(s1[i - 1]);
+            i--; j--;
+        } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+            i--;
+        } else {
+            j--;
+        }
+    }
+    reverse(result.begin(), result.end());
+    return result;
+}
+
+int main() {
+    string s1 = "abcde", s2 = "ace";
+    cout << printLCS(s1, s2) << endl; // ace
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot m)$ to build the table, plus
+$O(n+m)$ for the backward walk -- dominated by the table construction.
+\textbf{Space Complexity.} $O(n \cdot m)$ for the full table --
+\textbf{not} reducible to a rolling row, since reconstruction needs
+access to arbitrary earlier rows during the backward walk.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Print/construct the solution'' problems always need the \emph{full}
+tabulation table kept in memory, sacrificing the space optimization that
+a length/count-only version of the same problem could use -- the
+backward walk that reconstructs an answer needs to revisit cells the
+rolling-row trick would have already discarded. This trade-off (full
+table for reconstruction vs.\ rolling row for the value alone) is worth
+remembering whenever a problem explicitly asks for the solution itself.
+\end{takeawaybox}

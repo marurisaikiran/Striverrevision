@@ -1,0 +1,120 @@
+\section{Count Square Submatrices with All Ones}
+\label{sec:dp-count-square-submatrices}
+
+\problemstatement{Given a binary matrix $\textit{mat}$, count the total
+number of square submatrices that contain only $1$s (squares of every
+size, at every position).}
+
+\begin{patternbox}
+\emph{``Largest/count of square submatrices of all ones, anchored at
+each cell''} is solved by a recurrence that looks at exactly three
+neighbors: a square of side $s$ ending at $(i,j)$ as its bottom-right
+corner exists only if squares of side $s-1$ already exist ending at
+\textbf{all three} of the cell above, the cell to the left, and the
+cell diagonally above-left.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $\textit{dp}[i][j]$ be the side length of the \textbf{largest}
+all-ones square whose bottom-right corner is exactly $(i,j)$ (and
+$0$ if $\textit{mat}[i][j]=0$). If $\textit{mat}[i][j]=1$, extending a
+square one row down and one column right requires the square
+\emph{ending} at each of the three neighboring corners to already
+support at least side length $\textit{dp}[i][j]-1$:
+\[
+  \textit{dp}[i][j] = \begin{cases}
+  0 & \textit{mat}[i][j]=0, \\
+  1+\min\big(\textit{dp}[i{-}1][j],\ \textit{dp}[i][j{-}1],\
+  \textit{dp}[i{-}1][j{-}1]\big) & \textit{mat}[i][j]=1.
+  \end{cases}
+\]
+
+\begin{ideabox}[Why the Minimum, and Why Summing Gives the Count]
+The new square's side is capped by whichever of the three neighbors
+supports the \emph{smallest} square -- a single weak corner limits how
+far the square can extend, exactly like the weakest link in a chain.
+Separately, a cell with $\textit{dp}[i][j]=k$ doesn't just mean
+\emph{one} square ends there -- it means $k$ different squares end
+there: one each of side $1, 2, \ldots, k$ (every smaller square nested
+inside the largest one is also a valid, distinct all-ones square with
+its bottom-right corner at $(i,j)$). So the \textbf{count} of all
+square submatrices is simply $\sum_{i,j} \textit{dp}[i][j]$.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int countSquareSubmatrices(vector<vector<int>>& mat) {
+    int n = mat.size(), m = mat[0].size();
+    vector<vector<int>> dp(n, vector<int>(m, 0));
+    int totalCount = 0;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            if (mat[i][j] == 0) {
+                dp[i][j] = 0;
+            } else if (i == 0 || j == 0) {
+                dp[i][j] = 1; // first row/column: at most a 1x1 square
+            } else {
+                dp[i][j] = 1 + min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
+            }
+            totalCount += dp[i][j];
+        }
+    }
+    return totalCount;
+}
+
+int main() {
+    vector<vector<int>> mat = {
+        {0, 1, 1, 1},
+        {1, 1, 1, 1},
+        {0, 1, 1, 1}
+    };
+    cout << countSquareSubmatrices(mat) << endl; // 15
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $3\times4$ matrix above.}
+
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+ & 0 & 1 & 2 & 3 \\ \hline
+0 & 0 & 1 & 1 & 1 \\ \hline
+1 & 1 & 1 & 2 & 2 \\ \hline
+2 & 0 & 1 & 2 & 3
+\end{tabular}
+\end{center}
+
+$\textit{dp}[1][2]=2$: $\textit{mat}[1][2]=1$, and
+$\min(\textit{dp}[0][2],\textit{dp}[1][1],\textit{dp}[0][1])=
+\min(1,1,1)=1$, so $\textit{dp}[1][2]=2$ (a $2\times2$ all-ones square
+exists with corners at rows $0$--$1$, columns $1$--$2$).
+$\textit{dp}[2][3]=3$: neighbors $\textit{dp}[1][3]=2$,
+$\textit{dp}[2][2]=2$, $\textit{dp}[1][2]=2$, minimum $2$, giving
+$\textit{dp}[2][3]=3$ (a full $3\times3$ all-ones square, columns
+$1$--$3$, all three rows). Summing every cell:
+$0{+}1{+}1{+}1{+}1{+}1{+}2{+}2{+}0{+}1{+}2{+}3 = 15$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot m)$ -- one constant-time
+comparison per cell.
+\textbf{Space Complexity.} $O(n \cdot m)$ for the \textit{dp} table
+(reducible to $O(m)$ with a rolling pair of rows, since each cell only
+reads the row directly above and the current row).
+\end{complexitybox}
+
+\begin{takeawaybox}
+A surprisingly large class of ``2D shape ending here'' problems reduce
+to a three-neighbor minimum (or maximum) plus one: the moment a shape
+can only grow when \emph{all} of its supporting smaller shapes already
+exist, the recurrence is this same one-line comparison, with no search
+over a range needed at all -- the simplest recurrence shape in this
+entire book.
+\end{takeawaybox}

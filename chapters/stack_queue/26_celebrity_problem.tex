@@ -1,0 +1,165 @@
+\section{The Celebrity Problem}
+\label{sec:sq-celebrity-problem}
+
+\problemstatement{There are $n$ people at a party. A \textbf{celebrity}
+is a person whom \textbf{everyone else knows}, but who \textbf{knows no
+one else}. We have access to a function $\textit{knows}(a,b)$ that
+returns whether person $a$ knows person $b$. Find the celebrity if one
+exists (there is at most one), using as few calls to $\textit{knows}$ as
+possible -- ideally $O(n)$, not the $O(n^2)$ a full pairwise check would
+need.}
+
+\begin{patternbox}
+\emph{``Repeatedly eliminate one of two candidates based on a pairwise
+comparison, narrowing down to a single survivor''} is a stack-driven
+elimination tournament: push every person as a candidate, then repeatedly
+pop two candidates and use a single $\textit{knows}$ call to eliminate
+(rather than confirm) one of them, since the celebrity's defining
+properties make it possible to always rule out at least one of any two
+candidates with a single check.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Take any two candidates $a$ and $b$, and ask $\textit{knows}(a,b)$.
+
+\begin{itemize}
+  \item If $a$ knows $b$: then $a$ cannot be the celebrity (a celebrity
+        knows \emph{no one}), so $a$ is eliminated.
+  \item If $a$ does not know $b$: then $b$ cannot be the celebrity (the
+        celebrity must be known by \emph{everyone}, but $a$ does not
+        know $b$), so $b$ is eliminated.
+\end{itemize}
+
+Either way, a single call eliminates exactly one of the two candidates --
+never both, and never neither -- so repeatedly applying this to pairs of
+remaining candidates narrows the field down to a single survivor using
+only $n-1$ calls total.
+
+\begin{ideabox}[Stack-Driven Elimination, Then One Verification Pass]
+Push every person $0, \dots, n-1$ onto a stack. While more than one
+candidate remains: pop two, $a$ and $b$. If $\textit{knows}(a,b)$: push
+$b$ back (eliminate $a$). Else: push $a$ back (eliminate $b$). After this
+process, exactly one candidate remains -- but it is only a
+\emph{candidate}, not yet confirmed (it is possible that \emph{no}
+celebrity exists at all). Verify the survivor by checking that
+\emph{everyone else} knows them and that they know \emph{no one else} --
+an additional $O(n)$ scan.
+\end{ideabox}
+
+\subsection*{Why elimination narrows correctly, but still needs a final check}
+
+The elimination process guarantees that \emph{if} a celebrity exists, they
+are never eliminated: a true celebrity, compared against any other
+candidate $x$, always satisfies $\textit{knows}(\textit{celebrity}, x) =
+\text{false}$ (the celebrity knows no one) and
+$\textit{knows}(x, \textit{celebrity}) = \text{true}$ (everyone knows the
+celebrity) -- so whichever of the two checks the algorithm happens to make,
+the celebrity is never the one eliminated. However, if \emph{no}
+celebrity exists, the elimination process still produces \emph{some}
+survivor (it always narrows to exactly one candidate, regardless of
+whether that candidate has the celebrity property) -- which is why an
+explicit final verification pass is required to confirm or reject the
+survivor.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Push all $n$ people onto a stack.
+  \item While the stack has more than one element:
+  \begin{enumerate}
+    \item Pop $a$, then pop $b$.
+    \item If $\textit{knows}(a,b)$: push $b$. Else: push $a$.
+  \end{enumerate}
+  \item Let $\textit{candidate}$ be the single remaining person.
+  \item Verify: for every other person $x$, check
+        $\textit{knows}(x, \textit{candidate}) = \text{true}$ and
+        $\textit{knows}(\textit{candidate}, x) = \text{false}$. If all
+        checks pass, return $\textit{candidate}$; otherwise, return
+        ``no celebrity exists.''
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=4$ with $\textit{knows}$ such that person $2$ is the true
+celebrity: everyone knows $2$, and $2$ knows no one.}
+
+Stack (top to bottom, after pushing $0,1,2,3$): top is $3$.
+
+\begin{itemize}
+  \item Pop $a=3$, $b=2$. Check $\textit{knows}(3,2)$: true (everyone
+        knows $2$). Push $b=2$ (eliminate $3$). Stack $=[0,1,2]$.
+  \item Pop $a=2$, $b=1$. Check $\textit{knows}(2,1)$: false ($2$ knows
+        no one). Push $a=2$ (eliminate $1$). Stack $=[0,2]$.
+  \item Pop $a=2$, $b=0$. Check $\textit{knows}(2,0)$: false. Push
+        $a=2$ (eliminate $0$). Stack $=[2]$.
+\end{itemize}
+
+Candidate $=2$. Verification: every other person knows $2$ (true), and
+$2$ knows none of them (true). Confirmed: person $2$ is the celebrity.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int findCelebrity(int n, function<bool(int,int)> knows) {
+    stack<int> st;
+    for (int i = 0; i < n; i++) st.push(i);
+
+    while (st.size() > 1) {
+        int a = st.top(); st.pop();
+        int b = st.top(); st.pop();
+
+        if (knows(a, b)) st.push(b); // eliminate a
+        else st.push(a);             // eliminate b
+    }
+
+    int candidate = st.top();
+    for (int x = 0; x < n; x++) {
+        if (x == candidate) continue;
+        if (!knows(x, candidate) || knows(candidate, x)) {
+            return -1; // no celebrity
+        }
+    }
+    return candidate;
+}
+
+int main() {
+    // Person 2 is the celebrity: everyone knows 2, 2 knows no one.
+    vector<vector<bool>> M = {
+        {0,1,1,1},
+        {0,0,1,0},
+        {0,0,0,0},
+        {0,1,1,0}
+    };
+    auto knows = [&](int a, int b) { return M[a][b]; };
+
+    cout << "Celebrity: " << findCelebrity(4, knows) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The elimination phase makes exactly $n-1$
+calls to $\textit{knows}$ (one per pop-pair, each removing one candidate
+from a starting pool of $n$), and the verification phase makes up to
+$2(n-1)$ more calls, giving an overall time complexity of
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem guarantees that comparing any two candidates always lets
+you safely eliminate \emph{at least one} of them (never both, never
+neither), a stack-driven elimination tournament narrows $n$ candidates
+to $1$ in $O(n)$ comparisons. This is a different flavor of stack usage
+from the monotonic-stack family -- here the stack just manages an
+elimination order, not a sorted skyline -- and it is always worth pairing
+with an explicit final verification step whenever the narrowing process
+does not, by itself, guarantee the survivor actually has the desired
+property.
+\end{takeawaybox}

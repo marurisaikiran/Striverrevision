@@ -1,0 +1,157 @@
+\section{Single Element in a Sorted Array}
+\label{sec:bs-single-element}
+
+\problemstatement{We are given a sorted array in which \textbf{every
+element appears exactly twice}, except for one element that appears
+\textbf{exactly once}. Find that single element, in $O(\log n)$ time.}
+
+\begin{patternbox}
+At first glance this looks like it has nothing to do with sortedness --
+``find the element that appears once'' sounds like a job for hashing or
+XOR, both $O(n)$. The keyword that should stop you is \emph{``sorted
+array''} appearing in the same breath as a uniqueness condition: whenever a
+problem about counts, pairs, or uniqueness also guarantees sortedness,
+suspect that sortedness is providing exploitable \emph{positional}
+structure -- here, specifically, that pairs of equal elements occupy
+predictable (even, odd) index pairs \emph{before} the single element, and
+that this pairing pattern shifts by one position immediately
+\emph{after} it.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Suppose the single (unpaired) element sits at index $s$. For every pair
+of equal elements before $s$, since each pair occupies two consecutive
+array slots and there is an even number of elements total before $s$ (every
+element before $s$ is properly paired), the first element of each such pair
+lands on an \textbf{even} index, and its duplicate lands on the very next
+(\textbf{odd}) index. That is: for $i < s$, pairs look like
+$(\textit{arr}[2k], \textit{arr}[2k+1])$ with $\textit{arr}[2k] =
+\textit{arr}[2k+1]$. After $s$, the single element has shifted the parity
+of every subsequent pair by one position, so pairs there look like
+$(\textit{arr}[2k+1], \textit{arr}[2k+2])$ instead.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is indices $0, \dots, n-1$ (restricted to even indices,
+by construction). The predicate is
+$P(\textit{even index } i) = (\textit{arr}[i] = \textit{arr}[i+1])$ --
+\texttt{true} for every even index strictly before the single element, and
+\texttt{false} from the single element's (even-aligned) position onward.
+We binary search for the first even index where $P$ becomes \texttt{false}
+-- that index holds the single element.
+\end{ideabox}
+
+\subsection*{Why forcing \textit{mid} to be even is necessary and correct}
+
+The predicate $P$ above is only meaningful when evaluated at \emph{even}
+indices, because the pairing pattern is defined relative to even/odd
+positions, not relative to $\textit{mid}$'s raw value. So at each step, if
+the computed midpoint $\textit{mid}$ happens to be odd, we adjust it down
+by one (to the preceding even index) before testing $P$. After this
+adjustment, the same monotonicity argument as ordinary binary search
+applies directly: $P$ is true for an initial contiguous run of even
+indices and false afterward, with the crossover landing exactly on the
+single element's position.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-2$
+        (we only need to compare each candidate to its right neighbor).
+  \item While $\textit{lo} < \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item If \textit{mid} is odd: $\textit{mid} \gets \textit{mid}-1$
+          (force to even).
+    \item If $\textit{arr}[\textit{mid}] = \textit{arr}[\textit{mid}+1]$:
+          the single element is to the right; $\textit{lo} \gets
+          \textit{mid}+2$.
+    \item Else: the single element is at \textit{mid} or to the left;
+          $\textit{hi} \gets \textit{mid}$.
+  \end{enumerate}
+  \item Return $\textit{arr}[\textit{lo}]$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Single Element in a Sorted Array}
+\begin{algorithmic}[1]
+\Procedure{SingleElement}{\textit{arr}}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-2$
+  \While{$\textit{lo} < \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \If{\textit{mid} is odd}
+      \State $\textit{mid} \gets \textit{mid} - 1$
+    \EndIf
+    \If{$\textit{arr}[\textit{mid}] = \textit{arr}[\textit{mid}+1]$}
+      \State $\textit{lo} \gets \textit{mid} + 2$
+    \Else
+      \State $\textit{hi} \gets \textit{mid}$
+    \EndIf
+  \EndWhile
+  \State \Return $\textit{arr}[\textit{lo}]$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,1,2,3,3,4,4,8,8]$ ($n=9$).}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=7$: $\textit{mid}=3$ (odd) $\to 2$.
+        $\textit{arr}[2]=2$, $\textit{arr}[3]=3$. Not equal. $\textit{hi}=2$.
+  \item $\textit{lo}=0,\textit{hi}=2$: $\textit{mid}=1$ (odd) $\to 0$.
+        $\textit{arr}[0]=1$, $\textit{arr}[1]=1$. Equal. $\textit{lo}=2$.
+  \item $\textit{lo}=2,\textit{hi}=2$: loop ends ($\textit{lo}=\textit{hi}$).
+\end{itemize}
+
+The single element is $\textit{arr}[2] = 2$, which is correct.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int singleElement(vector<int>& arr) {
+    int n = arr.size();
+    int lo = 0, hi = n - 2;
+
+    while (lo < hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (mid % 2 == 1) mid--;
+
+        if (arr[mid] == arr[mid + 1]) {
+            lo = mid + 2;
+        } else {
+            hi = mid;
+        }
+    }
+    return arr[lo];
+}
+
+int main() {
+    vector<int> arr = {1, 1, 2, 3, 3, 4, 4, 8, 8};
+    cout << "Single element: " << singleElement(arr) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The search window halves each iteration (the
+parity adjustment only ever shifts \textit{mid} by one, not affecting the
+overall halving rate), giving
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Sortedness can encode positional structure beyond simple ordering --
+here, sortedness plus a pairing guarantee creates an exploitable
+\emph{parity} pattern. Whenever a sorted-array problem also involves
+counts, pairs, or duplicates, look for whether index parity (even/odd
+position) is doing some of the work that the array's values alone do in
+simpler binary search problems.
+\end{takeawaybox}

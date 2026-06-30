@@ -1,0 +1,209 @@
+\section{Maximum XOR With an Element from Array (Queries)}
+\label{sec:trie-max-xor-query}
+
+\problemstatement{Given an array $\textit{nums}$ and a list of queries,
+where each query is a pair $(x_i, m_i)$, answer for each query the
+maximum value of $x_i \oplus \textit{nums}[j]$ over all $j$ with
+$\textit{nums}[j] \le m_i$. If no element of $\textit{nums}$ satisfies
+$\textit{nums}[j] \le m_i$, the answer for that query is $-1$.}
+
+\begin{patternbox}
+This is Section~\ref{sec:trie-max-xor}'s binary trie with one new
+constraint layered on top: each query only considers a \textbf{subset}
+of $\textit{nums}$ (those $\le m_i$), and the subset differs per query.
+The keyword combination \emph{``maximum XOR'' plus ``subject to a
+threshold that varies per query''} signals an \textbf{offline} technique:
+sort the queries by their threshold and process them in increasing
+order, incrementally growing the trie to include exactly the elements
+eligible for each query, so that no element is ever inserted before it
+is allowed to be, and no element needs to be removed once inserted.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If queries arrived with arbitrary, unsorted thresholds $m_i$, we would
+need to repeatedly figure out ``which elements of $\textit{nums}$ are
+$\le m_i$'' for each query independently. But if we instead
+\textbf{sort the queries by} $m_i$ and process them in increasing order,
+the set of eligible elements only ever \textbf{grows} from one query to
+the next (a higher threshold can only admit more elements, never fewer)
+-- so we can maintain a single pointer into a separately sorted copy of
+$\textit{nums}$, inserting new elements into the trie as the threshold
+grows, and never needing to remove anything.
+
+\begin{ideabox}[Offline: Sort Both Queries and the Array by Threshold]
+Sort $\textit{nums}$ in increasing order. Sort the queries by $m_i$,
+remembering each query's original index (to place answers back
+correctly). Maintain a pointer $j$ into the sorted $\textit{nums}$,
+starting at $0$. For each query, in increasing order of $m_i$: while $j$
+has not exhausted $\textit{nums}$ and $\textit{nums}[j] \le m_i$, insert
+$\textit{nums}[j]$ into the binary trie and advance $j$. Then, if the
+trie is non-empty, answer this query using
+Section~\ref{sec:trie-max-xor}'s $\textit{maxXorWith}(x_i)$; otherwise
+(no eligible elements at all), answer $-1$.
+\end{ideabox}
+
+\subsection*{Why processing queries in sorted threshold order is correct and never wastes work}
+
+Because eligibility only grows as the threshold increases, every element
+inserted into the trie while answering an earlier (smaller-threshold)
+query remains correctly eligible for every later (larger-threshold)
+query too -- nothing inserted ever needs to be removed. This means the
+pointer $j$ only ever moves forward, each element of $\textit{nums}$ is
+inserted into the trie exactly once across the entire batch of queries,
+and the total insertion work across all queries combined is $O(n)$
+insertions, not $O(nq)$ for $q$ queries -- turning what looks like a
+per-query rebuild into a single shared incremental structure.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $\textit{nums}$ in increasing order.
+  \item Sort the queries by $m_i$, keeping track of each query's
+        original position.
+  \item Initialize an empty binary trie and a pointer $j \gets 0$.
+  \item For each query $(x_i, m_i)$, in sorted order:
+  \begin{enumerate}
+    \item While $j<n$ and $\textit{nums}[j] \le m_i$: insert
+          $\textit{nums}[j]$ into the trie; $j \gets j+1$.
+    \item If the trie is empty: this query's answer is $-1$.
+    \item Else: this query's answer is
+          $\textit{maxXorWith}(x_i)$.
+  \end{enumerate}
+  \item Place each computed answer back at its query's original
+        position; return the answers.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [0,1,2,3,4]$ and queries
+$[(3,1), (1,3), (5,6)]$.}
+
+Sorted $\textit{nums}$ unchanged: $[0,1,2,3,4]$. Sorted queries by
+$m_i$: $(3,1), (1,3), (5,6)$ (already in this order).
+
+\begin{itemize}
+  \item Query $(x{=}3, m{=}1)$: insert $\textit{nums}[j]$ while
+        $\le1$: insert $0$ ($j\to1$), insert $1$ ($j\to2$); next is
+        $2>1$, stop. Trie has $\{0,1\}$.
+        $\textit{maxXorWith}(3)$: $3\oplus0=3$, $3\oplus1=2$; best is
+        $3$.
+  \item Query $(x{=}1, m{=}3)$: insert while $\le3$: insert $2$
+        ($j\to3$), insert $3$ ($j\to4$); next is $4>3$, stop. Trie has
+        $\{0,1,2,3\}$. $\textit{maxXorWith}(1)$: $1\oplus0=1$,
+        $1\oplus1=0$, $1\oplus2=3$, $1\oplus3=2$; best is $3$.
+  \item Query $(x{=}5, m{=}6)$: insert while $\le6$: insert $4$
+        ($j\to5$); $j=n$, stop. Trie has $\{0,1,2,3,4\}$.
+        $\textit{maxXorWith}(5)$: best pairing is $5\oplus2=7$ (checking
+        all: $5{=}101$, $0{=}000\to101{=}5$, $1{=}001\to100{=}4$,
+        $2{=}010\to111{=}7$, $3{=}011\to110{=}6$, $4{=}100\to001{=}1$);
+        best is $7$.
+\end{itemize}
+
+Answers in original query order: $[3,3,7]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TrieNode {
+    TrieNode* children[2] = {nullptr, nullptr};
+};
+
+class BinaryTrie {
+    TrieNode* root = new TrieNode();
+    static const int BITS = 32;
+    bool empty = true;
+
+public:
+    void insert(int num) {
+        empty = false;
+        TrieNode* node = root;
+        for (int b = BITS - 1; b >= 0; b--) {
+            int bit = (num >> b) & 1;
+            if (!node->children[bit]) node->children[bit] = new TrieNode();
+            node = node->children[bit];
+        }
+    }
+
+    bool isEmpty() { return empty; }
+
+    int maxXorWith(int num) {
+        TrieNode* node = root;
+        int result = 0;
+        for (int b = BITS - 1; b >= 0; b--) {
+            int bit = (num >> b) & 1;
+            int desired = 1 - bit;
+            if (node->children[desired]) {
+                result |= (1 << b);
+                node = node->children[desired];
+            } else {
+                node = node->children[bit];
+            }
+        }
+        return result;
+    }
+};
+
+vector<int> maximizeXor(vector<int>& nums, vector<vector<int>>& queries) {
+    sort(nums.begin(), nums.end());
+
+    int q = queries.size();
+    vector<int> order(q);
+    for (int i = 0; i < q; i++) order[i] = i;
+    sort(order.begin(), order.end(), [&](int a, int b) {
+        return queries[a][1] < queries[b][1];
+    });
+
+    BinaryTrie trie;
+    vector<int> answers(q);
+    int j = 0, n = nums.size();
+
+    for (int idx : order) {
+        int x = queries[idx][0], m = queries[idx][1];
+        while (j < n && nums[j] <= m) {
+            trie.insert(nums[j]);
+            j++;
+        }
+        answers[idx] = trie.isEmpty() ? -1 : trie.maxXorWith(x);
+    }
+    return answers;
+}
+
+int main() {
+    vector<int> nums = {0, 1, 2, 3, 4};
+    vector<vector<int>> queries = {{3,1}, {1,3}, {5,6}};
+
+    for (int ans : maximizeXor(nums, queries)) cout << ans << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting $\textit{nums}$ and the queries costs
+$O(n \log n + q \log q)$. Each element of $\textit{nums}$ is inserted
+into the trie exactly once across the whole batch, costing
+$O(n \cdot \textit{BITS})$ total. Each query performs one
+$O(\textit{BITS})$ trie walk. Overall:
+\[
+  O((n+q)\log(n+q) + (n+q)\cdot \textit{BITS}).
+\]
+\textbf{Space Complexity.} $O(n \cdot \textit{BITS})$ for the trie, plus
+$O(q)$ for the answers and sort order.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This closing problem of the chapter -- and of this entire multi-chapter
+project -- is a deliberate capstone combining two ideas: the binary trie
+from Section~\ref{sec:trie-max-xor}, and the classic \textbf{offline
+query} technique of sorting queries by their constraint and processing
+them alongside a sorted version of the data, so that a single
+incrementally-built structure serves every query without ever needing to
+be rebuilt or have elements removed. Whenever queries each restrict
+attention to a growing prefix of sorted data, check whether sorting the
+queries themselves by that same threshold turns many independent queries
+into one shared incremental pass.
+\end{takeawaybox}

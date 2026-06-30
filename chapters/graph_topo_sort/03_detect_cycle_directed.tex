@@ -1,0 +1,152 @@
+\section{Detect Cycle in a Directed Graph}
+\label{sec:graph-cycle-directed}
+
+\problemstatement{Given a directed graph, determine whether it
+contains a cycle.}
+
+\begin{patternbox}
+Unlike the undirected case (the Graph BFS and DFS Problems chapter's Detect Cycle in an Undirected Graph section),
+a single ``parent'' check is not enough here: in a \emph{directed}
+graph, reaching an already-visited node is perfectly normal (two
+different paths can legitimately converge on the same node without any
+cycle). What signals a true cycle is reaching a node that is still
+\textbf{on the current DFS path} -- tracked with a second array,
+separate from \textit{visited}, marking only nodes currently ``in
+progress.''
+\end{patternbox}
+
+\subsection*{Why \textit{visited} alone is insufficient here}
+
+Consider $A \to B$, $A \to C$, $B \to D$, $C \to D$: node $D$ is
+visited twice (once via $B$, once via $C$), but there is no cycle --
+both are legitimate converging paths. The distinguishing feature of an
+actual cycle is a \textbf{back edge}: an edge pointing to a node that
+is an \textbf{ancestor} of the current node in the DFS recursion tree
+(i.e., still actively on the call stack), not merely visited at some
+earlier, already-concluded point in the traversal.
+
+\subsection*{Approach 1: DFS with a Path-Tracking Array}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool dfsHasCycle(int node, vector<vector<int>>& adj, vector<bool>& visited,
+                  vector<bool>& pathVisited) {
+    visited[node] = true;
+    pathVisited[node] = true;
+
+    for (int neighbor : adj[node]) {
+        if (!visited[neighbor]) {
+            if (dfsHasCycle(neighbor, adj, visited, pathVisited)) return true;
+        } else if (pathVisited[neighbor]) {
+            return true; // back edge to a node still on the current path
+        }
+    }
+    pathVisited[node] = false; // backtrack: leaving this node's path
+    return false;
+}
+
+bool hasCycleDFS(int n, vector<vector<int>>& adj) {
+    vector<bool> visited(n, false), pathVisited(n, false);
+    for (int i = 0; i < n; i++) {
+        if (!visited[i] && dfsHasCycle(i, adj, visited, pathVisited)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int main() {
+    int n = 3;
+    vector<vector<int>> adj(n);
+    adj[0] = {1}; adj[1] = {2}; adj[2] = {0};
+
+    cout << (hasCycleDFS(n, adj) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(V+E)$.
+\textbf{Space.} $O(V)$ for \textit{visited}, \textit{pathVisited}, and
+the recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Kahn's Algorithm (BFS)}
+
+As noted at the close of Section~\ref{sec:graph-topo-sort-kahn}, if
+Kahn's algorithm processes fewer than $n$ nodes before its queue
+empties, the unprocessed nodes are necessarily trapped in a cycle (a
+cycle's nodes can never reach in-degree $0$, since each waits on
+another node within the same cycle).
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool hasCycleKahn(int n, vector<vector<int>>& adj) {
+    vector<int> inDegree(n, 0);
+    for (int u = 0; u < n; u++) {
+        for (int v : adj[u]) inDegree[v]++;
+    }
+
+    queue<int> q;
+    for (int i = 0; i < n; i++) {
+        if (inDegree[i] == 0) q.push(i);
+    }
+
+    int processed = 0;
+    while (!q.empty()) {
+        int node = q.front();
+        q.pop();
+        processed++;
+
+        for (int neighbor : adj[node]) {
+            inDegree[neighbor]--;
+            if (inDegree[neighbor] == 0) q.push(neighbor);
+        }
+    }
+    return processed != n; // fewer than n processed => cycle exists
+}
+
+int main() {
+    int n = 3;
+    vector<vector<int>> adj(n);
+    adj[0] = {1}; adj[1] = {2}; adj[2] = {0};
+
+    cout << (hasCycleKahn(n, adj) ? "true" : "false") << endl; // true
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take the $3$-cycle $0{\to}1{\to}2{\to}0$.}
+
+\textbf{DFS}: $\textit{dfs}(0)$: visited$[0]=$true, pathVisited$[0]=$true.
+Neighbor $1$: unvisited, recurse. $\textit{dfs}(1)$: visited,
+pathVisited both true for $1$. Neighbor $2$: unvisited, recurse.
+$\textit{dfs}(2)$: visited, pathVisited both true for $2$. Neighbor
+$0$: \textbf{already visited, and pathVisited$[0]=$true} (still on the
+current path) -- cycle detected, return \texttt{true}.
+
+\textbf{Kahn's}: in-degrees all equal $1$ (each node has exactly one
+incoming edge from the cycle). No node starts with in-degree $0$, so
+the queue is empty from the start; $\textit{processed}=0 \neq 3=n$ --
+cycle detected immediately, without even examining a single edge.
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(V+E)$.
+\textbf{Space.} $O(V)$ for in-degrees and the queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Directed-graph cycle detection needs to distinguish ``visited at some
+point'' from ``visited and still active on this path'' -- the
+\textit{pathVisited} array (cleared on backtrack) is what undirected
+cycle detection's simpler parent check generalizes into once edges have
+direction. Kahn's algorithm sidesteps this distinction entirely by
+checking a global count instead, which is part of why it is often
+preferred for this specific check.
+\end{takeawaybox}

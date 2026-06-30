@@ -1,0 +1,126 @@
+\section{Burst Balloons}
+\label{sec:dp-burst-balloons}
+
+\problemstatement{Given $n$ balloons with values $\textit{nums}$,
+bursting balloon $i$ (whose current left neighbor is $\textit{left}$
+and right neighbor is $\textit{right}$, among balloons not yet burst)
+earns $\textit{left} \times \textit{nums}[i] \times \textit{right}$
+coins, and the two neighbors become adjacent. Burst \textbf{all}
+balloons, in any order, to \textbf{maximize} total coins earned.}
+
+\begin{patternbox}
+\emph{``Choose an order to remove all items, where each removal's value
+depends on its current neighbors''} looks at first like it needs to
+track which specific balloons remain at every step -- an exponential
+state. The fix, and the entire point of this section, is choosing $k$
+to represent which balloon is burst \textbf{last} within a range, not
+first, which keeps the boundary balloons' identities fixed throughout.
+\end{patternbox}
+
+\subsection*{Why ``burst first'' fails and ``burst last'' works}
+
+If $k$ were chosen as the \emph{first} balloon burst in range $(i,j)$,
+its reward would be $\textit{val}[i]\times\textit{val}[k]\times
+\textit{val}[j]$ correctly -- but bursting it merges $i$ and $j$ into
+direct neighbors \emph{before} the rest of $(i,j)$ is processed, which
+breaks the clean recursive split into two independent sub-ranges (the
+left and right remaining balloons are no longer separated by anything,
+so their sub-problems interact).
+
+If instead $k$ is chosen as the \textbf{last} balloon burst in range
+$(i,j)$ (exclusive bounds; $i$ and $j$ themselves are never burst
+inside this sub-problem -- they are the fixed boundary), then at the
+moment $k$ is finally burst, \emph{every other balloon strictly between
+$i$ and $j$ has already been removed}. So $k$'s neighbors at that
+moment are exactly $i$ and $j$ themselves, regardless of the order in
+which the other balloons in $(i,j)$ were burst. This makes $k$'s reward
+\textbf{always} $\textit{val}[i]\times\textit{val}[k]\times
+\textit{val}[j]$, independent of how the two resulting sub-ranges
+$(i,k)$ and $(k,j)$ are themselves resolved -- which is exactly the
+independence interval DP needs.
+
+\subsection*{Deriving the recurrence}
+
+Pad \textit{nums} with $1$ at both ends: $\textit{val}[0]=1$,
+$\textit{val}[1..n]=\textit{nums}$, $\textit{val}[n{+}1]=1$ (bursting a
+boundary balloon should not be reduced by a missing neighbor, so a
+neighbor value of $1$ is neutral in the product). Let $f(i,j)$ be the
+maximum coins from bursting every balloon strictly between $i$ and $j$:
+\[
+  f(i,j) = \max_{i<k<j} \Big( f(i,k) + f(k,j) +
+  \textit{val}[i]\cdot\textit{val}[k]\cdot\textit{val}[j] \Big),
+  \quad f(i,j)=0 \text{ if } j \le i+1.
+\]
+The answer is $f(0, n{+}1)$.
+
+\subsection*{C++ implementation (memoization)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int burstMemo(int i, int j, vector<int>& val, vector<vector<int>>& memo) {
+    if (j <= i + 1) return 0;
+    if (memo[i][j] != -1) return memo[i][j];
+
+    int best = 0;
+    for (int k = i + 1; k < j; k++) {
+        int coins = burstMemo(i, k, val, memo) + burstMemo(k, j, val, memo) +
+                    val[i] * val[k] * val[j];
+        best = max(best, coins);
+    }
+    return memo[i][j] = best;
+}
+
+int maxCoins(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> val(n + 2);
+    val[0] = 1;
+    val[n + 1] = 1;
+    for (int i = 0; i < n; i++) val[i + 1] = nums[i];
+
+    vector<vector<int>> memo(n + 2, vector<int>(n + 2, -1));
+    return burstMemo(0, n + 1, val, memo);
+}
+
+int main() {
+    vector<int> nums = {3, 1, 5, 8};
+    cout << maxCoins(nums) << endl; // 167
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums}=[3,1,5,8]$, padded
+$\textit{val}=[1,3,1,5,8,1]$.}
+
+One optimal order: burst index $1$ (value $1$) first, neighbors $3,5$:
+$3\times1\times5=15$. Then burst index $2$ (value $5$), now neighbors
+$3,8$: $3\times5\times8=120$. Then burst index $0$ (value $3$),
+neighbors $1,8$: $1\times3\times8=24$. Then burst index $3$ (value
+$8$), neighbors $1,1$: $1\times8\times1=8$. Total: $15+120+24+8=167$. Read in reverse, this is exactly the
+recursive structure $f(0,5)$ builds: value $8$ (original index $3$) is
+the \textbf{last} balloon burst overall, contributing
+$\textit{val}[0]\times\textit{val}[4]\times\textit{val}[5]=1\times8\times1=8$;
+within the remaining range, value $3$ (index $0$) is last, contributing
+$1\times3\times8=24$; within \emph{that} remaining range, value $5$
+(index $2$) is last, contributing $3\times5\times8=120$; and finally
+value $1$ (index $1$), alone, contributes $3\times1\times5=15$.
+Summing in this recursive order, $15+120+24+8=167$, matches
+$f(0,5)=167$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^3)$ ($O(n^2)$ ranges, $O(n)$ split-point
+scan each).
+\textbf{Space Complexity.} $O(n^2)$ for the memo table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a removal (or insertion) order matters and each step's value
+depends on neighbors, ask whether reframing the choice as ``which item
+is processed \emph{last} in this range'' (rather than first) fixes the
+range's boundary identities throughout -- the single insight that turns
+an apparently sequential, order-dependent problem into a clean,
+order-independent interval DP.
+\end{takeawaybox}

@@ -1,0 +1,147 @@
+\section{Predecessor and Successor in a BST}
+\label{sec:bst-pred-succ}
+
+\problemstatement{Given the root of a BST and a key $X$ (which may or may
+not itself be present in the tree), find the \textbf{inorder predecessor}
+of $X$ (the largest value in the tree strictly less than $X$) and the
+\textbf{inorder successor} of $X$ (the smallest value strictly greater
+than $X$).}
+
+\begin{patternbox}
+Predecessor and successor are floor and ceil
+(Section~\ref{sec:bst-floor-ceil}) with \textbf{strict} inequalities
+instead of non-strict ones -- the keyword difference between ``floor''
+(largest $\le X$) and ``predecessor'' (largest $<X$) is exactly the
+difference between $\ge$ and $>$ that distinguished lower bound from
+upper bound back in the Binary Search chapter.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The walk is identical in shape to floor/ceil: at each node, compare to
+$X$ and decide which candidate to update and which direction to move.
+The only change is that when the current node's value equals $X$
+\emph{exactly}, we must \textbf{not} stop immediately (unlike floor/ceil,
+where an exact match ends the search for both) -- a predecessor or
+successor is required to be \emph{strictly} different from $X$, so if the
+current node's value equals $X$, we must continue descending: moving left
+to find a predecessor strictly smaller, or right to find a successor
+strictly larger.
+
+\begin{ideabox}[Same Walk as Floor/Ceil, but Treat an Exact Match as ``Keep Going'']
+For the predecessor: at each node, if its value $<X$ (this includes the
+case of looking for a value strictly less, so equality to $X$ does
+\emph{not} qualify): record it as the current best predecessor candidate,
+and move right (search for an even closer one). If its value $\ge X$: do
+not record anything; move left. Symmetrically for the successor, with
+roles of $<$/$\ge$ swapped to $>$/$\le$.
+\end{ideabox}
+
+\subsection*{Why treating equality as ``move past it'' (not ``stop'') is the only change needed}
+
+In floor/ceil, an exact match is itself simultaneously the floor and the
+ceil, so the search correctly terminates there. In predecessor/successor,
+an exact match is explicitly excluded from being its own answer, so the
+search must instead behave exactly as if that node were just slightly
+too small (for predecessor purposes, treat it like any other ``$\ge X$''
+node and move left without recording it) or slightly too large (for
+successor purposes, move right without recording it) -- everything else
+about the boundary-narrowing logic carries over unchanged from
+Section~\ref{sec:bst-floor-ceil}.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Predecessor}: $\textit{pred} \gets$ undefined,
+        $\textit{node} \gets \textit{root}$. While $\textit{node}$ is
+        not null: if $\textit{node}.\textit{val} < X$:
+        $\textit{pred} \gets \textit{node}.\textit{val}$; move right.
+        Else: move left.
+  \item \textsc{Successor}: symmetric, with $>$ in place of $<$ and
+        left/right swapped.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the BST with root $8$, left child $3$ (children $1,6$, where
+$6$ has left child $4$), right child $10$ (children $9,14$). Query
+$X=6$.}
+
+\textbf{Predecessor:} At $8$: $8<6$? No, move left to $3$. At $3$:
+$3<6$? Yes, $\textit{pred}=3$, move right to $6$. At $6$: $6<6$? No
+(equal, not strictly less), move left to $4$. At $4$: $4<6$? Yes,
+$\textit{pred}=4$, move right (null). Stop. Predecessor $=4$.
+
+\textbf{Successor:} At $8$: $8>6$? Yes, $\textit{succ}=8$, move left to
+$3$. At $3$: $3>6$? No, move right to $6$. At $6$: $6>6$? No (equal),
+move right (null). Stop. Successor $=8$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int findPredecessor(TreeNode* root, int X) {
+    int pred = -1;
+    while (root) {
+        if (root->val < X) {
+            pred = root->val;
+            root = root->right;
+        } else {
+            root = root->left;
+        }
+    }
+    return pred;
+}
+
+int findSuccessor(TreeNode* root, int X) {
+    int succ = -1;
+    while (root) {
+        if (root->val > X) {
+            succ = root->val;
+            root = root->left;
+        } else {
+            root = root->right;
+        }
+    }
+    return succ;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(8);
+    root->left = new TreeNode(3);
+    root->left->left = new TreeNode(1);
+    root->left->right = new TreeNode(6);
+    root->left->right->left = new TreeNode(4);
+    root->right = new TreeNode(10);
+    root->right->left = new TreeNode(9);
+    root->right->right = new TreeNode(14);
+
+    cout << "Predecessor: " << findPredecessor(root, 6) << endl;
+    cout << "Successor: " << findSuccessor(root, 6) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(h)$ for each of predecessor and successor.
+\textbf{Space Complexity.} $O(1)$ for the iterative version shown.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Predecessor/successor and floor/ceil are the same boundary-search
+template; the only behavioral difference is what happens on an exact
+match (stop immediately for floor/ceil, keep narrowing for
+predecessor/successor). When given a problem statement, check carefully
+whether equality should count as a valid answer or must be strictly
+excluded -- that single detail is the entire distinction between these
+two near-identical problems.
+\end{takeawaybox}

@@ -1,0 +1,135 @@
+\section{Min Stack}
+\label{sec:sq-min-stack}
+
+\problemstatement{Design a stack supporting $\textit{push}(x)$,
+$\textit{pop}()$, $\textit{top}()$, and $\textit{getMin}()$ -- the last
+returning the minimum element currently in the stack -- all in $O(1)$
+time.}
+
+\begin{patternbox}
+\emph{``Maintain a running aggregate (min, max, sum) that must stay
+correct as elements are pushed \emph{and} popped''} is the keyword
+pattern here. A plain running variable breaks the moment a \textit{pop}
+removes the element that was responsible for the current minimum -- there
+would be no way to recover the \emph{previous} minimum without
+re-scanning. The fix is to keep a full \textbf{history} of the minimum, one
+entry per stack position, so that popping the main stack and popping the
+history together always keeps both in sync.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The difficulty is specifically about \textit{pop}: tracking the minimum
+as elements are pushed is trivial (compare the new element to the current
+minimum). The problem is that after a \textit{pop}, the minimum might need
+to \emph{revert} to whatever it was before the popped element was pushed
+-- and that historical value must be available instantly, not
+recomputed.
+
+\begin{ideabox}[A Second Stack Tracks the Minimum-So-Far at Every Depth]
+Maintain an auxiliary \textit{minStack}, parallel to the main stack. On
+$\textit{push}(x)$: push $x$ onto the main stack as usual, and push
+$\min(x, \textit{minStack.top}())$ onto \textit{minStack} (or just $x$ if
+\textit{minStack} is currently empty). On $\textit{pop}()$: pop both
+stacks together. $\textit{getMin}()$ simply reads \textit{minStack}'s
+top.
+\end{ideabox}
+
+\subsection*{Why popping both stacks together keeps the invariant correct}
+
+\textit{minStack}'s $i$-th entry (counting from the bottom) is, by
+construction, the minimum of the main stack's bottom $i$ elements at the
+moment the $i$-th element was pushed -- and since both stacks always have
+the same height and are pushed to and popped from in lockstep,
+\textit{minStack}'s current top is always exactly the minimum of
+\emph{whatever the main stack currently contains}, not some stale value
+from before a pop. This is the same ``parallel history'' idea that makes
+undo/redo systems work: rather than computing an aggregate forward only,
+store enough history to reconstruct any previous state instantly.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{push}(x)$: push $x$ onto \textit{mainStack}. Push
+        $\min(x, \text{current } \textit{getMin}())$ onto
+        \textit{minStack} (using $x$ itself if \textit{minStack} was
+        empty).
+  \item $\textit{pop}()$: pop both \textit{mainStack} and
+        \textit{minStack}.
+  \item $\textit{top}()$: return \textit{mainStack}'s top.
+  \item $\textit{getMin}()$: return \textit{minStack}'s top.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Push $5, 3, 7, 2$; pop once; query getMin.}
+
+\begin{itemize}
+  \item Push $5$: main$=[5]$, min$=[5]$.
+  \item Push $3$: main$=[5,3]$, min$=[5,\min(3,5){=}3]$.
+  \item Push $7$: main$=[5,3,7]$, min$=[5,3,\min(7,3){=}3]$.
+  \item Push $2$: main$=[5,3,7,2]$, min$=[5,3,3,\min(2,3){=}2]$.
+  \item Pop: both stacks lose their top. main$=[5,3,7]$, min$=[5,3,3]$.
+  \item getMin(): top of min stack is $3$.
+\end{itemize}
+
+Correct: after removing $2$, the remaining stack $[5,3,7]$ has minimum
+$3$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class MinStack {
+    stack<int> mainStack, minStack;
+
+public:
+    void push(int x) {
+        mainStack.push(x);
+        if (minStack.empty()) minStack.push(x);
+        else minStack.push(min(x, minStack.top()));
+    }
+
+    void pop() {
+        mainStack.pop();
+        minStack.pop();
+    }
+
+    int top() {
+        return mainStack.top();
+    }
+
+    int getMin() {
+        return minStack.top();
+    }
+};
+
+int main() {
+    MinStack s;
+    s.push(5); s.push(3); s.push(7); s.push(2);
+    s.pop();
+    cout << "Min: " << s.getMin() << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ for every operation.
+\textbf{Space Complexity.} $O(n)$, doubled from a plain stack since every
+push adds one entry to \emph{both} stacks. This can be reduced to
+$O(1)$ \emph{extra} space (still $O(n)$ total, but without a second full
+stack) using a trick where only the previous minimum is pushed onto the
+main stack itself when a new minimum is encountered, encoded so it can be
+distinguished and restored on pop -- a worthwhile optimization to know
+exists, though the two-stack version above is the version to derive and
+explain first.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever an aggregate (min, max, or anything else that a plain running
+variable cannot correctly \emph{revert} after a removal) must stay valid
+across both insertions and removals, keep a parallel history stack rather
+than trying to recompute the aggregate from scratch on every pop.
+\end{takeawaybox}

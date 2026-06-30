@@ -1,0 +1,128 @@
+\section{Find the Smallest Divisor Given a Threshold}
+\label{sec:bs-smallest-divisor}
+
+\problemstatement{We are given an array $\textit{nums}$ of $n$ positive
+integers and an integer $\textit{threshold}$. We must choose a positive
+integer \textit{divisor}, and the resulting sum
+$\sum_i \lceil \textit{nums}[i] / \textit{divisor} \rceil$ must be
+$\le \textit{threshold}$. Find the \textbf{smallest} such divisor.}
+
+\begin{patternbox}
+This is structurally identical to Koko Eating Bananas
+(Section~\ref{sec:bs-koko}): the keywords \emph{``smallest divisor''} and
+\emph{``sum of ceiling divisions must not exceed a threshold''} map
+directly onto \emph{``smallest eating speed''} and \emph{``total hours
+must not exceed the limit.''} Once you notice the structural identity, the
+entire derivation transfers without modification -- only the variable
+names change.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Define $\textit{sumDivisions}(\textit{divisor}) = \sum_i \lceil
+\textit{nums}[i] / \textit{divisor} \rceil$. As \textit{divisor} increases,
+each term $\lceil \textit{nums}[i]/\textit{divisor} \rceil$ can only
+decrease or stay the same, so $\textit{sumDivisions}$ is non-increasing in
+\textit{divisor} -- the same monotonicity structure as
+$\textit{hoursNeeded}$ in Section~\ref{sec:bs-koko}.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is integer divisors in $[1, \max(\textit{nums})]$
+(any divisor at least as large as the largest element reduces every term
+to $1$, so nothing larger is ever needed). The predicate is
+$P(\textit{divisor}) = (\textit{sumDivisions}(\textit{divisor}) \le
+\textit{threshold})$, and we want the smallest divisor where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why the derivation transfers without modification}
+
+There is no new reasoning required: this is a direct relabeling of
+Koko Eating Bananas, with $\textit{piles} \to \textit{nums}$,
+$k \to \textit{divisor}$, and $h \to \textit{threshold}$. This section
+exists specifically to demonstrate that once you recognize the abstract
+shape (\emph{minimize a divisor/rate subject to a sum-of-ceiling-divisions
+budget}), you should reuse the exact same code template rather than
+rederiving it -- pattern recognition, not just algorithmic cleverness, is
+the actual skill being exercised here.
+
+\subsection*{Algorithm}
+
+Identical in structure to Algorithm~\ref{sec:bs-koko}'s
+\textsc{MinEatingSpeed}, with the feasibility check replaced by
+$\textit{sumDivisions}(\textit{mid}) \le \textit{threshold}$.
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [1, 2, 5, 9]$, $\textit{threshold} = 6$.}
+
+\begin{itemize}
+  \item $\textit{lo}=1,\textit{hi}=9$: $\textit{mid}=5$. Sum:
+        $\lceil1/5\rceil+\lceil2/5\rceil+\lceil5/5\rceil+\lceil9/5\rceil
+        =1+1+1+2=5 \le 6$. Feasible. $\textit{hi}=4$.
+  \item $\textit{lo}=1,\textit{hi}=4$: $\textit{mid}=2$. Sum:
+        $\lceil1/2\rceil+\lceil2/2\rceil+\lceil5/2\rceil+\lceil9/2\rceil
+        =1+1+3+5=10 > 6$. Infeasible. $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=4$: $\textit{mid}=3$. Sum:
+        $\lceil1/3\rceil+\lceil2/3\rceil+\lceil5/3\rceil+\lceil9/3\rceil
+        =1+1+2+3=7 > 6$. Infeasible. $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=4$: $\textit{mid}=4$. Sum:
+        $\lceil1/4\rceil+\lceil2/4\rceil+\lceil5/4\rceil+\lceil9/4\rceil
+        =1+1+2+3=7 > 6$. Infeasible. $\textit{lo}=5$.
+  \item $\textit{lo}=5 > \textit{hi}=4$: loop ends.
+\end{itemize}
+
+The answer is $5$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+long long sumDivisions(vector<int>& nums, int divisor) {
+    long long sum = 0;
+    for (int x : nums) {
+        sum += (x + divisor - 1) / divisor; // ceil(x / divisor)
+    }
+    return sum;
+}
+
+int smallestDivisor(vector<int>& nums, int threshold) {
+    int lo = 1, hi = *max_element(nums.begin(), nums.end());
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (sumDivisions(nums, mid) <= threshold) {
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> nums = {1, 2, 5, 9};
+    cout << "Smallest divisor: "
+         << smallestDivisor(nums, 6) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.}
+\[
+  O(n \log(\max(\textit{nums}))),
+\]
+identical in structure to Section~\ref{sec:bs-koko}.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Recognizing that two differently-worded problems are the same template
+underneath is just as valuable as deriving a template from scratch.
+Maintain a small mental (or literal) catalogue of solved
+binary-search-on-the-answer templates -- ``minimize rate subject to a
+ceiling-division sum budget'' is now one entry in that catalogue, covering
+both this problem and Koko Eating Bananas.
+\end{takeawaybox}

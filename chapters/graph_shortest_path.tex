@@ -1,0 +1,63 @@
+\chapter{Graphs: Shortest Path Algorithms}
+\chapterepigraph{Plain BFS already computes shortest paths -- but only
+when every edge costs exactly the same. The moment edges carry
+different weights, BFS's level-by-level guarantee breaks, and a new
+idea is needed: always expand whichever frontier node currently has
+the smallest known distance. That single idea, plus two ways of
+handling weights BFS and that idea still can't manage (negative edges,
+and all pairs at once), is this entire chapter.}
+
+\section{Relaxation: The One Operation Every Algorithm Here Repeats}
+\label{sec:graph-shortest-path-intro}
+
+Every algorithm in this chapter, however different its outer loop,
+performs the same inner operation, called \textbf{relaxation}: for an
+edge $u \to v$ with weight $w$, if
+$\textit{dist}[u] + w < \textit{dist}[v]$, update
+$\textit{dist}[v] \gets \textit{dist}[u] + w$ (a shorter path to $v$
+was just found, via $u$). The algorithms differ only in \textbf{which
+edges they relax, and in what order}.
+
+\begin{patternbox}[What This Chapter Covers, and How Each Piece Differs]
+\begin{itemize}
+  \item \textbf{Shortest Path, Unit Weights (Section~\ref{sec:graph-shortest-path-unit-weights})}:
+        plain BFS already \emph{is} correct relaxation when every edge
+        weighs $1$ -- level order and shortest distance coincide
+        exactly.
+  \item \textbf{Dijkstra's Algorithm (Section~\ref{sec:graph-dijkstra})}:
+        for non-negative weights, always relax edges out of whichever
+        unfinished node currently has the \textbf{smallest known}
+        distance, using a priority queue to find that node quickly.
+  \item \textbf{Number of Ways to Arrive (Section~\ref{sec:graph-number-of-ways-arrive})}
+        and \textbf{Path With Minimum Effort (Section~\ref{sec:graph-path-min-effort})}:
+        Dijkstra's frontier-expansion order, reused with the
+        relaxation rule itself changed -- counting ties instead of
+        only keeping the minimum, and minimizing the \emph{maximum}
+        edge on a path instead of the sum.
+  \item \textbf{Cheapest Flights Within K Stops (Section~\ref{sec:graph-cheapest-flights-k-stops})}:
+        relaxation bounded to a fixed number of rounds, since Dijkstra's
+        ``always pick the smallest'' greedy choice can skip a path that
+        is cheaper only because it uses more stops.
+  \item \textbf{Bellman-Ford (Section~\ref{sec:graph-bellman-ford})}:
+        relax \textbf{every} edge, $V{-}1$ times over, which is what
+        makes it correct even with \textbf{negative} edge weights
+        (where Dijkstra's greedy frontier choice can be wrong) -- and a
+        $V$-th round of relaxation that still finds an improvement
+        reveals a negative cycle.
+  \item \textbf{Floyd-Warshall (Section~\ref{sec:graph-floyd-warshall})}
+        and \textbf{City with Smallest Number of Neighbors (Section~\ref{sec:graph-city-smallest-neighbors})}:
+        relax every pair of nodes through every possible intermediate
+        node, computing \textbf{all-pairs} shortest distances at once.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/graph_shortest_path/01_shortest_path_unit_weights.tex}
+\input{chapters/graph_shortest_path/02_dijkstra.tex}
+\input{chapters/graph_shortest_path/03_number_of_ways_arrive.tex}
+\input{chapters/graph_shortest_path/04_path_min_effort.tex}
+\input{chapters/graph_shortest_path/05_cheapest_flights_k_stops.tex}
+\input{chapters/graph_shortest_path/06_bellman_ford.tex}
+\input{chapters/graph_shortest_path/07_floyd_warshall.tex}
+\input{chapters/graph_shortest_path/08_city_smallest_neighbors.tex}

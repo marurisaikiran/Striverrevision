@@ -1,0 +1,178 @@
+\section{Subset Sums II (Unique Subsets with Duplicates Present)}
+\label{sec:rec-subset-sum-2}
+
+\problemstatement{Given an array $\textit{arr}$ of $n$ integers that
+\textbf{may contain duplicate values}, return every distinct subset
+(the power set), with \textbf{no duplicate subsets} in the output, even
+though duplicate elements exist in the input.}
+
+\begin{patternbox}
+The keyword \emph{``may contain duplicates,''} combined with
+\emph{``no duplicate subsets in the output,''} is the trigger for this
+chapter's other major backtracking template, distinct from pick/not-pick:
+\textbf{sort first, then iterate through choices at each recursive level,
+explicitly skipping any choice equal to the immediately previous choice
+already tried at the \emph{same} level.} This ``sort, then skip
+same-level duplicates'' technique is reused in every later problem that
+needs to handle duplicate input values
+(Sections~\ref{sec:rec-combination-sum-2}--\ref{sec:rec-combination-sum-3}).
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If the input has duplicate values, the plain pick/not-pick tree from
+Section~\ref{sec:rec-power-set} would generate the \emph{same} subset
+multiple times -- for example, with $\textit{arr}=[1,2,2]$, picking
+``the first $2$'' and picking ``the second $2$'' (while skipping the
+other) produce two different leaves in the recursion tree, but the
+exact same subset $\{1,2\}$. To avoid this, we change the recursion's
+shape: instead of a binary pick/not-pick at every fixed index, we
+\textbf{sort} the array first (so equal values become adjacent), and at
+each recursive level, we loop through the remaining choices, but skip
+any choice that is equal to the choice immediately before it \emph{at
+this same level} (not across different levels, where repeats are
+exactly what we want, to build subsets containing multiple copies of a
+repeated value).
+
+\begin{ideabox}[Sort First, Then Skip Same-Level Duplicates]
+Sort $\textit{arr}$. $\textsc{Solve}(\textit{start}, \textit{current})$:
+record a copy of $\textit{current}$ as one valid subset immediately
+(every prefix explored is itself a valid, distinct subset, not just the
+leaves). For $i$ from $\textit{start}$ to $n-1$: if $i > \textit{start}$
+and $\textit{arr}[i] = \textit{arr}[i-1]$, skip this $i$ (this exact
+value has already been tried as the \emph{first} new element added at
+this level, so trying it again here would only reproduce a subset
+already generated). Otherwise: append $\textit{arr}[i]$ to
+$\textit{current}$; recurse $\textsc{Solve}(i+1, \textit{current})$;
+remove $\textit{arr}[i]$ from $\textit{current}$ (undo).
+\end{ideabox}
+
+\subsection*{Why skipping only at the same level (not across levels) is correct}
+
+The key distinction: $\textit{arr}[i] = \textit{arr}[i-1]$ being skipped
+only applies when both are being considered as candidates \emph{to fill
+the same ``next new element'' slot} within the same call to
+$\textsc{Solve}$ -- i.e.\ within the same \texttt{for} loop, at the same
+recursion depth. A repeated value is never forbidden from appearing
+\emph{multiple times within one subset} (e.g.\ $\{2,2\}$ from
+$\textit{arr}=[1,2,2]$ is a perfectly valid, distinct subset) -- what is
+forbidden is generating the \emph{same subset twice} by choosing ``the
+first $2$ at this position'' in one branch and ``the second $2$ at this
+same position'' in a sibling branch, when both choices would lead to
+identical subsequent subsets. Since the array is sorted, any two equal
+values are guaranteed to be adjacent in the loop, so checking
+$\textit{arr}[i] = \textit{arr}[i-1]$ exactly identifies this situation.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort $\textit{arr}$.
+  \item $\textsc{Solve}(\textit{start}, \textit{current})$:
+  \begin{enumerate}
+    \item Append a copy of $\textit{current}$ to the result.
+    \item For $i$ from $\textit{start}$ to $n-1$:
+    \begin{itemize}
+      \item If $i>\textit{start}$ and $\textit{arr}[i] =
+            \textit{arr}[i-1]$: skip (continue to next $i$).
+      \item Append $\textit{arr}[i]$ to $\textit{current}$; recurse
+            $\textsc{Solve}(i+1, \textit{current})$; remove
+            $\textit{arr}[i]$ (undo).
+    \end{itemize}
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0, [\,])$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,2,2]$ (already sorted).}
+
+\begin{itemize}
+  \item $\textsc{Solve}(0,[])$: record $[]$. Loop $i=0$ ($1$): append.
+        $\textsc{Solve}(1,[1])$. Undo.
+  \begin{itemize}
+    \item $\textsc{Solve}(1,[1])$: record $[1]$. Loop $i=1$ ($2$):
+          append. $\textsc{Solve}(2,[1,2])$. Undo. $i=2$ ($2$): $i>
+          \textit{start}=1$ and $\textit{arr}[2]=\textit{arr}[1]=2$:
+          skip.
+    \begin{itemize}
+      \item $\textsc{Solve}(2,[1,2])$: record $[1,2]$. Loop $i=2$
+            ($2$): append. $\textsc{Solve}(3,[1,2,2])$: record
+            $[1,2,2]$. Undo.
+    \end{itemize}
+  \end{itemize}
+  \item Loop continues at top level: $i=1$ ($2$): $i>\textit{start}=0$,
+        but $\textit{arr}[1] \ne \textit{arr}[0]$ ($2\ne1$), no skip.
+        Append. $\textsc{Solve}(2,[2])$. Undo.
+  \begin{itemize}
+    \item $\textsc{Solve}(2,[2])$: record $[2]$. Loop $i=2$ ($2$):
+          append. $\textsc{Solve}(3,[2,2])$: record $[2,2]$. Undo.
+  \end{itemize}
+  \item $i=2$ at top level: $i>\textit{start}=0$ and
+        $\textit{arr}[2]=\textit{arr}[1]=2$: skip.
+\end{itemize}
+
+Recorded subsets: $[], [1], [1,2], [1,2,2], [2], [2,2]$ -- exactly the
+$6$ distinct subsets of $\{1,2,2\}$ (note there are $6$, not $2^3=8$,
+because $\{2\}$ and $\{2,2\}$ each appear in only one form despite the
+duplicate $2$).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(int start, vector<int>& arr, vector<int>& current,
+           vector<vector<int>>& result) {
+    result.push_back(current);
+
+    for (int i = start; i < (int)arr.size(); i++) {
+        if (i > start && arr[i] == arr[i - 1]) continue; // skip duplicate
+
+        current.push_back(arr[i]);
+        solve(i + 1, arr, current, result);
+        current.pop_back();
+    }
+}
+
+vector<vector<int>> subsetsWithDup(vector<int>& arr) {
+    sort(arr.begin(), arr.end());
+    vector<vector<int>> result;
+    vector<int> current;
+    solve(0, arr, current, result);
+    return result;
+}
+
+int main() {
+    vector<int> arr = {1, 2, 2};
+    for (auto& subset : subsetsWithDup(arr)) {
+        cout << "[ ";
+        for (int x : subset) cout << x << " ";
+        cout << "] ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Sorting costs $O(n \log n)$. The recursion
+visits each distinct subset once, and building/copying each costs up to
+$O(n)$, giving an overall time complexity bounded by
+\[
+  O(n \cdot 2^n)
+\]
+in the worst case (no duplicates, so all $2^n$ subsets are distinct).
+\textbf{Space Complexity.} $O(n)$ for the recursion depth and
+$\textit{current}$ list.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Sort first, then skip a choice equal to the immediately previous
+choice tried at the same recursion level'' is the standard fix for
+duplicate-avoidance in backtracking, and it generalizes far beyond
+subsets: the same technique, applied to the choice loop inside
+Combination Sum II (Section~\ref{sec:rec-combination-sum-2}) and
+Combination Sum III (Section~\ref{sec:rec-combination-sum-3}), prevents
+duplicate combinations there too.
+\end{takeawaybox}

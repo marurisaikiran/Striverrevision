@@ -1,0 +1,169 @@
+\section{Two Sum IV: Input is a BST}
+\label{sec:bst-two-sum}
+
+\problemstatement{Given the root of a BST and a target integer $k$,
+determine whether there exist two \textbf{distinct} nodes whose values
+sum to exactly $k$.}
+
+\begin{patternbox}
+\emph{``Two sum''} on a BST is the classic two-pointer two-sum technique
+(normally run on a sorted array) combined with
+Section~\ref{sec:bst-iterator}'s BST Iterator: since an inorder traversal
+already produces values in sorted order on demand, we can drive
+\textbf{two} iterators -- one walking forward (ascending) from the
+smallest value, one walking backward (descending) from the largest --
+exactly as the classic two-pointer two-sum algorithm drives two pointers
+inward from the two ends of a sorted array, without ever materializing
+that sorted array.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If the tree's values were laid out as a sorted array, the standard
+two-sum technique would maintain a pointer at each end: compute the sum
+of the two pointed-at values; if it equals $k$, done; if it is too
+small, advance the left pointer rightward (to a larger value); if too
+large, move the right pointer leftward (to a smaller value). A BST
+supports exactly this access pattern \emph{without} an explicit array,
+using two independent, resumable inorder-traversal iterators: one
+producing ascending values on demand (Section~\ref{sec:bst-iterator}'s
+iterator exactly as built), and a mirror-image iterator producing
+descending values on demand (the same idea, with left/right swapped).
+
+\begin{ideabox}[Two BST Iterators, Driven Like Two-Sum's Two Pointers]
+Initialize a forward iterator $\textit{lo}$ (smallest-first) and a
+backward iterator $\textit{hi}$ (largest-first), both via the stack-based
+technique from Section~\ref{sec:bst-iterator}. Maintain their current
+values $a = \textit{lo}.\textit{next}()$ and $b =
+\textit{hi}.\textit{next}()$. While $a < b$: if $a+b=k$, return true; if
+$a+b<k$, advance $\textit{lo}$ (get a larger $a$); if $a+b>k$, advance
+$\textit{hi}$ (get a smaller $b$). If the pointers meet or cross ($a \ge
+b$) without finding a match, return false.
+\end{ideabox}
+
+\subsection*{Why driving two independent stack-based iterators is correct and efficient}
+
+This is exactly the two-pointer two-sum algorithm, with the ``array'' it
+normally operates on replaced by two on-demand sorted streams generated
+directly from the tree. Each iterator independently maintains its own
+$O(h)$-space stack, advancing forward or backward through the BST's
+sorted order exactly as Section~\ref{sec:bst-iterator} established, and
+because both iterators only ever move \emph{toward} each other (never
+revisiting a value), the total work across the entire search is bounded
+by the number of \emph{distinct} values each iterator visits before they
+cross -- giving the same linear-total-work guarantee as the classic
+array-based two-pointer technique, without ever needing $O(n)$ space to
+store a flattened sorted array.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize a forward BST iterator $\textit{lo}$ and a backward
+        BST iterator $\textit{hi}$.
+  \item $a \gets \textit{lo}.\textit{next}()$, $b \gets
+        \textit{hi}.\textit{next}()$.
+  \item While $a < b$:
+  \begin{enumerate}
+    \item If $a+b=k$: return true.
+    \item If $a+b<k$: $a \gets \textit{lo}.\textit{next}()$.
+    \item Else: $b \gets \textit{hi}.\textit{next}()$.
+  \end{enumerate}
+  \item Return false.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the BST with root $5$, left child $3$, right child $8$,
+target $k=10$.}
+
+Forward iterator yields $3,5,8$ in order; backward iterator yields
+$8,5,3$ in order.
+
+\begin{itemize}
+  \item $a=\textit{lo.next}()=3$, $b=\textit{hi.next}()=8$. $a<b$.
+        $a+b=11>10$. Advance \textit{hi}: $b=5$.
+  \item $a=3<b=5$. $a+b=8<10$. Advance \textit{lo}: $a=5$.
+  \item $a=5$, $b=5$: $a<b$ is now false ($5 \not< 5$). Loop ends.
+\end{itemize}
+
+Return false. Checking by hand: the only pair sums available are
+$3{+}5{=}8$, $3{+}8{=}11$, $5{+}8{=}13$ -- none equal $10$. Correct.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+class BSTIterator {
+    stack<TreeNode*> st;
+    bool reverseOrder; // true = descending (successor uses right first)
+
+    void pushChain(TreeNode* node) {
+        while (node) {
+            st.push(node);
+            node = reverseOrder ? node->right : node->left;
+        }
+    }
+
+public:
+    BSTIterator(TreeNode* root, bool reverse) : reverseOrder(reverse) {
+        pushChain(root);
+    }
+
+    int next() {
+        TreeNode* node = st.top();
+        st.pop();
+        pushChain(reverseOrder ? node->left : node->right);
+        return node->val;
+    }
+};
+
+bool findTarget(TreeNode* root, int k) {
+    BSTIterator lo(root, false); // ascending
+    BSTIterator hi(root, true);  // descending
+
+    int a = lo.next(), b = hi.next();
+    while (a < b) {
+        if (a + b == k) return true;
+        else if (a + b < k) a = lo.next();
+        else b = hi.next();
+    }
+    return false;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(5);
+    root->left = new TreeNode(3);
+    root->right = new TreeNode(8);
+
+    cout << (findTarget(root, 10) ? "true" : "false") << endl;
+    cout << (findTarget(root, 11) ? "true" : "false") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ in the worst case -- each value is
+produced by one of the two iterators at most once before they cross,
+and each iterator's amortized cost per call is $O(1)$, as established in
+Section~\ref{sec:bst-iterator}.
+\textbf{Space Complexity.} $O(h)$ for each iterator's stack, so $O(h)$
+total.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A BST is, for the purposes of any algorithm that only needs sorted-order
+access, a drop-in replacement for a sorted array -- as long as you have
+an $O(h)$-space, resumable iterator (forward and/or backward) instead of
+an $O(n)$-space materialized array. Any two-pointer array technique
+(two-sum, partitioning, merging) can be ported to a BST this way, exactly
+as done here.
+\end{takeawaybox}

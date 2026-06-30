@@ -1,0 +1,220 @@
+\section{0/1 Knapsack}
+\label{sec:dp-01-knapsack}
+
+\problemstatement{Given $n$ items, where item $i$ has weight
+$\textit{wt}[i]$ and value $\textit{val}[i]$, and a knapsack of capacity
+$W$, choose a subset of items (each usable \textbf{at most once}) whose
+total weight does not exceed $W$, maximizing total value.}
+
+\begin{patternbox}
+This is the chapter's namesake, and it generalizes
+Section~\ref{sec:dp-subset-sum-target}'s boolean reachability table in
+the most direct way possible: instead of asking ``\emph{can} we reach
+exactly capacity $\textit{target}$,'' we ask ``what is the
+\emph{maximum value} achievable using \emph{at most} capacity $W$'' --
+replacing the logical OR combination with a \textbf{maximum}, and adding
+each picked item's \emph{value} (not just consuming its weight) to the
+running total. Contrast this directly with
+the Greedy chapter's Fractional Knapsack problem: there,
+items could be split, which let a single greedy ratio-sort solve it
+optimally in $O(n \log n)$; here, items are all-or-nothing, which
+destroys that greedy argument and is exactly why this problem needs a
+genuine DP table.
+\end{patternbox}
+
+\subsection*{Deriving the recurrence}
+
+Let $f(\textit{index}, \textit{capacity})$ be the maximum value
+achievable using items $0..\textit{index}$, subject to a weight budget
+of $\textit{capacity}$. At item $\textit{index}$: either exclude it
+($f(\textit{index}-1, \textit{capacity})$), or include it (only if
+$\textit{wt}[\textit{index}] \le \textit{capacity}$, gaining
+$\textit{val}[\textit{index}]$ plus
+$f(\textit{index}-1, \textit{capacity}-\textit{wt}[\textit{index}])$) --
+take whichever is larger:
+\begin{gather*}
+  f(\textit{index}, \textit{capacity}) = \max\Big(
+  f(\textit{index}{-}1, \textit{capacity}),\ \textit{take} \Big), \\
+  \textit{take} = \textit{wt}[\textit{index}] \le \textit{capacity}\ ?\
+  \textit{val}[\textit{index}] + f(\textit{index}{-}1,
+  \textit{capacity}-\textit{wt}[\textit{index}]) : -\infty.
+\end{gather*}
+Base case: $f(0, \textit{capacity}) = \textit{val}[0]$ if
+$\textit{wt}[0] \le \textit{capacity}$, else $0$.
+
+\subsection*{Approach 1: Recursion}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int knapsackRecursive(int index, int capacity, vector<int>& wt, vector<int>& val) {
+    if (index == 0) {
+        return (wt[0] <= capacity) ? val[0] : 0;
+    }
+
+    int notPick = knapsackRecursive(index - 1, capacity, wt, val);
+    int pick = INT_MIN;
+    if (wt[index] <= capacity) {
+        pick = val[index] + knapsackRecursive(index - 1, capacity - wt[index], wt, val);
+    }
+    return max(notPick, pick);
+}
+
+int main() {
+    vector<int> wt = {1, 3, 4, 5};
+    vector<int> val = {1, 4, 5, 7};
+    int n = wt.size(), W = 7;
+    cout << knapsackRecursive(n - 1, W, wt, val) << endl; // 9
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 1 Complexity]
+\textbf{Time.} $O(2^n)$.
+\textbf{Space.} $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 2: Memoization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int knapsackMemo(int index, int capacity, vector<int>& wt, vector<int>& val,
+                  vector<vector<int>>& memo) {
+    if (index == 0) {
+        return (wt[0] <= capacity) ? val[0] : 0;
+    }
+    if (memo[index][capacity] != -1) return memo[index][capacity];
+
+    int notPick = knapsackMemo(index - 1, capacity, wt, val, memo);
+    int pick = INT_MIN;
+    if (wt[index] <= capacity) {
+        pick = val[index] + knapsackMemo(index - 1, capacity - wt[index], wt, val, memo);
+    }
+    return memo[index][capacity] = max(notPick, pick);
+}
+
+int main() {
+    vector<int> wt = {1, 3, 4, 5};
+    vector<int> val = {1, 4, 5, 7};
+    int n = wt.size(), W = 7;
+    vector<vector<int>> memo(n, vector<int>(W + 1, -1));
+    cout << knapsackMemo(n - 1, W, wt, val, memo) << endl; // 9
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 2 Complexity]
+\textbf{Time.} $O(n \cdot W)$.
+\textbf{Space.} $O(n \cdot W)$ memo $+$ $O(n)$ recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 3: Tabulation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int knapsackTabulation(vector<int>& wt, vector<int>& val, int W) {
+    int n = wt.size();
+    vector<vector<int>> dp(n, vector<int>(W + 1, 0));
+
+    for (int capacity = wt[0]; capacity <= W; capacity++) dp[0][capacity] = val[0];
+
+    for (int index = 1; index < n; index++) {
+        for (int capacity = 0; capacity <= W; capacity++) {
+            int notPick = dp[index - 1][capacity];
+            int pick = INT_MIN;
+            if (wt[index] <= capacity) {
+                pick = val[index] + dp[index - 1][capacity - wt[index]];
+            }
+            dp[index][capacity] = max(notPick, pick);
+        }
+    }
+    return dp[n - 1][W];
+}
+
+int main() {
+    vector<int> wt = {1, 3, 4, 5};
+    vector<int> val = {1, 4, 5, 7};
+    cout << knapsackTabulation(wt, val, 7) << endl; // 9
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run of the tabulation table}
+
+\dryrun{Take $\textit{wt}=[1,3,4,5]$, $\textit{val}=[1,4,5,7]$, $W=7$.}
+
+\begin{center}
+\begin{tabular}{c|cccccccc}
+$\textit{index}\backslash W$ & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\ \hline
+$0$ (wt$1$,val$1$) & 0 & 1 & 1 & 1 & 1 & 1 & 1 & 1 \\
+$1$ (wt$3$,val$4$) & 0 & 1 & 1 & 4 & 5 & 5 & 5 & 5 \\
+$2$ (wt$4$,val$5$) & 0 & 1 & 1 & 4 & 5 & 6 & 6 & 9 \\
+$3$ (wt$5$,val$7$) & 0 & 1 & 1 & 4 & 5 & 7 & 8 & 9
+\end{tabular}
+\end{center}
+
+At $\textit{index}=2$, $W=7$: not-pick gives $\textit{dp}[1][7]=5$; pick
+gives $\textit{val}[2]+\textit{dp}[1][3] = 5+4=9$. Max is $9$. The final
+answer is $\textit{dp}[3][7]=9$, achieved by items $1$ (wt$3$, val$4$)
+and $2$ (wt$4$, val$5$) together: total weight $3+4=7\le7$, total value
+$4+5=9$, matching the table.
+
+\begin{complexitybox}[Approach 3 Complexity]
+\textbf{Time.} $O(n \cdot W)$.
+\textbf{Space.} $O(n \cdot W)$ table, no recursion stack.
+\end{complexitybox}
+
+\subsection*{Approach 4: Space Optimization}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int knapsackSpaceOptimized(vector<int>& wt, vector<int>& val, int W) {
+    int n = wt.size();
+    vector<int> prev(W + 1, 0);
+
+    for (int capacity = wt[0]; capacity <= W; capacity++) prev[capacity] = val[0];
+
+    for (int index = 1; index < n; index++) {
+        vector<int> current(W + 1, 0);
+        for (int capacity = 0; capacity <= W; capacity++) {
+            int notPick = prev[capacity];
+            int pick = INT_MIN;
+            if (wt[index] <= capacity) {
+                pick = val[index] + prev[capacity - wt[index]];
+            }
+            current[capacity] = max(notPick, pick);
+        }
+        prev = current;
+    }
+    return prev[W];
+}
+
+int main() {
+    vector<int> wt = {1, 3, 4, 5};
+    vector<int> val = {1, 4, 5, 7};
+    cout << knapsackSpaceOptimized(wt, val, 7) << endl; // 9
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Approach 4 Complexity]
+\textbf{Time.} $O(n \cdot W)$.
+\textbf{Space.} $O(W)$ for the rolling row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+0/1 Knapsack is the most general member of this chapter's 0/1 family:
+Subset Sum is the special case where every item's weight equals its
+value (so reachability and value-maximization coincide), and Count
+Subsets is the special case that counts qualifying selections instead of
+optimizing a value. Recognizing 0/1 Knapsack as the ``parent'' recurrence
+of everything from Section~\ref{sec:dp-subset-sum-target} onward
+consolidates this entire half of the chapter into one shape.
+\end{takeawaybox}

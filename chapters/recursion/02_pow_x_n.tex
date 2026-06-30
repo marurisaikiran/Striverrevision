@@ -1,0 +1,138 @@
+\section{Implement Pow(x, n)}
+\label{sec:rec-pow}
+
+\problemstatement{Implement a function that computes $x^n$ for a real
+number $x$ and an integer $n$, which may be negative, in better than
+$O(|n|)$ time.}
+
+\begin{patternbox}
+\emph{``Compute $x^n$ efficiently''} is the canonical introduction to
+\textbf{fast exponentiation} (also called binary exponentiation), already
+used as a building block in Section~\ref{sec:rec-good-numbers}. The
+keyword to internalize generally: whenever a recursive shrinking step can
+\textbf{halve} the input rather than merely decrement it by one, the
+recursion depth drops from $O(n)$ to $O(\log n)$ -- a pattern that
+reappears constantly, not just for exponentiation.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The naive recursive definition $x^n = x \times x^{n-1}$ (with base case
+$x^0=1$) is correct but requires $n$ recursive calls. The key
+algebraic identity that lets us do better is
+\[
+  x^n = \left(x^{n/2}\right)^2 \quad \text{when } n \text{ is even}, \qquad
+  x^n = x \times \left(x^{(n-1)/2}\right)^2 \quad \text{when } n \text{ is
+  odd}.
+\]
+Either way, computing $x^n$ only requires computing \emph{one} smaller
+power, $x^{\lfloor n/2 \rfloor}$, and then a constant amount of extra
+multiplication -- the exponent is halved at every recursive step instead
+of merely decremented.
+
+\begin{ideabox}[Halve the Exponent, Handle Negative Exponents Separately]
+If $n=0$: return $1$ (base case). If $n<0$: compute $x^{-n}$ using the
+same recursion, and return its reciprocal $1/x^{-n}$ at the very end (do
+not try to handle negative exponents inside the recursive halving step
+itself -- convert once, up front, and recurse only on non-negative
+exponents). For $n>0$: recursively compute $\textit{half} =
+x^{\lfloor n/2 \rfloor}$; if $n$ is even, return $\textit{half} \times
+\textit{half}$; if $n$ is odd, return $\textit{half} \times \textit{half}
+\times x$.
+\end{ideabox}
+
+\subsection*{Why halving gives logarithmic depth}
+
+Each recursive call's exponent is at most half of its caller's exponent,
+so after $k$ calls the exponent has shrunk by a factor of $2^k$ -- it
+reaches the base case $0$ once $2^k \ge n$, i.e.\ after only
+$O(\log n)$ calls, regardless of how large $n$ is. This is in sharp
+contrast to the naive decrement-by-one recursion, whose depth is exactly
+$n$. The trade-off is that each call here does a small constant amount
+of extra multiplication work (squaring the smaller result, and possibly
+one more multiplication by $x$ for odd exponents), but this constant
+overhead is negligible compared to the exponential reduction in the
+number of calls needed.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If $n<0$: return $1 / \textsc{Pow}(x, -n)$.
+  \item $\textsc{Pow}(x, n)$:
+  \begin{enumerate}
+    \item If $n=0$: return $1$.
+    \item $\textit{half} \gets \textsc{Pow}(x, n/2)$ (integer division).
+    \item If $n$ is even: return $\textit{half} \times \textit{half}$.
+    \item Else: return $\textit{half} \times \textit{half} \times x$.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Compute $2^{10}$.}
+
+\begin{itemize}
+  \item $\textsc{Pow}(2,10)$: $10$ even. $\textit{half}=\textsc{Pow}(2,5)$.
+  \item $\textsc{Pow}(2,5)$: $5$ odd. $\textit{half}=\textsc{Pow}(2,2)$.
+  \item $\textsc{Pow}(2,2)$: $2$ even. $\textit{half}=\textsc{Pow}(2,1)$.
+  \item $\textsc{Pow}(2,1)$: $1$ odd. $\textit{half}=\textsc{Pow}(2,0)=1$.
+        Return $1\times1\times2=2$.
+  \item Back at $\textsc{Pow}(2,2)$: $\textit{half}=2$. Return
+        $2\times2=4$.
+  \item Back at $\textsc{Pow}(2,5)$: $\textit{half}=4$. Return
+        $4\times4\times2=32$.
+  \item Back at $\textsc{Pow}(2,10)$: $\textit{half}=32$. Return
+        $32\times32=1024$.
+\end{itemize}
+
+$2^{10}=1024$, confirmed. Only $4$ recursive calls were needed for an
+exponent of $10$, instead of $10$ calls a naive decrement-by-one
+recursion would have required.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+double fastPow(double x, long long n) {
+    if (n == 0) return 1.0;
+    double half = fastPow(x, n / 2);
+    double result = half * half;
+    if (n % 2 == 1) result *= x;
+    return result;
+}
+
+double myPow(double x, int n) {
+    long long N = n;
+    if (N < 0) return 1.0 / fastPow(x, -N);
+    return fastPow(x, N);
+}
+
+int main() {
+    cout << myPow(2.0, 10) << endl;   // 1024
+    cout << myPow(2.0, -2) << endl;   // 0.25
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.}
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(\log n)$ for the recursion stack (or
+$O(1)$ if rewritten as an iterative loop that repeatedly squares the
+base and halves the exponent, accumulating a result whenever the current
+bit of the exponent is set).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Fast exponentiation is the prototype for an entire family of techniques:
+whenever an operation is associative (like multiplication) and you need
+to apply it $n$ times, check whether the operation can be ``doubled up''
+(squared, in this case) to cut the required number of steps from $O(n)$
+to $O(\log n)$. The same halving idea underlies fast matrix
+exponentiation for linear recurrences and binary lifting for tree
+ancestor queries, both common extensions of this exact pattern.
+\end{takeawaybox}

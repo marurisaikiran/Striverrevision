@@ -1,0 +1,193 @@
+\section{Merge K Sorted Lists}
+\label{sec:heap-merge-k-lists}
+
+\problemstatement{We are given $k$ linked lists, each individually sorted
+in increasing order. Merge all of them into a single sorted linked list
+and return it.}
+
+\begin{patternbox}
+\emph{``Merge $k$ sorted ...''} is one of the cleanest heap triggers in
+this chapter: merging \emph{two} sorted lists is a familiar $O(n)$
+two-pointer operation, but merging $k$ of them at once naturally wants a
+data structure that can always hand you the smallest \emph{current head}
+among all $k$ lists in $O(\log k)$ time -- exactly a min-heap holding one
+candidate node from each list.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+At any point during the merge, the next node to append to the output is
+the smallest value among the \emph{current heads} of the $k$ lists that
+still have remaining nodes (every list is individually sorted, so only its
+current head -- not any later node -- can possibly be the next-smallest
+value globally). A naive approach would scan all $k$ current heads every
+time to find the minimum, costing $O(k)$ per output node and $O(nk)$
+overall (where $n$ is the total number of nodes). A min-heap reduces the
+``find the minimum among $k$ candidates'' step to $O(\log k)$.
+
+\begin{ideabox}[Greedy Choice, Powered by a Min-Heap]
+Initialize a min-heap with the head node of each of the $k$ lists (if
+non-null). Repeatedly: pop the smallest node from the heap, append it to
+the output list, and if that node has a successor within its own original
+list, push that successor onto the heap. Continue until the heap is
+empty.
+\end{ideabox}
+
+\subsection*{Why popping the heap's minimum is always the correct next output node}
+
+The heap, at every step, holds exactly one ``current head'' candidate per
+list that still has unconsumed nodes -- and because each list is
+individually sorted, the true global minimum of all \emph{remaining}
+nodes across all lists must be one of these $k$ current heads (a node
+deeper inside a list cannot be smaller than that same list's own current
+head). So the heap's minimum at any moment is guaranteed to be the correct
+next node for the merged output, and pushing that node's successor
+immediately after popping it maintains the invariant that the heap always
+holds the current head of every still-nonempty list.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize a min-heap (ordered by node value) with the head of
+        each of the $k$ lists, skipping any empty lists.
+  \item Initialize an empty output list (with a dummy head for easy
+        appending).
+  \item While the heap is not empty:
+  \begin{enumerate}
+    \item Pop the node with the smallest value; append it to the output
+          list.
+    \item If this node has a \texttt{next} pointer (within its original
+          list): push that next node onto the heap.
+  \end{enumerate}
+  \item Return the output list (skipping the dummy head).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Merge K Sorted Lists}
+\begin{algorithmic}[1]
+\Procedure{MergeKLists}{\textit{lists}}
+  \State $\textit{heap} \gets$ empty min-heap (by node value)
+  \For{each list $L$ in \textit{lists}}
+    \If{$L$ is not empty} push $L$'s head onto \textit{heap} \EndIf
+  \EndFor
+  \State $\textit{dummy} \gets$ new empty node; $\textit{tail} \gets \textit{dummy}$
+  \While{\textit{heap} is not empty}
+    \State $\textit{node} \gets$ pop minimum from \textit{heap}
+    \State $\textit{tail}.\textit{next} \gets \textit{node}$; $\textit{tail} \gets \textit{node}$
+    \If{$\textit{node}.\textit{next} \ne \text{null}$}
+      \State push $\textit{node}.\textit{next}$ onto \textit{heap}
+    \EndIf
+  \EndWhile
+  \State \Return $\textit{dummy}.\textit{next}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take three lists: $L_1 = 1\to4\to5$, $L_2=1\to3\to4$,
+$L_3=2\to6$.}
+
+\begin{itemize}
+  \item Initialize heap with the three heads: $\{1_{(L_1)}, 1_{(L_2)},
+        2_{(L_3)}\}$.
+  \item Pop a $1$ (say from $L_1$): output $=1$. Push $L_1$'s next, $4$.
+        Heap $=\{1_{(L_2)}, 2_{(L_3)}, 4_{(L_1)}\}$.
+  \item Pop $1$ (from $L_2$): output $=1,1$. Push $L_2$'s next, $3$.
+        Heap $=\{2_{(L_3)}, 3_{(L_2)}, 4_{(L_1)}\}$.
+  \item Pop $2$ (from $L_3$): output $=1,1,2$. Push $L_3$'s next, $6$.
+        Heap $=\{3_{(L_2)}, 4_{(L_1)}, 6_{(L_3)}\}$.
+  \item Pop $3$ (from $L_2$): output $=1,1,2,3$. Push $L_2$'s next, $4$.
+        Heap $=\{4_{(L_1)}, 4_{(L_2)}, 6_{(L_3)}\}$.
+  \item Pop a $4$ (say from $L_1$): output $=1,1,2,3,4$. Push $L_1$'s
+        next, $5$. Heap $=\{4_{(L_2)}, 5_{(L_1)}, 6_{(L_3)}\}$.
+  \item Pop $4$ (from $L_2$): output $=1,1,2,3,4,4$. $L_2$ exhausted, push
+        nothing. Heap $=\{5_{(L_1)}, 6_{(L_3)}\}$.
+  \item Pop $5$: output $=\dots,5$. $L_1$ exhausted. Heap $=\{6_{(L_3)}\}$.
+  \item Pop $6$: output $=\dots,6$. Heap empty.
+\end{itemize}
+
+Final merged list: $1,1,2,3,4,4,5,6$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+struct Compare {
+    bool operator()(ListNode* a, ListNode* b) {
+        return a->val > b->val; // min-heap by value
+    }
+};
+
+ListNode* mergeKLists(vector<ListNode*>& lists) {
+    priority_queue<ListNode*, vector<ListNode*>, Compare> minHeap;
+
+    for (ListNode* node : lists) {
+        if (node) minHeap.push(node);
+    }
+
+    ListNode dummy(0);
+    ListNode* tail = &dummy;
+
+    while (!minHeap.empty()) {
+        ListNode* node = minHeap.top();
+        minHeap.pop();
+
+        tail->next = node;
+        tail = node;
+
+        if (node->next) minHeap.push(node->next);
+    }
+    return dummy.next;
+}
+
+int main() {
+    ListNode* l1 = new ListNode(1);
+    l1->next = new ListNode(4);
+    l1->next->next = new ListNode(5);
+
+    ListNode* l2 = new ListNode(1);
+    l2->next = new ListNode(3);
+    l2->next->next = new ListNode(4);
+
+    ListNode* l3 = new ListNode(2);
+    l3->next = new ListNode(6);
+
+    vector<ListNode*> lists = {l1, l2, l3};
+    ListNode* merged = mergeKLists(lists);
+
+    for (ListNode* cur = merged; cur; cur = cur->next) {
+        cout << cur->val << " ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The heap never holds more than $k$ nodes. Every
+one of the $n$ total nodes (across all $k$ lists) is pushed once and
+popped once, each costing $O(\log k)$, giving an overall time complexity
+of
+\[
+  O(n \log k).
+\]
+\textbf{Space Complexity.} $O(k)$ for the heap (the output list reuses
+the input nodes rather than allocating new ones).
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Merge $k$ sources, each individually sorted'' always reduces to ``track
+one current candidate per source in a min-heap, pop the global minimum,
+advance that source.'' This template applies identically whether the
+sources are linked lists (this section), arrays, or streams, and is one of
+the most directly reusable patterns in this chapter.
+\end{takeawaybox}

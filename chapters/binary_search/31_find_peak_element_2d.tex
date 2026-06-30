@@ -1,0 +1,199 @@
+\section{Find a Peak Element in a 2D Matrix}
+\label{sec:bs-peak-2d}
+
+\problemstatement{We are given an $n \times m$ matrix of distinct
+integers, where no two horizontally or vertically adjacent cells are
+equal. A cell is a \textbf{peak} if it is strictly greater than all of its
+(up to four) horizontal and vertical neighbors; cells outside the matrix
+are treated as $-\infty$. Find the position of any one peak.}
+
+\begin{patternbox}
+This is the 2D generalization of Section~\ref{sec:bs-peak-1d}, and the
+keyword pattern is identical: no sortedness, just a local-comparison rule
+plus an implicit $-\infty$ border. The new idea needed is how to binary
+search over \emph{one} dimension (say, columns) while using an $O(n)$
+linear scan over the \emph{other} dimension (rows) as part of each
+predicate evaluation -- a ``binary search over one axis, brute-force scan
+over the other'' technique that is common whenever a 2D problem reduces
+to a 1D binary search plus a per-step linear helper.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Fix a candidate middle column $\textit{midCol}$. Scan down that column to
+find the row $\textit{maxRow}$ containing the largest value in that
+column -- call it $v = \textit{matrix}[\textit{maxRow}][\textit{midCol}]$.
+Compare $v$ to its left neighbor $\textit{matrix}[\textit{maxRow}]
+[\textit{midCol}-1]$ and right neighbor
+$\textit{matrix}[\textit{maxRow}][\textit{midCol}+1]$ (treating
+out-of-range neighbors as $-\infty$).
+
+\begin{itemize}
+  \item If $v$ is greater than both neighbors: $v$ is greater than
+        everything above and below it in its own column (by choice of
+        $\textit{maxRow}$ as the column's maximum) \emph{and} greater than
+        its left and right neighbors -- so $v$ is a peak. Done.
+  \item If the left neighbor is greater than $v$: since that left
+        neighbor is, in particular, greater than the column maximum at
+        $\textit{midCol}$, the column $\textit{midCol}-1$ (or further
+        left) must contain an even larger local structure -- a peak is
+        guaranteed to exist somewhere in the columns
+        $[\textit{lo}, \textit{midCol}-1]$, by the same $-\infty$-border
+        existence argument as Section~\ref{sec:bs-peak-1d}, applied along
+        the column axis.
+  \item Symmetrically, if the right neighbor is greater, a peak is
+        guaranteed in columns $[\textit{midCol}+1, \textit{hi}]$.
+\end{itemize}
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is columns $0, \dots, m-1$. At each candidate column,
+an $O(n)$ scan finds that column's maximum value's row, and a constant-time
+comparison to its horizontal neighbors decides whether to stop (peak
+found) or which half of the remaining columns to search next -- the same
+``climbing toward a guaranteed peak'' argument as
+Section~\ref{sec:bs-peak-1d}, just with an entire column's maximum
+standing in for a single array element.
+\end{ideabox}
+
+\subsection*{Why restricting attention to each column's maximum is valid}
+
+The reason we only need to examine the \emph{maximum} of each candidate
+column, rather than every cell in it, is that if a peak exists in this
+column, it is impossible for it to be at a position other than the
+column's maximum: a peak must be greater than its upper and lower
+neighbors within the same column, which already forces it to be at least
+as large as both of those, and chaining this reasoning shows the only cell
+in a column that could possibly satisfy ``greater than both vertical
+neighbors'' even before checking horizontal neighbors is necessarily a
+local maximum along that column. Examining the column's global maximum is
+therefore sufficient to either confirm a peak or correctly decide which
+direction to continue the binary search.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets m-1$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{midCol} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Scan column $\textit{midCol}$ to find $\textit{maxRow}$, the row
+          of its maximum value $v$.
+    \item Compare $v$ to its left and right neighbors.
+    \item If $v$ exceeds both: return $(\textit{maxRow},
+          \textit{midCol})$.
+    \item If the left neighbor exceeds $v$: $\textit{hi} \gets
+          \textit{midCol}-1$.
+    \item Else (right neighbor exceeds $v$): $\textit{lo} \gets
+          \textit{midCol}+1$.
+  \end{enumerate}
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Find Peak Element in a 2D Matrix}
+\begin{algorithmic}[1]
+\Procedure{FindPeak2D}{\textit{matrix}}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets m-1$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{midCol} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{maxRow} \gets \arg\max_i \textit{matrix}[i][\textit{midCol}]$
+    \State $v \gets \textit{matrix}[\textit{maxRow}][\textit{midCol}]$
+    \State $\textit{left} \gets (\textit{midCol}=0)\ ? -\infty : \textit{matrix}[\textit{maxRow}][\textit{midCol}-1]$
+    \State $\textit{right} \gets (\textit{midCol}=m-1)\ ? -\infty : \textit{matrix}[\textit{maxRow}][\textit{midCol}+1]$
+    \If{$v > \textit{left}$ \textbf{and} $v > \textit{right}$}
+      \State \Return $(\textit{maxRow}, \textit{midCol})$
+    \ElsIf{$\textit{left} > v$}
+      \State $\textit{hi} \gets \textit{midCol} - 1$
+    \Else
+      \State $\textit{lo} \gets \textit{midCol} + 1$
+    \EndIf
+  \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{matrix} = \begin{bmatrix} 10&8&10&10 \\ 14&13&12&11
+\\ 15&9&11&21 \\ 16&17&19&20 \end{bmatrix}$ ($n=m=4$).}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=3$: $\textit{midCol}=1$. Column $1$:
+        $[8,13,9,17]$; max is $17$ at row $3$. Left neighbor
+        $\textit{matrix}[3][0]=16$, right neighbor
+        $\textit{matrix}[3][2]=19$. Is $17 > 16$ and $17 > 19$? No
+        ($17 < 19$). Right neighbor is greater: $\textit{lo}=2$.
+  \item $\textit{lo}=2,\textit{hi}=3$: $\textit{midCol}=2$. Column $2$:
+        $[10,12,11,19]$; max is $19$ at row $3$. Left neighbor
+        $\textit{matrix}[3][1]=17$, right neighbor
+        $\textit{matrix}[3][3]=20$. Is $19>17$ and $19>20$? No
+        ($19<20$). Right neighbor greater: $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=3$: $\textit{midCol}=3$. Column $3$:
+        $[10,11,21,20]$; max is $21$ at row $2$. Left neighbor
+        $\textit{matrix}[2][2]=11$. No right neighbor (out of range,
+        $-\infty$). Is $21>11$ and $21>-\infty$? Yes. Peak found at
+        $(2,3)$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+pair<int,int> findPeak2D(vector<vector<int>>& matrix) {
+    int n = matrix.size(), m = matrix[0].size();
+    int lo = 0, hi = m - 1;
+
+    while (lo <= hi) {
+        int midCol = lo + (hi - lo) / 2;
+        int maxRow = 0;
+        for (int i = 1; i < n; i++) {
+            if (matrix[i][midCol] > matrix[maxRow][midCol]) maxRow = i;
+        }
+
+        int v = matrix[maxRow][midCol];
+        int left  = (midCol == 0)     ? INT_MIN : matrix[maxRow][midCol - 1];
+        int right = (midCol == m - 1) ? INT_MIN : matrix[maxRow][midCol + 1];
+
+        if (v > left && v > right) {
+            return {maxRow, midCol};
+        } else if (left > v) {
+            hi = midCol - 1;
+        } else {
+            lo = midCol + 1;
+        }
+    }
+    return {-1, -1}; // unreachable for a valid matrix
+}
+
+int main() {
+    vector<vector<int>> matrix = {
+        {10, 8, 10, 10},
+        {14, 13, 12, 11},
+        {15, 9, 11, 21},
+        {16, 17, 19, 20}
+    };
+    auto [r, c] = findPeak2D(matrix);
+    cout << "Peak at (" << r << ", " << c << ")" << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The column range halves each iteration
+($O(\log m)$ iterations), and each iteration scans a full column in
+$O(n)$, giving an overall time complexity of
+\[
+  O(n \log m).
+\]
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a 2D problem's local-comparison structure generalizes a 1D pattern
+you already know (here, peak-finding from
+Section~\ref{sec:bs-peak-1d}), look for a way to binary search one axis
+while reducing each candidate to a single representative value via a
+linear scan along the other axis -- the representative value's own local
+comparisons then drive the binary search exactly as in the 1D version.
+\end{takeawaybox}

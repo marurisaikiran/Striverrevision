@@ -1,0 +1,128 @@
+\section{Clone a Graph}
+\label{sec:graph-clone-graph}
+
+\problemstatement{Given a reference to a node in a connected
+undirected graph (where each node stores a value and a list of
+neighbor pointers), return a \textbf{deep copy} (clone) of the entire
+graph -- a structurally identical graph made of entirely new node
+objects.}
+
+\begin{patternbox}
+\emph{``Copy every node and every connection, visiting each node
+exactly once''} is a traversal (DFS or BFS) augmented with a
+\textbf{hash map from original node to its clone} -- the map serves
+double duty: it remembers which nodes have already been cloned (acting
+as the traversal's \textit{visited} check) and it provides the correct
+clone object to link into a neighbor's adjacency list.
+\end{patternbox}
+
+\subsection*{Why a hash map, not a simple \textit{visited} array}
+
+Every traversal in this chapter needs to track which nodes have been
+visited -- but previous problems used array indices (city numbers,
+grid coordinates) as keys, which a simple boolean array handles
+directly. Here, nodes are objects with no natural array index, and
+\emph{visiting} a node is inseparable from \emph{creating its clone} --
+so a hash map from original node pointer to cloned node pointer plays
+both roles: checking $\textit{map.find(node)} \neq \textit{map.end()}$
+is the visited check, and $\textit{map}[\textit{node}]$ retrieves the
+already-built clone to attach as a neighbor.
+
+\subsection*{Algorithm (DFS)}
+
+\begin{enumerate}
+  \item Define $\textit{cloneNode}(\textit{node})$: if $\textit{node}$
+        is already in the map, return its clone immediately (this
+        breaks cycles -- without this check, a cyclic graph would
+        recurse forever).
+  \item Otherwise, create a new node with the same value, store it in
+        the map \textbf{before} recursing into neighbors (exactly like
+        marking visited before recursing in plain DFS), then for each
+        original neighbor, recursively clone it and append the result
+        to the new node's neighbor list.
+  \item Return $\textit{cloneNode}(\textit{startNode})$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int val;
+    vector<Node*> neighbors;
+    Node(int v) : val(v) {}
+};
+
+Node* cloneNode(Node* node, unordered_map<Node*, Node*>& cloneMap) {
+    if (cloneMap.find(node) != cloneMap.end()) {
+        return cloneMap[node];
+    }
+
+    Node* clone = new Node(node->val);
+    cloneMap[node] = clone;
+
+    for (Node* neighbor : node->neighbors) {
+        clone->neighbors.push_back(cloneNode(neighbor, cloneMap));
+    }
+    return clone;
+}
+
+Node* cloneGraph(Node* startNode) {
+    if (startNode == nullptr) return nullptr;
+    unordered_map<Node*, Node*> cloneMap;
+    return cloneNode(startNode, cloneMap);
+}
+
+int main() {
+    Node* a = new Node(1);
+    Node* b = new Node(2);
+    Node* c = new Node(3);
+    a->neighbors = {b, c};
+    b->neighbors = {a, c};
+    c->neighbors = {a, b};
+
+    Node* clonedA = cloneGraph(a);
+    cout << clonedA->val << " has " << clonedA->neighbors.size()
+         << " neighbors" << endl; // 1 has 2 neighbors
+    cout << (clonedA == a ? "same object" : "different object") << endl; // different object
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take a triangle graph: nodes $1,2,3$, each connected to the
+other two. Start cloning from node $1$.}
+
+$\textit{cloneNode}(1)$: not in map, create clone $1'$, store
+$\textit{map}[1]=1'$. Recurse into neighbor $2$:
+$\textit{cloneNode}(2)$: not in map, create clone $2'$, store
+$\textit{map}[2]=2'$. Recurse into $2$'s neighbors, $1$ and $3$.
+$\textit{cloneNode}(1)$: \textbf{already in map}, return $1'$
+immediately (no infinite recursion, even though $1$ and $2$ point back
+to each other). $\textit{cloneNode}(3)$: not in map, create clone
+$3'$, store $\textit{map}[3]=3'$; recurse into $3$'s neighbors $1,2$,
+both already in map, return $1',2'$ immediately. Back at $2'$:
+neighbors $=[1',3']$. Back at $1'$: continue to neighbor $3$, already
+in map, return $3'$. Final: $1'$'s neighbors $=[2',3']$ -- a complete,
+independent clone of the original triangle.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- every node is cloned exactly
+once (guarded by the map check), and every edge is examined exactly
+once (from each direction).
+\textbf{Space Complexity.} $O(V)$ for the hash map and the recursion
+stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a traversal needs to \textbf{build something new} while
+visiting (a clone, a transformed copy, a mapping to a different
+representation) rather than simply recording or counting, a hash map
+keyed by the original node typically replaces the plain
+\textit{visited} array -- the map's presence-check still prevents
+revisiting and infinite loops, while also handing back the
+already-built result the moment it's needed again.
+\end{takeawaybox}

@@ -1,0 +1,170 @@
+\section{Next Greater Element II (Circular Array)}
+\label{sec:sq-next-greater-2}
+
+\problemstatement{We are given a \textbf{circular} array $\textit{nums}$
+(the element after the last one wraps around to the first). For every
+element, find its next greater element, searching circularly -- i.e.\ we
+may wrap around the end of the array once, but not more than once.}
+
+\begin{patternbox}
+The keyword \emph{``circular''} attached to a next-greater-element problem
+signals that the search for each element's answer may need to continue
+past the array's literal end and wrap to the beginning -- but only
+\textbf{once around}, not indefinitely. The standard trick for simulating
+one extra lap around a circular array without actually duplicating it in
+memory is to iterate over \textbf{twice} the indices ($0$ to $2n-1$), using
+the modulo operation to map each iteration index back into the real array.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If we simply ran the Section~\ref{sec:sq-next-greater-1} algorithm once
+over $\textit{nums}$, an element near the \emph{end} of the array would
+never get a chance to find a next-greater candidate that happens to sit
+near the \emph{beginning} -- the algorithm would incorrectly report $-1$
+for it. Conceptually, we want to pretend the array is duplicated end to
+end ($\textit{nums} + \textit{nums}$) and search within that doubled view,
+but stop considering circular wraparound after one full lap (we must not
+wrap twice, or an element could incorrectly become its own next greater
+element).
+
+\begin{ideabox}[Simulate a Doubled Array via Modulo Indexing]
+Run the same right-to-left monotonic-stack scan as
+Section~\ref{sec:sq-next-greater-1}, but let $i$ range from $2n-1$ down
+to $0$, accessing $\textit{nums}[i \bmod n]$ at each step. Only
+\emph{record} an answer for $i < n$ (the first lap, which corresponds to
+real array positions); the second lap ($i \ge n$, processed first since we
+scan from $2n-1$ downward) exists purely to \emph{seed the stack} with
+candidates that wrap around from the beginning of the array, without
+double-counting any element as its own answer.
+\end{ideabox}
+
+\subsection*{Why processing the second lap first, without recording answers, is correct}
+
+Scanning from $2n-1$ down to $0$ means we process the conceptual ``second
+copy'' of the array (indices $n$ to $2n-1$, mapping to real indices $0$
+to $n-1$) \emph{before} the conceptual ``first copy'' (indices $0$ to
+$n-1$). By the time we reach real index $i$ in the first-copy pass (i.e.\
+when the loop variable itself is also $i$, having already processed
+$i+1, \dots, 2n-1$), the stack already reflects every element that could
+serve as $i$'s next greater element either later in the same lap
+\emph{or} wrapped around from the start of the array (since those wrapped
+candidates were pushed during the second-lap pass that ran first). This
+correctly captures one full circular lookahead without ever risking a
+second wraparound, since each real index contributes to the stack at most
+twice (once per lap) and answers are only recorded during the final,
+first-copy pass.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack and a result array of size $n$, filled
+        with $-1$.
+  \item For $i$ from $2n-1$ down to $0$:
+  \begin{enumerate}
+    \item Let $\textit{val} \gets \textit{nums}[i \bmod n]$.
+    \item While the stack is not empty and its top $\le \textit{val}$:
+          pop.
+    \item If $i < n$: set $\textit{result}[i] \gets$ the stack's top if
+          non-empty, else $-1$.
+    \item Push \textit{val}.
+  \end{enumerate}
+  \item Return \textit{result}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Next Greater Element II}
+\begin{algorithmic}[1]
+\Procedure{NextGreaterElementsCircular}{\textit{nums}}
+  \State $\textit{result}[0..n-1] \gets -1$, $\textit{stack} \gets$ empty
+  \For{$i \gets 2n-1$ \textbf{down to} $0$}
+    \State $\textit{val} \gets \textit{nums}[i \bmod n]$
+    \While{\textit{stack} not empty \textbf{and} top $\le \textit{val}$}
+      \State pop
+    \EndWhile
+    \If{$i < n$ \textbf{and} \textit{stack} not empty}
+      \State $\textit{result}[i] \gets$ top
+    \EndIf
+    \State push \textit{val}
+  \EndFor
+  \State \Return \textit{result}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{nums} = [1,2,1]$ ($n=3$).}
+
+\begin{itemize}
+  \item $i=5$ ($\textit{val}=\textit{nums}[2]=1$): stack empty. $i\ge n$,
+        no record. Push $1$. Stack $=[1]$.
+  \item $i=4$ ($\textit{val}=\textit{nums}[1]=2$): top $1\le2$, pop.
+        Stack empty. $i\ge n$, no record. Push $2$. Stack $=[2]$.
+  \item $i=3$ ($\textit{val}=\textit{nums}[0]=1$): top $2>1$, no pop.
+        $i\ge n$, no record. Push $1$. Stack $=[2,1]$.
+  \item $i=2$ ($\textit{val}=\textit{nums}[2]=1$): top $1\le1$, pop.
+        New top $2>1$, no further pop. $i<n$: $\textit{result}[2]=2$.
+        Push $1$. Stack $=[2,1]$.
+  \item $i=1$ ($\textit{val}=\textit{nums}[1]=2$): top $1\le2$, pop. New
+        top $2\le2$, pop. Stack empty. $i<n$:
+        $\textit{result}[1]=-1$. Push $2$. Stack $=[2]$.
+  \item $i=0$ ($\textit{val}=\textit{nums}[0]=1$): top $2>1$, no pop.
+        $i<n$: $\textit{result}[0]=2$. Push $1$. Stack $=[2,1]$.
+\end{itemize}
+
+Result: $[2,-1,2]$. Checking by hand: index $0$ (value $1$) wraps to find
+$2$ at index $1$; index $1$ (value $2$) has no greater element anywhere
+(it is the maximum); index $2$ (value $1$) wraps around to find $2$ at
+index $1$ (or directly via the doubled view, finds the $2$ that appears
+right after it when wrapping).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> nextGreaterElementsCircular(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> result(n, -1);
+    stack<int> st;
+
+    for (int i = 2 * n - 1; i >= 0; i--) {
+        int val = nums[i % n];
+        while (!st.empty() && st.top() <= val) {
+            st.pop();
+        }
+        if (i < n && !st.empty()) {
+            result[i] = st.top();
+        }
+        st.push(val);
+    }
+    return result;
+}
+
+int main() {
+    vector<int> nums = {1, 2, 1};
+    for (int x : nextGreaterElementsCircular(nums)) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The loop runs $2n$ iterations, each doing
+amortized $O(1)$ stack work (every element is pushed at most twice and
+popped at most twice across the whole run), giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack and result array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Circular array, search wrapping around once'' has a standard, reusable
+fix: iterate over $2n$ virtual indices with modulo wraparound, using the
+first lap purely to seed state (here, the monotonic stack) and the second
+lap to record real answers. This avoids physically duplicating the array
+and generalizes to other circular-array problems beyond monotonic stacks.
+\end{takeawaybox}

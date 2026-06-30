@@ -1,0 +1,203 @@
+\section{Implement a Min Heap}
+\label{sec:heap-implement}
+
+\problemstatement{Implement a min-heap supporting three operations:
+$\textit{push}(x)$ (insert a new value), $\textit{pop}()$ (remove and
+return the smallest value), and $\textit{top}()$ (peek at the smallest
+value without removing it), each in $O(\log n)$ time for push/pop and
+$O(1)$ for top.}
+
+\begin{patternbox}
+This section has no ``keyword'' in the usual sense -- it is the mechanical
+foundation every other section in this chapter builds on. The skill being
+tested is not pattern recognition but the array-indexing arithmetic that
+lets a heap live inside a flat array without ever needing explicit
+left/right/parent pointers.
+\end{patternbox}
+
+\subsection*{Understanding the array-as-tree representation}
+
+Store the heap's elements in a plain array $\textit{heap}[0..n-1]$,
+interpreted as a complete binary tree read level by level, left to right.
+For a node at index $i$ (0-indexed):
+\[
+  \textit{parent}(i) = \left\lfloor \frac{i-1}{2} \right\rfloor, \qquad
+  \textit{left}(i) = 2i+1, \qquad \textit{right}(i) = 2i+2.
+\]
+This works because a complete binary tree (every level full except
+possibly the last, which fills left to right with no gaps) has exactly
+this relationship between a node's position in level order and its
+children's positions -- no pointers are needed, only arithmetic.
+
+\begin{ideabox}[Sift Up (used by push)]
+Append the new value at index $n$ (the next free slot). While this node's
+value is smaller than its parent's value, swap them and continue checking
+from the parent's old position. This restores the min-heap invariant
+locally along the single path from the new leaf up to the root, which is
+always sufficient: every other path in the tree was already valid before
+the insertion and is untouched by these swaps.
+\end{ideabox}
+
+\begin{ideabox}[Sift Down (used by pop)]
+Save the root's value (this is the return value). Move the \emph{last}
+element into the root's slot and shrink the array by one. While this
+relocated value is larger than the smaller of its two children, swap it
+with that smaller child and continue checking from the new position. This
+restores the invariant locally along a single path from the root downward.
+\end{ideabox}
+
+\subsection*{Why sifting along a single path is always sufficient}
+
+Both operations rely on the same structural fact: the min-heap invariant
+is a \emph{local} condition (each node versus its own parent/children),
+and inserting or removing one element only disturbs the invariant along
+\emph{one} root-to-leaf path -- the path the new or relocated element
+travels. Every other node's relationship to its own parent and children is
+completely unaffected, so checking and fixing violations one step at a
+time along that single path, stopping the instant no violation remains, is
+guaranteed to restore a fully valid heap. This is also exactly why each
+operation costs $O(\log n)$: a path from root to leaf in a complete binary
+tree with $n$ nodes has length $O(\log n)$, since the tree's height is
+$\lfloor \log_2 n \rfloor$.
+
+\subsection*{Algorithm}
+
+\textbf{Push($x$):}
+\begin{enumerate}
+  \item Append $x$ at index $n$; let $i \gets n$; increment $n$.
+  \item While $i > 0$ and $\textit{heap}[\textit{parent}(i)] >
+        \textit{heap}[i]$: swap them; $i \gets \textit{parent}(i)$.
+\end{enumerate}
+
+\textbf{Pop():}
+\begin{enumerate}
+  \item Save $\textit{result} \gets \textit{heap}[0]$.
+  \item $\textit{heap}[0] \gets \textit{heap}[n-1]$; decrement $n$.
+  \item $i \gets 0$. While $i$ has a child smaller than itself: let
+        $\textit{smallerChild}$ be the smaller of its two children (only
+        those that exist); swap $\textit{heap}[i]$ with
+        $\textit{heap}[\textit{smallerChild}]$; $i \gets
+        \textit{smallerChild}$.
+  \item Return \textit{result}.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Min Heap: Push and Pop}
+\begin{algorithmic}[1]
+\Procedure{Push}{$x$}
+  \State append $x$; $i \gets n - 1$
+  \While{$i > 0$ \textbf{and} $\textit{heap}[(i-1)/2] > \textit{heap}[i]$}
+    \State swap $\textit{heap}[(i-1)/2]$ and $\textit{heap}[i]$
+    \State $i \gets (i-1)/2$
+  \EndWhile
+\EndProcedure
+\Procedure{Pop}{}
+  \State $\textit{result} \gets \textit{heap}[0]$
+  \State $\textit{heap}[0] \gets \textit{heap}[n-1]$; remove last slot
+  \State $i \gets 0$
+  \While{$i$ has a smaller child}
+    \State $j \gets$ index of the smaller existing child of $i$
+    \If{$\textit{heap}[i] \le \textit{heap}[j]$} \textbf{break} \EndIf
+    \State swap $\textit{heap}[i]$ and $\textit{heap}[j]$; $i \gets j$
+  \EndWhile
+  \State \Return \textit{result}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Push $5, 3, 8, 1$ in order, then pop once.}
+
+\begin{itemize}
+  \item Push $5$: heap $=[5]$.
+  \item Push $3$: append, heap $=[5,3]$. Compare $3$ to parent $5$:
+        $3<5$, swap. Heap $=[3,5]$.
+  \item Push $8$: append, heap $=[3,5,8]$. Parent of index $2$ is index
+        $0$, value $3$. $8 \ge 3$, no swap. Heap $=[3,5,8]$.
+  \item Push $1$: append, heap $=[3,5,8,1]$. Parent of index $3$ is index
+        $1$, value $5$. $1<5$, swap: heap $=[3,1,8,5]$. New index $1$;
+        parent is index $0$, value $3$. $1<3$, swap: heap $=[1,3,8,5]$.
+  \item Pop: result $=1$. Move last element ($5$) to root: heap
+        $=[5,3,8]$. At index $0$ ($5$): children at indices $1,2$ are
+        $3,8$; smaller is $3$ at index $1$. $5>3$, swap: heap
+        $=[3,5,8]$. At index $1$ ($5$): only possible child would be at
+        index $3$, out of range. Stop.
+\end{itemize}
+
+The pop returns $1$ (correctly the minimum), and the heap array
+$[3,5,8]$ still satisfies the min-heap invariant.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class MinHeap {
+    vector<int> heap;
+
+    void siftUp(int i) {
+        while (i > 0 && heap[(i - 1) / 2] > heap[i]) {
+            swap(heap[(i - 1) / 2], heap[i]);
+            i = (i - 1) / 2;
+        }
+    }
+
+    void siftDown(int i) {
+        int n = heap.size();
+        while (true) {
+            int left = 2 * i + 1, right = 2 * i + 2, smallest = i;
+            if (left < n && heap[left] < heap[smallest]) smallest = left;
+            if (right < n && heap[right] < heap[smallest]) smallest = right;
+            if (smallest == i) break;
+            swap(heap[i], heap[smallest]);
+            i = smallest;
+        }
+    }
+
+public:
+    void push(int x) {
+        heap.push_back(x);
+        siftUp(heap.size() - 1);
+    }
+
+    int pop() {
+        int result = heap[0];
+        heap[0] = heap.back();
+        heap.pop_back();
+        if (!heap.empty()) siftDown(0);
+        return result;
+    }
+
+    int top() { return heap[0]; }
+    bool empty() { return heap.empty(); }
+};
+
+int main() {
+    MinHeap h;
+    h.push(5); h.push(3); h.push(8); h.push(1);
+    cout << "Popped: " << h.pop() << endl;
+    cout << "New top: " << h.top() << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Both \textit{push} and \textit{pop} touch only
+one root-to-leaf path, of length $O(\log n)$, doing $O(1)$ work per level,
+giving
+\[
+  O(\log n) \text{ per push/pop}, \qquad O(1) \text{ per top}.
+\]
+\textbf{Space Complexity.} $O(n)$ to store the $n$ elements; no extra
+auxiliary structures are needed beyond the array itself.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Every problem in the rest of this chapter uses \texttt{std::priority\_queue}
+directly rather than reimplementing this class, but understanding sift-up
+and sift-down by hand here is what makes the complexity claims in every
+later section ($O(\log n)$ per heap operation) something you can justify
+rather than merely recite.
+\end{takeawaybox}

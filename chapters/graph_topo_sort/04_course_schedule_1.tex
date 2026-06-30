@@ -1,0 +1,96 @@
+\section{Course Schedule I}
+\label{sec:graph-course-schedule-1}
+
+\problemstatement{Given $\textit{numCourses}$ and a list of
+prerequisite pairs $[a,b]$ (meaning course $a$ requires course $b$ to
+be completed first), determine whether it is possible to finish all
+courses.}
+
+\begin{patternbox}
+\emph{``Can all tasks be completed given prerequisite constraints''} is
+a direct restatement of Section~\ref{sec:graph-cycle-directed}: it is
+possible to finish all courses if and only if the prerequisite graph
+(edge $b \to a$ for every pair $[a,b]$, since $b$ must come first)
+contains \textbf{no cycle} -- a cycle of prerequisites would mean some
+course indirectly requires itself.
+\end{patternbox}
+
+\subsection*{Reduction}
+
+Build a directed graph with $\textit{numCourses}$ nodes, adding an edge
+$b \to a$ for every prerequisite pair $[a,b]$ (course $b$ must be
+completed before $a$, so the edge points from prerequisite to
+dependent). The answer is simply
+$\neg\,\textit{hasCycle}(\textit{numCourses}, \textit{adj})$, using
+either cycle-detection approach from Section~\ref{sec:graph-cycle-directed}
+unchanged.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool dfsHasCycle(int node, vector<vector<int>>& adj, vector<bool>& visited,
+                  vector<bool>& pathVisited) {
+    visited[node] = true;
+    pathVisited[node] = true;
+
+    for (int neighbor : adj[node]) {
+        if (!visited[neighbor]) {
+            if (dfsHasCycle(neighbor, adj, visited, pathVisited)) return true;
+        } else if (pathVisited[neighbor]) {
+            return true;
+        }
+    }
+    pathVisited[node] = false;
+    return false;
+}
+
+bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
+    vector<vector<int>> adj(numCourses);
+    for (auto& p : prerequisites) {
+        int a = p[0], b = p[1];
+        adj[b].push_back(a); // b must come before a
+    }
+
+    vector<bool> visited(numCourses, false), pathVisited(numCourses, false);
+    for (int i = 0; i < numCourses; i++) {
+        if (!visited[i] && dfsHasCycle(i, adj, visited, pathVisited)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int main() {
+    vector<vector<int>> prerequisites = {{1, 0}, {0, 1}};
+    cout << (canFinish(2, prerequisites) ? "true" : "false") << endl; // false
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{numCourses}=2$,
+$\textit{prerequisites}=[[1,0],[0,1]]$.}
+
+Edge from pair $[1,0]$: $0 \to 1$ (course $0$ before course $1$).
+Edge from pair $[0,1]$: $1 \to 0$ (course $1$ before course $0$).
+This is a $2$-cycle: $0 \to 1 \to 0$. Cycle detection immediately
+finds the back edge, so $\textit{canFinish}$ returns \texttt{false} --
+correctly, since each course requires the other to be completed first,
+an impossible circular dependency.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$, inherited unchanged from cycle
+detection.
+\textbf{Space Complexity.} $O(V+E)$ for the adjacency list, plus
+$O(V)$ for the cycle-detection arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Recognizing that ``can all tasks be completed'' is a cycle-detection
+question in disguise is the entire difficulty of this problem -- once
+that reduction is seen, no new algorithm is needed at all.
+\end{takeawaybox}

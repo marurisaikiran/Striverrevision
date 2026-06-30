@@ -1,0 +1,142 @@
+\section{Floor and Ceil in a BST}
+\label{sec:bst-floor-ceil}
+
+\problemstatement{Given the root of a BST and a value $X$, find the
+\textbf{floor} of $X$ (the largest value in the tree that is $\le X$) and
+the \textbf{ceil} of $X$ (the smallest value in the tree that is $\ge
+X$).}
+
+\begin{patternbox}
+This is the tree-shaped version of the Binary Search chapter's
+Floor and Ceil in a Sorted Array problem: the same ``record a tentative answer, keep narrowing
+toward the boundary'' template applies, except narrowing now means moving
+to a child rather than shrinking an array window.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Walk from the root, comparing $X$ to each node's value. If the current
+node's value is exactly $X$, it is simultaneously its own floor and
+ceil -- done immediately. If the current node's value is less than $X$,
+it is a \emph{candidate} floor (everything in its left subtree is even
+smaller, so it cannot help find a \emph{larger} floor candidate, but the
+right subtree might contain an even closer one) -- record it and move
+right. Symmetrically, if the current node's value exceeds $X$, it is a
+candidate ceil -- record it and move left.
+
+\begin{ideabox}[Record a Candidate, Narrow Toward a Closer One]
+Maintain $\textit{floor} \gets -\infty$ (or undefined) and
+$\textit{ceil} \gets +\infty$ (or undefined). At each node: if its value
+equals $X$, both floor and ceil are this value -- stop. If its value $<
+X$: update $\textit{floor}$ to this value (a closer candidate than any
+previous one, since we are moving rightward, deeper toward $X$), and move
+right. If its value $> X$: update $\textit{ceil}$, and move left.
+\end{ideabox}
+
+\subsection*{Why moving right after finding a smaller value always finds a closer floor (if one exists)}
+
+Once we know the current node's value is $<X$ and is therefore a valid
+floor candidate, any \emph{better} (larger, but still $\le X$) candidate
+can only exist in the current node's right subtree -- the BST invariant
+guarantees every value in the right subtree exceeds the current node's
+value, narrowing the search toward $X$ from below, while the left subtree
+only contains values even smaller, which could never improve on the
+current candidate. This mirrors exactly the boundary-narrowing logic of
+the Binary Search chapter's array-based floor/ceil, with ``move
+right in the tree'' playing the role that ``move the binary search window
+toward the boundary'' played there.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{floor}, \textit{ceil} \gets$ undefined.
+  \item While the current node is not null:
+  \begin{enumerate}
+    \item If current value $=X$: set both $\textit{floor}$ and
+          $\textit{ceil}$ to $X$; stop.
+    \item If current value $<X$: $\textit{floor} \gets$ current value;
+          move to the right child.
+    \item Else: $\textit{ceil} \gets$ current value; move to the left
+          child.
+  \end{enumerate}
+  \item Return $(\textit{floor}, \textit{ceil})$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take the BST with root $8$, left subtree rooted at $3$ (children
+$1$ and $6$, where $6$ has left child $4$), right subtree rooted at
+$10$ (left child $9$, right child $14$). Query $X=7$.}
+
+\begin{itemize}
+  \item At $8$: $8>7$, $\textit{ceil}=8$. Move left to $3$.
+  \item At $3$: $3<7$, $\textit{floor}=3$. Move right to $6$.
+  \item At $6$: $6<7$, $\textit{floor}=6$. Move right -- but $6$ has no
+        right child (null). Stop.
+\end{itemize}
+
+Result: $\textit{floor}=6$, $\textit{ceil}=8$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+pair<int,int> floorCeilBST(TreeNode* root, int X) {
+    int floorVal = -1, ceilVal = -1;
+    TreeNode* node = root;
+
+    while (node) {
+        if (node->val == X) {
+            floorVal = ceilVal = X;
+            break;
+        } else if (node->val < X) {
+            floorVal = node->val;
+            node = node->right;
+        } else {
+            ceilVal = node->val;
+            node = node->left;
+        }
+    }
+    return {floorVal, ceilVal};
+}
+
+int main() {
+    TreeNode* root = new TreeNode(8);
+    root->left = new TreeNode(3);
+    root->left->left = new TreeNode(1);
+    root->left->right = new TreeNode(6);
+    root->left->right->left = new TreeNode(4);
+    root->right = new TreeNode(10);
+    root->right->left = new TreeNode(9);
+    root->right->right = new TreeNode(14);
+
+    auto [floorVal, ceilVal] = floorCeilBST(root, 7);
+    cout << "Floor: " << floorVal << ", Ceil: " << ceilVal << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(h)$, a single root-to-(leaf or match) walk.
+\textbf{Space Complexity.} $O(1)$ for the iterative version shown (no
+recursion needed, since neither subtree is ever revisited).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Floor and ceil in a BST need only a single $O(h)$ walk, never a full
+traversal -- a useful contrast with Kth Smallest
+(Section~\ref{sec:bst-kth-smallest}), where, without extra bookkeeping, an
+inorder traversal touching many nodes is genuinely required. Whenever a
+BST query can be answered by a sequence of single left/right decisions
+without needing to inspect both children's full subtrees, prefer the
+guided walk over a full traversal.
+\end{takeawaybox}

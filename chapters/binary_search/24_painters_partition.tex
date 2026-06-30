@@ -1,0 +1,112 @@
+\section{Painter's Partition Problem}
+\label{sec:bs-painters-partition}
+
+\problemstatement{We are given $n$ boards with lengths $\textit{boards}[0..n-1]$
+and $k$ painters. Each painter paints a \textbf{contiguous} set of boards,
+and painting one unit of board length takes one unit of time (painters
+work in parallel, each on their own assigned contiguous range). We must
+assign boards to painters so as to \textbf{minimize the time the slowest
+painter takes} (equivalently, minimize the maximum total board length
+assigned to any one painter).}
+
+\begin{patternbox}
+A third disguise of the same template as
+Sections~\ref{sec:bs-book-allocation}--\ref{sec:bs-split-array}:
+``boards/painters'' plays the role of ``pages/students'' or
+``array elements/subarray parts.'' By this third repetition, the goal is
+no longer to re-derive anything, but to confirm that the pattern --
+\emph{partition a sequence into a fixed number of contiguous groups,
+minimize the maximum group sum, via binary search on the answer with a
+greedy bucket-filling feasibility check} -- has become an immediately
+recognizable, reusable unit, regardless of the cover story a problem uses
+to disguise it.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Define $\textit{paintersNeeded}(\textit{maxTime})$ exactly as in
+Section~\ref{sec:bs-book-allocation}: greedily assign boards to the
+current painter until adding the next board would exceed
+$\textit{maxTime}$, then move to the next painter. This count is
+non-increasing in $\textit{maxTime}$, by the same reasoning as the prior
+two sections.
+
+\begin{ideabox}[Candidate Space and Predicate]
+Candidate space: integer times in $[\max(\textit{boards}),
+\sum(\textit{boards})]$. Predicate:
+$P(\textit{maxTime}) = (\textit{paintersNeeded}(\textit{maxTime}) \le k)$.
+Want the smallest $\textit{maxTime}$ where $P$ holds.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+Identical to Algorithm~\ref{sec:bs-book-allocation}'s
+\textsc{BookAllocation}, with \textit{pages} relabeled \textit{boards} and
+$m$ relabeled $k$.
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{boards} = [10, 20, 30, 40]$, $k = 2$.}
+
+$\max=40$, $\sum=100$. Binary search converges to $\textit{maxTime}=60$:
+one painter takes $[10,20,30]$ (sum $60$), the other takes $[40]$ (sum
+$40$); checking $59$ would force the first painter to stop after
+$[10,20]=30$ (since adding $30$ would make $60>59$), needing a third
+painter for $[30]$ and $[40]$ separately exceeding $k=2$, so $60$ is
+minimal.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int paintersNeeded(vector<int>& boards, int maxTime) {
+    int painters = 1;
+    long long currentTime = 0;
+
+    for (int len : boards) {
+        if (currentTime + len > maxTime) {
+            painters++;
+            currentTime = 0;
+        }
+        currentTime += len;
+    }
+    return painters;
+}
+
+int paintersPartition(vector<int>& boards, int k) {
+    int lo = *max_element(boards.begin(), boards.end());
+    int hi = accumulate(boards.begin(), boards.end(), 0);
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (paintersNeeded(boards, mid) <= k) {
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return lo;
+}
+
+int main() {
+    vector<int> boards = {10, 20, 30, 40};
+    cout << "Minimum time: " << paintersPartition(boards, 2) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.}
+$O(n \log(\sum(\textit{boards})))$.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Three problems, three cover stories, one template. If you find yourself
+about to write a fresh derivation for a ``partition into $k$ contiguous
+groups, minimize the maximum group sum'' problem, stop and check the
+catalogue of Sections~\ref{sec:bs-book-allocation}--\ref{sec:bs-painters-partition}
+first.
+\end{takeawaybox}

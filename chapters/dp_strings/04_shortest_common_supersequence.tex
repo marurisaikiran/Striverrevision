@@ -1,0 +1,140 @@
+\section{Shortest Common Supersequence}
+\label{sec:dp-shortest-common-supersequence}
+
+\problemstatement{Given two strings $s_1$ (length $n$) and $s_2$ (length
+$m$), construct the \textbf{shortest} string that has \textbf{both}
+$s_1$ and $s_2$ as subsequences.}
+
+\begin{patternbox}
+\emph{``Shortest string containing both as subsequences''} is the
+``opposite'' framing of Section~\ref{sec:dp-lcs}'s LCS, and the two are
+linked by a clean formula: every character the two strings \emph{share}
+in their LCS needs to appear only \textbf{once} in the supersequence
+(since it serves both strings' subsequence requirement simultaneously),
+while every other character of each string must still appear --
+collapsing the problem into one already-solved LCS computation plus a
+reconstruction walk almost identical to Section~\ref{sec:dp-print-lcs}'s.
+\end{patternbox}
+
+\subsection*{Deriving the length formula}
+
+If we simply concatenated $s_1$ and $s_2$, the result trivially contains
+both as subsequences, with length $n+m$ -- but every character that is
+part of \emph{some} common subsequence is being counted \textbf{twice}
+in this concatenation (once from each string), when it only needs to
+appear once. The longest common subsequence is exactly the largest set
+of characters we can ``merge'' this way, so:
+\[
+  |\textit{SCS}| = n + m - |\textit{LCS}(s_1, s_2)|.
+\]
+
+\subsection*{Constructing the actual supersequence}
+
+Run the same backward walk as Section~\ref{sec:dp-print-lcs}, but
+instead of recording \emph{only} matched characters, record
+\textbf{every} character visited along the way: on a match, record the
+(shared) character once and move diagonally; on a mismatch, record
+whichever of $s_1[i-1]$ or $s_2[j-1]$ corresponds to the direction moved
+(following the same $\textit{dp}[i-1][j]$ vs.\ $\textit{dp}[i][j-1]$
+comparison as before), and move only that one pointer. Once either
+pointer reaches $0$, append the entirety of whatever remains of the
+other string (every leftover character must still appear, in order,
+since that string's subsequence requirement is otherwise unmet).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the LCS tabulation table for $s_1, s_2$ (as in
+        Section~\ref{sec:dp-lcs}).
+  \item $i \gets n$, $j \gets m$, $\textit{result} \gets \texttt{""}$.
+  \item While $i>0$ and $j>0$:
+  \begin{enumerate}
+    \item If $s_1[i-1]=s_2[j-1]$: prepend $s_1[i-1]$; $i{-}{-}$,
+          $j{-}{-}$.
+    \item Else if $\textit{dp}[i-1][j] \ge \textit{dp}[i][j-1]$:
+          prepend $s_1[i-1]$; $i{-}{-}$.
+    \item Else: prepend $s_2[j-1]$; $j{-}{-}$.
+  \end{enumerate}
+  \item Prepend any remaining prefix of $s_1$ (if $i>0$) or $s_2$ (if
+        $j>0$).
+  \item Return \textit{result}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s_1=\texttt{"abac"}$, $s_2=\texttt{"cab"}$.}
+
+LCS of \texttt{"abac"} and \texttt{"cab"} is \texttt{"ab"} (length $2$),
+so $|\textit{SCS}| = 4+3-2 = 5$. Constructing: walking backward through
+the LCS table merges the two strings, interleaving non-matched
+characters with the two shared \texttt{a} and \texttt{b}, producing one
+valid result such as \texttt{"cabac"} (length $5$) -- which indeed
+contains \texttt{"abac"} as a subsequence (positions $1,3,4,5$... more
+directly, removing the leading \texttt{c} from \texttt{"cabac"} leaves
+\texttt{"abac"} exactly) and \texttt{"cab"} as a subsequence (the first
+three characters).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string shortestCommonSupersequence(string& s1, string& s2) {
+    int n = s1.size(), m = s2.size();
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                dp[i][j] = 1 + dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+
+    string result;
+    int i = n, j = m;
+    while (i > 0 && j > 0) {
+        if (s1[i - 1] == s2[j - 1]) {
+            result.push_back(s1[i - 1]);
+            i--; j--;
+        } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+            result.push_back(s1[i - 1]);
+            i--;
+        } else {
+            result.push_back(s2[j - 1]);
+            j--;
+        }
+    }
+    while (i > 0) { result.push_back(s1[i - 1]); i--; }
+    while (j > 0) { result.push_back(s2[j - 1]); j--; }
+
+    reverse(result.begin(), result.end());
+    return result;
+}
+
+int main() {
+    string s1 = "abac", s2 = "cab";
+    string scs = shortestCommonSupersequence(s1, s2);
+    cout << scs << " (length " << scs.size() << ")" << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \cdot m)$ to build the LCS table, plus
+$O(n+m)$ for the reconstruction walk.
+\textbf{Space Complexity.} $O(n \cdot m)$ for the full table (needed for
+reconstruction, as in Section~\ref{sec:dp-print-lcs}).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Shortest Common Supersequence is not a new DP recurrence at all -- it is
+LCS's length formula, $n+m-|\textit{LCS}|$, plus a reconstruction walk
+that is a small variation on Print LCS's (recording every visited
+character, not only the matches). Whenever a problem can be phrased as
+``the complement or merge of an already-solved quantity,'' check the
+arithmetic relationship before reaching for a new table.
+\end{takeawaybox}

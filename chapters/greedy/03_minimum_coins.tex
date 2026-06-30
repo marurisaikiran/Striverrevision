@@ -1,0 +1,184 @@
+\section{Greedy Algorithm to Find Minimum Number of Coins}
+\label{sec:minimum-coins}
+
+\problemstatement{We are given a target amount $V$ and an unlimited supply of
+coins (and notes) of standard denominations -- in the version used on the
+sheet, the Indian currency denominations
+\[
+  \{1,\,2,\,5,\,10,\,20,\,50,\,100,\,500,\,1000\}.
+\]
+We must choose a multiset of these denominations whose values sum exactly to
+$V$, using as \textbf{few coins/notes as possible}, and report that minimum
+count (or the coins themselves).}
+
+\begin{patternbox}
+\emph{``Minimum number of coins/notes to make a given amount,''} when the
+denomination set is a small, fixed, real-world currency system, is the
+textbook greedy ``always use the largest denomination that fits'' problem.
+The crucial, easy-to-miss keyword here is which \emph{specific} denomination
+set is being used. If the problem instead says \emph{``given an arbitrary
+list of coin denominations''} (as in the famous LeetCode ``Coin Change''
+problem), the greedy approach can silently give a wrong answer, and you must
+switch to dynamic programming. Recognizing \emph{which} of these two
+near-identical-looking problems you are facing is itself the key skill being
+tested here.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+For a fixed real-world currency system such as the Indian denominations
+above, there is a special structural property: each denomination is large
+enough, relative to the ones below it, that repeatedly taking the largest
+denomination not exceeding the remaining amount never forces us into a
+worse total count later. Concretely, every denomination in this list is at
+least double the previous one except for the jumps $1 \to 2$, $2 \to 5$,
+$5 \to 10$, $10 \to 20$, $20 \to 50$ -- and a short case check (which we will
+not belabor here, since it is a property of \emph{this particular} currency
+system rather than something we derive from first principles) confirms that
+this set is a so-called \emph{canonical coin system}: the greedy algorithm
+always produces an optimal (minimum-count) representation for it.
+
+\begin{ideabox}[Greedy Choice]
+Sort the denominations in decreasing order. Repeatedly subtract the largest
+denomination that does not exceed the remaining amount, counting how many
+times each denomination is used, until the remaining amount reaches zero.
+\end{ideabox}
+
+\subsection*{Why greedy works here, and why it can fail elsewhere}
+
+The intuitive argument for why greedy is safe here is this: using one coin
+of the largest available denomination $d$ removes as much value as possible
+in a single coin. If using a smaller denomination instead could ever lead to
+a strictly smaller total coin count, it would have to be because the smaller
+coins ``line up'' more efficiently with the rest of the amount -- but because
+each denomination in this system divides evenly into, or is closely
+compatible with, the next one up, no such inefficiency can arise. This is
+\emph{not} a universal truth about coin systems; it is a property that must
+be verified for the specific set of denominations given.
+
+To see the failure mode, suppose instead the denominations were
+$\{1, 3, 4\}$ and the target amount were $V = 6$. Greedy would take one coin
+of $4$, leaving $2$, then two coins of $1$, for a total of three coins:
+$4+1+1=6$. But the optimal answer uses two coins of $3$: $3+3=6$, a total of
+only two coins. Here greedy fails because $4$ is not a ``safe'' large
+denomination relative to $3$ -- taking it first blocks the more efficient
+combination. This is exactly why the general ``Coin Change: minimum coins''
+problem (with an arbitrary denomination set) requires dynamic programming,
+while this specific problem, restricted to real-world currency
+denominations, is safe for greedy. Always check which version of the
+problem you are being asked before reaching for greedy.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Store the denominations in decreasing order:
+        $1000, 500, 100, 50, 20, 10, 5, 2, 1$.
+  \item Initialize $\textit{remaining} \gets V$ and an empty result list.
+  \item For each denomination $d$ in decreasing order:
+  \begin{enumerate}
+    \item While $d \le \textit{remaining}$: append $d$ to the result list,
+          and set $\textit{remaining} \gets \textit{remaining} - d$.
+  \end{enumerate}
+  \item Return the result list (its length is the minimum coin count).
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Minimum Number of Coins (Canonical System)}
+\begin{algorithmic}[1]
+\Procedure{MinimumCoins}{$V$}
+  \State $\textit{denoms} \gets [1000, 500, 100, 50, 20, 10, 5, 2, 1]$
+  \State $\textit{remaining} \gets V$
+  \State $\textit{result} \gets$ empty list
+  \For{each $d$ in \textit{denoms}}
+    \While{$d \le \textit{remaining}$}
+      \State append $d$ to \textit{result}
+      \State $\textit{remaining} \gets \textit{remaining} - d$
+    \EndWhile
+  \EndFor
+  \State \Return \textit{result}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $V = 93$.}
+
+\begin{itemize}
+  \item $d = 1000$: $1000 > 93$, skip.
+  \item $d = 500$: $500 > 93$, skip.
+  \item $d = 100$: $100 > 93$, skip.
+  \item $d = 50$: $50 \le 93$. Take one $50$. $\textit{remaining} = 43$.
+        $50 \le 43$? No, stop this denomination.
+  \item $d = 20$: $20 \le 43$. Take one $20$. $\textit{remaining} = 23$.
+        $20 \le 23$. Take another $20$. $\textit{remaining} = 3$.
+        $20 \le 3$? No, stop.
+  \item $d = 10$: $10 > 3$, skip.
+  \item $d = 5$: $5 > 3$, skip.
+  \item $d = 2$: $2 \le 3$. Take one $2$. $\textit{remaining} = 1$.
+        $2 \le 1$? No, stop.
+  \item $d = 1$: $1 \le 1$. Take one $1$. $\textit{remaining} = 0$.
+\end{itemize}
+
+The coins used are $\{50, 20, 20, 2, 1\}$, a total of $5$ coins, and indeed
+$50 + 20 + 20 + 2 + 1 = 93$. No combination of these denominations can make
+$93$ with fewer than $5$ coins.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> minimumCoins(int V) {
+    vector<int> denoms = {1000, 500, 100, 50, 20, 10, 5, 2, 1};
+    vector<int> result;
+
+    int remaining = V;
+    for (int d : denoms) {
+        while (d <= remaining) {
+            result.push_back(d);
+            remaining -= d;
+        }
+    }
+    return result;
+}
+
+int main() {
+    int V = 93;
+    vector<int> coins = minimumCoins(V);
+
+    cout << "Number of coins used: " << coins.size() << endl;
+    cout << "Coins: ";
+    for (int c : coins) cout << c << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} There are only $9$ fixed denominations, so the
+outer loop is $O(1)$ in the number of denominations. The inner
+\textbf{while} loop, across all denominations, executes at most once per
+coin actually placed into the result, and the number of coins used is
+$O(\log V)$ in the worst case for this denomination system (since
+denominations grow roughly geometrically). So the overall time complexity is
+\[
+  O(\log V),
+\]
+effectively a constant for realistic input sizes.
+\textbf{Space Complexity.} We store the result list of coins used, which has
+length $O(\log V)$, so the space complexity is $O(\log V)$ for the output
+(or $O(1)$ auxiliary space if we only need the \emph{count} rather than the
+list of coins itself).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Greedy coin selection is only correct for \emph{canonical} denomination
+systems -- ones where the structure of the denominations guarantees that
+taking the largest coin first never blocks an optimal solution. Always
+distinguish this fixed-currency version of the problem from the general
+``minimum coins from an arbitrary denomination list'' problem, which has no
+such guarantee and requires dynamic programming (typically an unbounded
+knapsack-style DP over amounts $0, \dots, V$).
+\end{takeawaybox}

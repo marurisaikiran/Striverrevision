@@ -1,0 +1,56 @@
+\section{A Note on Assign Cookies: When DP Is the Wrong Tool}
+\label{sec:dp-assign-cookies-note}
+
+\noindent Striver's sheet lists Assign Cookies again here, inside the DP
+on Subsequences lecture -- and it is worth pausing on \emph{why}, since
+the honest answer is a valuable lesson in its own right: \textbf{this
+problem does not need dynamic programming at all}, and forcing a DP
+solution onto it would be strictly worse than the greedy solution
+already derived in the Greedy chapter.
+
+\begin{patternbox}[Recognising When a Subset/Assignment Problem Is Actually Greedy]
+Assign Cookies asks: given greed factors $g$ and cookie sizes $s$,
+maximize the number of children satisfiable, where child $i$ is
+satisfied by cookie $j$ if $s[j] \ge g[i]$. This \emph{looks} like an
+assignment problem that backtracking or DP might solve via some
+subset-matching recurrence -- but the Greedy chapter's Assign Cookies section
+already proved, via a direct exchange argument, that sorting both arrays
+and greedily matching the smallest sufficient cookie to the smallest
+unsatisfied child is \textbf{provably optimal}. No DP table is needed
+because there is no genuine trade-off between overlapping sub-problems
+to resolve: the greedy choice at each step is never wrong, so there is
+nothing for memoization to usefully cache.
+\end{patternbox}
+
+\subsection*{Why a DP/backtracking solution would be strictly worse here}
+
+A backtracking solution exploring every possible assignment of cookies to
+children would cost at least $O(2^{n})$ in the worst case (each child
+either gets a cookie or doesn't, combinatorially), or, with a more
+clever subset-based DP state, perhaps $O(n \cdot m)$ or worse depending
+on formulation -- but the Greedy chapter's greedy algorithm
+already solves the problem in $O(n \log n + m \log m)$ (dominated by
+sorting) with $O(1)$ extra space. Since the greedy algorithm is already
+proven optimal, any DP formulation can only ever \emph{match} this
+bound at best, typically with strictly worse constants and memory
+usage -- there is no scenario in which reaching for DP here is the
+better engineering decision.
+
+\begin{ideabox}[The Real Lesson]
+Before reaching for memoization or tabulation on a subset/assignment-flavored
+problem, always ask first: \emph{can a sorted greedy pass already solve
+this optimally?} The keyword-recognition habits from the Greedy chapter's
+Assign Cookies section, in particular, should be
+checked \emph{before} defaulting to a DP recurrence, not after. DP is
+the right tool precisely when greedy's exchange argument \emph{fails} --
+when the locally best choice can depend on choices made elsewhere, which
+is exactly what does \emph{not} happen in Assign Cookies.
+\end{ideabox}
+
+\begin{takeawaybox}
+Not every problem that involves choosing a subset or making an
+assignment needs dynamic programming. Recognizing when a simpler,
+already-optimal greedy algorithm applies -- and confidently \emph{not}
+reaching for a DP table in that case -- is as important a skill as
+knowing how to build the DP table when one is genuinely needed.
+\end{takeawaybox}

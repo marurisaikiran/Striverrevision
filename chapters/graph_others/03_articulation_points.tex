@@ -1,0 +1,148 @@
+\section{Articulation Points}
+\label{sec:graph-articulation-points}
+
+\problemstatement{Given an undirected, connected graph, find every
+\textbf{articulation point} (cut vertex) -- a node whose removal
+(along with all its incident edges) would increase the number of
+connected components.}
+
+\begin{patternbox}
+This closing problem of the entire graph series reuses
+Section~\ref{sec:graph-bridges}'s exact $\textit{tin}$/$\textit{low}$
+DFS, with the condition shifted from edges to \textbf{nodes}, and from
+strict to non-strict inequality: a non-root node $u$ is an
+articulation point if it has a child $v$ with
+$\textit{low}[v] \ge \textit{tin}[u]$ -- plus one special case for the
+DFS \textbf{root}, which has no parent for the usual argument to apply
+to.
+\end{patternbox}
+
+\subsection*{Why $\ge$ replaces bridges' strict $>$}
+
+A bridge requires $v$'s subtree to have \textbf{no} way back to $u$ or
+higher ($\textit{low}[v] > \textit{tin}[u]$, strictly). An articulation
+point is a weaker condition: $u$ is critical even if $v$'s subtree can
+reach back \emph{exactly} to $u$ itself ($\textit{low}[v] =
+\textit{tin}[u]$) -- because reaching back only as far as $u$ still
+means removing $u$ disconnects $v$'s subtree from everything
+\emph{above} $u$, even though $v$'s subtree remains internally
+connected to $u$'s position. Only if $v$'s subtree can reach back
+\emph{above} $u$ (to some ancestor, $\textit{low}[v] < \textit{tin}[u]$)
+does removing $u$ fail to disconnect anything.
+
+\subsection*{The root's special case}
+
+The root of the DFS tree has no parent, so the ``can my child's
+subtree reach above me'' question doesn't apply to it the same way.
+Instead: the root is an articulation point exactly when it has
+\textbf{more than one child} in the DFS tree -- each child starts an
+independent branch that (by definition of being a separate DFS tree
+child rather than reached via a back edge) has no other connection to
+the rest of the graph except through the root.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int timer = 0;
+
+void dfs(int node, int parent, vector<vector<int>>& adj, vector<bool>& visited,
+         vector<int>& tin, vector<int>& low, vector<bool>& isArticulation) {
+    visited[node] = true;
+    tin[node] = low[node] = timer++;
+    int children = 0;
+
+    for (int neighbor : adj[node]) {
+        if (neighbor == parent) continue;
+
+        if (visited[neighbor]) {
+            low[node] = min(low[node], tin[neighbor]);
+        } else {
+            dfs(neighbor, node, adj, visited, tin, low, isArticulation);
+            low[node] = min(low[node], low[neighbor]);
+
+            if (parent != -1 && low[neighbor] >= tin[node]) {
+                isArticulation[node] = true;
+            }
+            children++;
+        }
+    }
+
+    if (parent == -1 && children > 1) {
+        isArticulation[node] = true;
+    }
+}
+
+vector<int> findArticulationPoints(int n, vector<vector<int>>& adj) {
+    vector<bool> visited(n, false), isArticulation(n, false);
+    vector<int> tin(n), low(n);
+    timer = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) dfs(i, -1, adj, visited, tin, low, isArticulation);
+    }
+
+    vector<int> result;
+    for (int i = 0; i < n; i++) {
+        if (isArticulation[i]) result.push_back(i);
+    }
+    return result;
+}
+
+int main() {
+    int n = 5;
+    vector<vector<int>> adj(n);
+    auto addEdge = [&](int u, int v) { adj[u].push_back(v); adj[v].push_back(u); };
+    addEdge(0, 1); addEdge(1, 2); addEdge(2, 0); addEdge(1, 3); addEdge(3, 4);
+
+    for (int x : findArticulationPoints(n, adj)) cout << x << " ";
+    cout << endl; // 1 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take edges $0{-}1,1{-}2,2{-}0,1{-}3,3{-}4$ (a triangle
+$0,1,2$, with $1$ also connected via $3$ to a pendant $4$), DFS from
+$0$.}
+
+This is the same graph shape as Section~\ref{sec:graph-bridges}'s
+example with an added pendant ($3{-}4$). Following the same DFS order:
+$\textit{tin}/\textit{low}$ for $0,1,2$ resolve identically (the
+triangle is unaffected). At node $3$ (child of $1$, with one child of
+its own, $4$): $\textit{dfs}(4,3)$ gives
+$\textit{tin}[4]=\textit{low}[4]=4$. Back at $3$:
+$\textit{low}[3]=\min(3,4)=3$; check articulation: parent of $3$ is
+$1$ ($\neq-1$), $\textit{low}[4]{=}4 \ge \textit{tin}[3]{=}3$? Yes --
+\textbf{$3$ is an articulation point} (removing it disconnects $4$).
+Back at $1$ (processing child $3$): $\textit{low}[1]=\min(0,
+\textit{low}[3]{=}3)=0$; check articulation: parent of $1$ is $0$
+($\neq-1$), $\textit{low}[3]{=}3 \ge \textit{tin}[1]{=}1$? Yes --
+\textbf{$1$ is an articulation point} (removing it disconnects $\{3,4\}$
+from the triangle). Node $0$ (the root): only one DFS-tree child
+($1$; node $2$ was reached via a back edge, not as a tree child), so
+the root special case does \textbf{not} apply -- $0$ is not an
+articulation point. Final: $\{1,3\}$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- a single DFS pass, identical
+structure to bridge-finding.
+\textbf{Space Complexity.} $O(V)$ for \textit{tin}, \textit{low},
+\textit{visited}, \textit{isArticulation}, and the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+This book series closes its graph coverage on a fitting note: bridges
+and articulation points are, almost letter for letter, the same
+algorithm, distinguished only by a strict-versus-non-strict inequality
+and one root-specific special case. Across every chapter in this
+series -- Greedy, Binary Search, Heap, Stack/Queue, BST, Trie,
+Recursion, eight DP sub-topics, and six graph sub-topics -- the
+recurring lesson has been the same: a small number of genuinely new
+ideas, recognized and reapplied with small, deliberate
+modifications, cover an enormous space of distinct-looking interview
+problems.
+\end{takeawaybox}

@@ -1,0 +1,173 @@
+\section{Recover BST (Two Nodes Swapped)}
+\label{sec:bst-recover}
+
+\problemstatement{The values of exactly two nodes in a BST were swapped
+by mistake, breaking the BST invariant. Without changing the tree's
+structure, recover the original BST by fixing the values of those two
+nodes (find them and swap their values back).}
+
+\begin{patternbox}
+\emph{``Exactly two nodes are out of place''} in a problem framed around
+\textbf{sortedness} is the strongest possible signal to invoke
+Section~\ref{sec:bst-intro}'s headline fact directly: a correct BST's
+inorder traversal is strictly increasing, so the swapped pair must show
+up as exactly one or two places where the inorder sequence decreases
+instead of increases -- find those violation points during a single
+inorder traversal, and the swapped nodes are sitting right there.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In a correct BST, scanning the inorder sequence left to right, every
+value is greater than the one before it. With two values swapped, this
+property breaks at either one place (if the two swapped nodes happen to
+be \emph{adjacent} in inorder order) or two places (if they are not
+adjacent) -- and at each violation, the \emph{earlier} of the two
+compared values is the one that is too large for its position, or the
+\emph{later} one is too small.
+
+\begin{ideabox}[Track the First and Second Violation During One Inorder Pass]
+Maintain $\textit{prev}$ (the previously visited node) and two
+not-yet-found pointers, $\textit{first}$ and $\textit{second}$. During
+inorder traversal, at each node: if $\textit{prev}$ exists and
+$\textit{prev}.\textit{val} > \textit{node}.\textit{val}$ (a violation):
+if $\textit{first}$ has not yet been set, set $\textit{first} \gets
+\textit{prev}$; in either case, set $\textit{second} \gets
+\textit{node}$ (always update to the most recent violation's second
+node). Update $\textit{prev} \gets \textit{node}$ and continue. After
+the traversal, swap $\textit{first}.\textit{val}$ and
+$\textit{second}.\textit{val}$.
+\end{ideabox}
+
+\subsection*{Why exactly these two recorded nodes are the swapped pair}
+
+If the swap is between adjacent inorder values, exactly one violation
+occurs, and $\textit{first}$/$\textit{second}$ from that single violation
+are exactly the two swapped nodes. If the swap is between non-adjacent
+values, exactly \emph{two} violations occur: the first violation's
+\textit{prev} is the node that ended up holding too large a value (it
+should be smaller, since the swap displaced a large value into an
+earlier position), and the second violation's current node is the one
+holding too small a value (displaced later than it should be). Always
+keeping $\textit{first}$ fixed at the \emph{first} violation encountered,
+while letting $\textit{second}$ update to track the \emph{most recent}
+violation's later node, correctly identifies both endpoints of the
+original swap regardless of which of these two cases occurred --
+swapping their values back is enough to restore strict monotonicity,
+since no third node is ever out of place.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{prev}, \textit{first}, \textit{second}
+        \gets$ null.
+  \item Perform an inorder traversal. At each visited node:
+  \begin{enumerate}
+    \item If $\textit{prev} \ne$ null and $\textit{prev}.\textit{val} >
+          \textit{node}.\textit{val}$:
+    \begin{itemize}
+      \item If $\textit{first} = $ null: $\textit{first} \gets
+            \textit{prev}$.
+      \item $\textit{second} \gets \textit{node}$.
+    \end{itemize}
+    \item $\textit{prev} \gets \textit{node}$.
+  \end{enumerate}
+  \item Swap $\textit{first}.\textit{val}$ and
+        $\textit{second}.\textit{val}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{A BST whose intended inorder sequence is $1,2,3,4,5,6,7$ has
+nodes holding values $3$ and $6$ swapped, giving the actual inorder
+sequence $1,2,6,4,5,3,7$.}
+
+\begin{itemize}
+  \item Visit $1$: $\textit{prev}=$ null, no check. $\textit{prev}=1$.
+  \item Visit $2$: $1>2$? No. $\textit{prev}=2$.
+  \item Visit $6$: $2>6$? No. $\textit{prev}=6$.
+  \item Visit $4$: $6>4$? Yes -- violation. $\textit{first}=$ null, so
+        $\textit{first} \gets$ node holding $6$. $\textit{second} \gets$
+        node holding $4$. $\textit{prev}=4$.
+  \item Visit $5$: $4>5$? No. $\textit{prev}=5$.
+  \item Visit $3$: $5>3$? Yes -- violation. $\textit{first}$ already
+        set, unchanged. $\textit{second} \gets$ node holding $3$.
+        $\textit{prev}=3$.
+  \item Visit $7$: $3>7$? No. $\textit{prev}=7$.
+\end{itemize}
+
+$\textit{first}$ is the node currently holding $6$; $\textit{second}$ is
+the node currently holding $3$. Swap their values: the node that held $6$
+now holds $3$, and the node that held $3$ now holds $6$. The inorder
+sequence becomes $1,2,3,4,5,6,7$ -- correctly recovered.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void inorder(TreeNode* node, TreeNode*& prev, TreeNode*& first, TreeNode*& second) {
+    if (!node) return;
+
+    inorder(node->left, prev, first, second);
+
+    if (prev && prev->val > node->val) {
+        if (!first) first = prev;
+        second = node;
+    }
+    prev = node;
+
+    inorder(node->right, prev, first, second);
+}
+
+void recoverTree(TreeNode* root) {
+    TreeNode *prev = nullptr, *first = nullptr, *second = nullptr;
+    inorder(root, prev, first, second);
+    swap(first->val, second->val);
+}
+
+int main() {
+    // Built so that an inorder traversal visits 1, 2, 6, 4, 5, 3, 7 --
+    // i.e. the values 3 and 6 have been swapped relative to a correct BST.
+    TreeNode* root = new TreeNode(4);
+    root->left = new TreeNode(2);
+    root->left->left = new TreeNode(1);
+    root->left->right = new TreeNode(6); // swapped value
+    root->right = new TreeNode(3);       // swapped value
+    root->right->left = new TreeNode(5);
+    root->right->right = new TreeNode(7);
+
+    recoverTree(root);
+
+    TreeNode *p = nullptr, *f = nullptr, *s = nullptr;
+    inorder(root, p, f, s); // verify: no violations should remain
+    cout << (f == nullptr ? "Recovered" : "Still broken") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- a single inorder traversal visiting
+every node once.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack. (An advanced
+variant using Morris traversal achieves $O(1)$ space, at the cost of
+temporarily modifying the tree's pointers during the scan -- worth
+knowing exists, though the recursive version here is the one to derive
+first.)
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Exactly $k$ elements are out of place in an otherwise sorted sequence''
+problems are solved by scanning once and recording violation points,
+rather than sorting from scratch. Here, $k=2$ gives exactly the
+\textit{first}/\textit{second} bookkeeping shown; the same idea
+generalizes (with more bookkeeping) to other small, fixed values of $k$.
+\end{takeawaybox}

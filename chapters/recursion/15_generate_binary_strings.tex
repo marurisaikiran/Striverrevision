@@ -1,0 +1,150 @@
+\section{Generate All Binary Strings with No Two Consecutive 1s}
+\label{sec:rec-generate-binary-strings}
+
+\problemstatement{Given an integer $n$, generate all binary strings of
+length $n$ such that no two $\texttt{1}$s are adjacent (no two
+consecutive positions both hold $\texttt{1}$).}
+
+\begin{patternbox}
+Another instance of Section~\ref{sec:rec-generate-parentheses}'s
+incremental-validity-guard pattern: instead of generating all $2^n$
+binary strings and filtering, build the constraint directly into the
+choice of what character can be placed \textbf{next}, based only on
+\textbf{the single most recently placed character} -- a guard that
+depends on a small, fixed amount of local history rather than the entire
+string built so far.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+At every position, placing a $\texttt{0}$ is always safe, regardless of
+what came before -- it can never create two consecutive $\texttt{1}$s.
+Placing a $\texttt{1}$ is safe \emph{only if} the immediately preceding
+character (if any) was $\texttt{0}$ -- placing it right after another
+$\texttt{1}$ would violate the constraint. So the only piece of history
+the recursion needs to remember is a single boolean: ``was the last
+character placed a $\texttt{1}$?''
+
+\begin{ideabox}[Guard the Choice of $\texttt{1}$ by the Last Character Placed]
+$\textsc{Solve}(\textit{current}, \textit{lastWasOne})$: if
+$|\textit{current}|=n$: record $\textit{current}$; return. Always:
+append $\texttt{0}$; recurse with $\textit{lastWasOne}=\text{false}$;
+remove (undo). If $\textit{lastWasOne}$ is \text{false} (i.e.\ the
+previous character was not $\texttt{1}$, or this is the first
+character): append $\texttt{1}$; recurse with
+$\textit{lastWasOne}=\text{true}$; remove (undo).
+\end{ideabox}
+
+\subsection*{Why remembering only the single last character is sufficient}
+
+The constraint ``no two consecutive $\texttt{1}$s'' is a purely
+\textbf{local} property -- it only ever compares two \emph{adjacent}
+positions, never anything further apart. So the only information needed
+to decide whether placing a $\texttt{1}$ right now is safe is whether the
+immediately preceding position holds a $\texttt{1}$; nothing about
+positions further back can affect this decision. This is what allows the
+recursion to carry just one bit of state (rather than re-scanning the
+entire $\textit{current}$ string at every step to check for violations),
+keeping each step's validity check $O(1)$.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Solve}(\textit{current}, \textit{lastWasOne})$:
+  \begin{enumerate}
+    \item If $|\textit{current}|=n$: record $\textit{current}$; return.
+    \item Append $\texttt{0}$; recurse with
+          $\textit{lastWasOne}=\text{false}$; remove (undo).
+    \item If not $\textit{lastWasOne}$: append $\texttt{1}$; recurse
+          with $\textit{lastWasOne}=\text{true}$; remove (undo).
+  \end{enumerate}
+  \item Call $\textsc{Solve}(\texttt{""}, \text{false})$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=3$.}
+
+\begin{itemize}
+  \item $\textsc{Solve}(\texttt{""}, \text{false})$: place
+        $\texttt{0}$: $\textsc{Solve}(\texttt{"0"}, \text{false})$.
+  \begin{itemize}
+    \item Place $\texttt{0}$: $\textsc{Solve}(\texttt{"00"},
+          \text{false})$: place $\texttt{0}$: record \texttt{"000"};
+          place $\texttt{1}$ (allowed, last was $0$): record
+          \texttt{"001"}.
+    \item Place $\texttt{1}$ (allowed): $\textsc{Solve}(\texttt{"01"},
+          \text{true})$: place $\texttt{0}$: record \texttt{"010"};
+          place $\texttt{1}$ -- \textbf{not allowed} (last was
+          $\texttt{1}$), skipped entirely.
+  \end{itemize}
+  \item Place $\texttt{1}$ (allowed at the very first position):
+        $\textsc{Solve}(\texttt{"1"}, \text{true})$: place $\texttt{0}$:
+        $\textsc{Solve}(\texttt{"10"}, \text{false})$: place
+        $\texttt{0}$: record \texttt{"100"}; place $\texttt{1}$
+        (allowed): record \texttt{"101"}. Place $\texttt{1}$ -- not
+        allowed (last was $\texttt{1}$), skipped.
+\end{itemize}
+
+Recorded strings: \texttt{"000", "001", "010", "100", "101"} -- exactly
+the $5$ length-$3$ binary strings with no two consecutive $\texttt{1}$s
+(matching the Fibonacci-like count $F(n+2)$ of such strings).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void solve(string& current, bool lastWasOne, int n, vector<string>& result) {
+    if ((int)current.size() == n) {
+        result.push_back(current);
+        return;
+    }
+    current.push_back('0');
+    solve(current, false, n, result);
+    current.pop_back();
+
+    if (!lastWasOne) {
+        current.push_back('1');
+        solve(current, true, n, result);
+        current.pop_back();
+    }
+}
+
+vector<string> generateBinaryStrings(int n) {
+    vector<string> result;
+    string current;
+    solve(current, false, n, result);
+    return result;
+}
+
+int main() {
+    for (string& s : generateBinaryStrings(3)) cout << s << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The number of valid strings of length $n$ is
+$O(\phi^n)$ (a Fibonacci-like growth rate, where $\phi$ is the golden
+ratio), each costing $O(n)$ to build, giving an overall time complexity
+of
+\[
+  O(n \cdot \phi^n),
+\]
+substantially smaller than the $O(n \cdot 2^n)$ of generating and
+filtering all binary strings.
+\textbf{Space Complexity.} $O(n)$ for the recursion depth.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a backtracking constraint only ever depends on a small, fixed
+amount of recent history (here, just the single previous character),
+thread exactly that small amount of state through the recursion's
+parameters, rather than re-deriving it by re-scanning the entire
+candidate built so far. This keeps each step's validity check $O(1)$ and
+generalizes to any constraint expressible in terms of a bounded
+``sliding window'' of recent choices.
+\end{takeawaybox}

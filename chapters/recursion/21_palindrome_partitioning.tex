@@ -1,0 +1,173 @@
+\section{Palindrome Partitioning}
+\label{sec:rec-palindrome-partitioning}
+
+\problemstatement{Given a string $s$, partition it into one or more
+contiguous substrings such that \textbf{every} substring in the
+partition is itself a palindrome. Return every such partitioning.}
+
+\begin{patternbox}
+\emph{``Partition a sequence into pieces, each satisfying some
+property''} introduces a new choice shape: instead of choosing
+\emph{which elements} to include (as in subsets/combinations) or
+\emph{which direction} to move (as in grid backtracking), the choice here
+is \textbf{how far the next piece should extend} -- a loop over every
+possible end position for the current piece, starting from wherever the
+previous piece left off.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Starting from some position $\textit{start}$ in the string, the next
+piece of the partition can end anywhere from $\textit{start}$ itself up
+to the end of the string -- but only positions where the resulting
+substring $s[\textit{start}..\textit{end}]$ is a palindrome are valid
+choices. For each valid choice of where this piece ends, the rest of the
+string (from $\textit{end}+1$ onward) must be recursively partitioned
+the same way; reaching the very end of the string with no characters
+left to partition marks one complete, valid partitioning.
+
+\begin{ideabox}[Loop Over Every Valid Palindromic Prefix from the Current Start]
+$\textsc{Solve}(\textit{start}, \textit{current})$: if
+$\textit{start} = |s|$: record a copy of $\textit{current}$; return.
+Otherwise: for $\textit{end}$ from $\textit{start}$ to $|s|-1$: if
+$s[\textit{start}..\textit{end}]$ is a palindrome: append this
+substring to $\textit{current}$; recurse
+$\textsc{Solve}(\textit{end}+1, \textit{current})$; remove the
+substring (undo).
+\end{ideabox}
+
+\subsection*{Why looping over end positions correctly enumerates every partitioning}
+
+Every valid partitioning of $s[\textit{start}..]$ is uniquely determined
+by where its \emph{first} piece ends -- once that is fixed (to some
+valid palindromic substring), the rest of the partitioning is exactly a
+partitioning of whatever remains, which is the same sub-problem at a
+smaller starting position. By trying \emph{every} valid place the first
+piece could end, and recursively solving the remainder for each choice,
+we generate every possible partitioning exactly once, with no overlap
+between different choices of where the first piece ends (since two
+different end positions for the first piece necessarily produce
+different first pieces, hence different overall partitionings).
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textsc{Solve}(\textit{start}, \textit{current})$:
+  \begin{enumerate}
+    \item If $\textit{start} = |s|$: record $\textit{current}$; return.
+    \item For $\textit{end}$ from $\textit{start}$ to $|s|-1$:
+    \begin{itemize}
+      \item If $s[\textit{start}..\textit{end}]$ is a palindrome:
+            append it to $\textit{current}$; recurse
+            $\textsc{Solve}(\textit{end}+1, \textit{current})$; remove
+            it (undo).
+    \end{itemize}
+  \end{enumerate}
+  \item Call $\textsc{Solve}(0, [\,])$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"aab"}$.}
+
+\begin{itemize}
+  \item $\textsc{Solve}(0,[])$: $\textit{end}=0$:
+        $s[0..0]=\texttt{"a"}$, palindrome. Append. Recurse
+        $\textsc{Solve}(1,[\texttt{"a"}])$.
+  \begin{itemize}
+    \item $\textit{end}=1$: $s[1..1]=\texttt{"a"}$, palindrome.
+          Append. Recurse $\textsc{Solve}(2,[\texttt{"a"},\texttt{"a"}])$.
+    \begin{itemize}
+      \item $\textit{end}=2$: $s[2..2]=\texttt{"b"}$, palindrome.
+            Append. Recurse $\textsc{Solve}(3,[\texttt{"a"},\texttt{"a"},\texttt{"b"}])$:
+            $\textit{start}=3=|s|$, record
+            $[\texttt{"a"},\texttt{"a"},\texttt{"b"}]$.
+    \end{itemize}
+    \item Undo. $\textit{end}=2$ at the $[\texttt{"a"}]$ level:
+          $s[1..2]=\texttt{"ab"}$, not a palindrome. Skip.
+  \end{itemize}
+  \item Undo back to $[]$. $\textit{end}=1$ at the top level:
+        $s[0..1]=\texttt{"aa"}$, palindrome. Append. Recurse
+        $\textsc{Solve}(2,[\texttt{"aa"}])$.
+  \begin{itemize}
+    \item $\textit{end}=2$: $s[2..2]=\texttt{"b"}$, palindrome.
+          Append. Recurse $\textsc{Solve}(3,[\texttt{"aa"},\texttt{"b"}])$:
+          record $[\texttt{"aa"},\texttt{"b"}]$.
+  \end{itemize}
+  \item $\textit{end}=2$ at the top level: $s[0..2]=\texttt{"aab"}$,
+        not a palindrome. Skip.
+\end{itemize}
+
+Recorded partitionings: $[\texttt{"a"},\texttt{"a"},\texttt{"b"}]$ and
+$[\texttt{"aa"},\texttt{"b"}]$ -- the only two ways to partition
+\texttt{"aab"} into all-palindrome pieces.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isPalindrome(string& s, int lo, int hi) {
+    while (lo < hi) {
+        if (s[lo] != s[hi]) return false;
+        lo++; hi--;
+    }
+    return true;
+}
+
+void solve(int start, string& s, vector<string>& current,
+           vector<vector<string>>& result) {
+    if (start == (int)s.size()) {
+        result.push_back(current);
+        return;
+    }
+    for (int end = start; end < (int)s.size(); end++) {
+        if (isPalindrome(s, start, end)) {
+            current.push_back(s.substr(start, end - start + 1));
+            solve(end + 1, s, current, result);
+            current.pop_back();
+        }
+    }
+}
+
+vector<vector<string>> palindromePartitioning(string s) {
+    vector<vector<string>> result;
+    vector<string> current;
+    solve(0, s, current, result);
+    return result;
+}
+
+int main() {
+    for (auto& partition : palindromePartitioning("aab")) {
+        cout << "[ ";
+        for (string& piece : partition) cout << piece << " ";
+        cout << "] ";
+    }
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Up to $O(2^n)$ partitionings can exist in the
+worst case (e.g.\ a string of all-identical characters, where every
+position could start a new piece), and checking each candidate substring
+for the palindrome property costs up to $O(n)$, giving an overall worst
+case of
+\[
+  O(n \cdot 2^n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the recursion depth.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Partition a sequence into pieces satisfying a property'' is a third
+fundamental backtracking choice shape, alongside ``include or exclude
+each element'' and ``move in one of several directions'': loop over
+every possible \emph{extent} of the next piece from the current
+position, recurse on the remainder for each valid extent. This same
+``loop over partition points'' shape reappears, generalized with memoization,
+in the Matrix Chain Multiplication / Partition DP family covered later in
+the dynamic programming chapters.
+\end{takeawaybox}

@@ -1,0 +1,191 @@
+\section{Infix to Postfix Conversion}
+\label{sec:sq-infix-to-postfix}
+
+\noindent We now turn to a group of six closely related problems:
+converting between the three ways of writing an arithmetic expression.
+\textbf{Infix} places operators between operands ($a+b$) and needs
+parentheses and precedence rules to remove ambiguity. \textbf{Postfix}
+(operators after their operands, $ab+$) and \textbf{prefix} (operators
+before, $+ab$) are both unambiguous without any parentheses, which is
+exactly why calculators and compilers prefer them internally -- and why a
+stack-based scan can evaluate or convert them in a single pass.
+
+\problemstatement{Given an infix expression (operands, the binary
+operators \texttt{+ - * / \textasciicircum}, and parentheses), convert it
+to postfix notation.}
+
+\begin{patternbox}
+\emph{``Convert an expression respecting operator precedence and
+parentheses''} is the Shunting-Yard algorithm's signature: a stack holds
+operators \emph{waiting} to be placed into the output, and the central
+decision at every operator is \emph{``do any waiting operators have
+\textbf{equal or higher} precedence than the one I just read, and if so,
+should they come out first?''} -- exactly the kind of ordering decision a
+stack resolves naturally.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In postfix, an operator appears \emph{immediately after} both of its
+operands are fully written -- which means an operator can only be emitted
+to the output once we are certain nothing of higher (or equal, for
+left-associative operators) precedence is still waiting to bind tighter
+around it. Parentheses simply force this resolution explicitly: everything
+inside a $(\ldots)$ must be fully resolved into postfix before the
+parenthesis is allowed to close.
+
+\begin{ideabox}[Precedence and Associativity]
+Assign precedence: \texttt{\textasciicircum} (highest, right-associative)
+$>$ \texttt{* /} (left-associative) $>$ \texttt{+ -} (lowest,
+left-associative). When deciding whether to pop an operator already on
+the stack before pushing a new one: pop if the stacked operator has
+\textbf{strictly higher} precedence, or \textbf{equal} precedence \emph{and}
+the new operator is left-associative (for a right-associative operator
+like \texttt{\textasciicircum}, equal precedence does \emph{not} trigger a
+pop, since \texttt{\textasciicircum} groups right-to-left:
+$2\texttt{\textasciicircum}3\texttt{\textasciicircum}2$ means
+$2\texttt{\textasciicircum}(3\texttt{\textasciicircum}2)$, not
+$(2\texttt{\textasciicircum}3)\texttt{\textasciicircum}2$).
+\end{ideabox}
+
+\subsection*{Why popping by precedence produces correct postfix}
+
+An operator should only be written to postfix output once everything that
+needs to bind \emph{more tightly} around its operands has already been
+resolved. If the stack's top has strictly higher precedence, it must
+finish binding its own operands first (it is ``more urgent''), so we pop
+it to the output before pushing the new, lower-precedence operator. If
+precedences are equal and the operator is left-associative, the earlier
+(already-stacked) operator should also be resolved first, since
+left-associativity means we group left to right -- e.g.\ $a-b-c$ means
+$(a-b)-c$, so the first \texttt{-} must close over $a,b$ before the second
+\texttt{-} is considered. Right-associative operators reverse this rule
+specifically to preserve right-to-left grouping.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Scan left to right. For each token:
+  \begin{enumerate}
+    \item Operand: append to output.
+    \item \texttt{'('}: push.
+    \item \texttt{')'}: pop and append to output until \texttt{'('} is
+          popped (discard both parentheses).
+    \item Operator $op$: while the stack's top is an operator with
+          higher precedence, or equal precedence with $op$
+          left-associative: pop and append to output. Then push $op$.
+  \end{enumerate}
+  \item After the scan, pop all remaining operators to the output.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Infix to Postfix}
+\begin{algorithmic}[1]
+\Procedure{InfixToPostfix}{$s$}
+  \State $\textit{output} \gets$ empty, $\textit{stack} \gets$ empty
+  \For{each token $t$ in $s$}
+    \If{$t$ is an operand} append $t$ to \textit{output}
+    \ElsIf{$t = ($} push $t$
+    \ElsIf{$t = )$}
+      \While{top $\ne$ (} pop, append to \textit{output} \EndWhile
+      \State pop the \texttt{(}
+    \Else
+      \While{\textit{stack} not empty \textbf{and} top has higher precedence, \textbf{or} (equal precedence \textbf{and} $t$ is left-assoc)}
+        \State pop, append to \textit{output}
+      \EndWhile
+      \State push $t$
+    \EndIf
+  \EndFor
+  \While{\textit{stack} not empty} pop, append to \textit{output} \EndWhile
+  \State \Return \textit{output}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $s = \texttt{"a+b*c"}$.}
+
+\begin{itemize}
+  \item \texttt{a}: output $=\texttt{"a"}$.
+  \item \texttt{+}: stack empty, push. Stack $=[+]$.
+  \item \texttt{b}: output $=\texttt{"ab"}$.
+  \item \texttt{*}: top is \texttt{+} (lower precedence than \texttt{*}),
+        no pop. Push. Stack $=[+,*]$.
+  \item \texttt{c}: output $=\texttt{"abc"}$.
+  \item End of scan: pop all. Pop \texttt{*}: output
+        $=\texttt{"abc*"}$. Pop \texttt{+}: output $=\texttt{"abc*+"}$.
+\end{itemize}
+
+Result: \texttt{"abc*+"}, correctly reflecting that \texttt{*} binds
+tighter than \texttt{+} (i.e.\ $a+(b*c)$).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int precedence(char op) {
+    if (op == '^') return 3;
+    if (op == '*' || op == '/') return 2;
+    if (op == '+' || op == '-') return 1;
+    return 0;
+}
+
+bool isRightAssoc(char op) { return op == '^'; }
+
+string infixToPostfix(string s) {
+    string output;
+    stack<char> st;
+
+    for (char c : s) {
+        if (isalnum(c)) {
+            output += c;
+        } else if (c == '(') {
+            st.push(c);
+        } else if (c == ')') {
+            while (st.top() != '(') {
+                output += st.top();
+                st.pop();
+            }
+            st.pop(); // remove '('
+        } else { // operator
+            while (!st.empty() && st.top() != '(' &&
+                   (precedence(st.top()) > precedence(c) ||
+                    (precedence(st.top()) == precedence(c) && !isRightAssoc(c)))) {
+                output += st.top();
+                st.pop();
+            }
+            st.push(c);
+        }
+    }
+    while (!st.empty()) {
+        output += st.top();
+        st.pop();
+    }
+    return output;
+}
+
+int main() {
+    cout << infixToPostfix("a+b*c") << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each token is pushed and popped at most once,
+giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack and output in the worst
+case.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The precedence-and-associativity comparison rule derived here is reused,
+completely unchanged, in Infix to Prefix
+(Section~\ref{sec:sq-infix-to-prefix}) -- only the direction of scanning
+and the meaning of the output change.
+\end{takeawaybox}

@@ -1,0 +1,132 @@
+\section{Count Occurrences of an Element in a Sorted Array}
+\label{sec:bs-count-occurrences}
+
+\problemstatement{We are given a sorted array $\textit{arr}$ of $n$
+elements, possibly with duplicates, and a target $X$. We must count how
+many times $X$ occurs in $\textit{arr}$.}
+
+\begin{patternbox}
+\emph{``Count occurrences of $X$ in a sorted array''} is immediately
+solvable once you recall that all occurrences of $X$ occupy a single
+contiguous block (Section~\ref{sec:bs-first-last}), bounded by the lower
+bound and upper bound of $X$. The keyword to internalize: any time a
+sorted-array problem asks ``how many,'' check first whether the answer is
+simply the \emph{width} of a contiguous range you can find with two
+boundary searches, rather than something requiring an actual scan.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The lower bound of $X$ is the first index where $X$ could occur; the upper
+bound of $X$ is the first index strictly past where $X$ can occur. Every
+index in between holds a value equal to $X$ (since the array is sorted and
+both boundaries are tight), and no index outside that range does. So the
+count of occurrences is simply the number of indices in
+$[\textit{lowerBound}(X), \textit{upperBound}(X))$, i.e.
+\[
+  \textit{count} = \textit{upperBound}(X) - \textit{lowerBound}(X).
+\]
+This formula is correct even when $X$ is entirely absent: in that case
+$\textit{lowerBound}(X) = \textit{upperBound}(X)$ (both point to the same
+insertion position), giving a count of $0$ automatically, with no special
+case needed.
+
+\begin{ideabox}[Why No Presence Check Is Needed Here]
+Unlike Section~\ref{sec:bs-first-last}, where we needed an explicit
+presence check before reporting indices (an absent element has no valid
+index to report), here the quantity we want is a \emph{count}, and the
+subtraction $\textit{upperBound}(X) - \textit{lowerBound}(X)$ naturally
+evaluates to $0$ when $X$ is absent, without requiring a separate branch.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{lb} \gets \textit{lowerBound}(\textit{arr}, X)$.
+  \item $\textit{ub} \gets \textit{upperBound}(\textit{arr}, X)$.
+  \item Return $\textit{ub} - \textit{lb}$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Count Occurrences}
+\begin{algorithmic}[1]
+\Procedure{CountOccurrences}{$\textit{arr}, X$}
+  \State $\textit{lb} \gets \Call{LowerBound}{\textit{arr}, X}$
+  \State $\textit{ub} \gets \Call{UpperBound}{\textit{arr}, X}$
+  \State \Return $\textit{ub} - \textit{lb}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [2, 4, 4, 4, 4, 8, 10]$, $X = 4$.}
+
+$\textit{lowerBound}(4)$: first index with value $\ge 4$ is index $1$.
+$\textit{upperBound}(4)$: first index with value $> 4$ is index $5$
+($\textit{arr}[5]=8$). So $\textit{count} = 5 - 1 = 4$, correctly matching
+the four occurrences of $4$ at indices $1,2,3,4$.
+
+Now take $X = 6$ on the same array (absent). Both
+$\textit{lowerBound}(6)$ and $\textit{upperBound}(6)$ equal $5$ (the first
+index with value $\ge 6$, and also the first index with value $>6$, is
+index $5$, where $\textit{arr}[5]=8$). So $\textit{count} = 5-5=0$,
+correctly reporting absence.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int lowerBound(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1, ans = n;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] >= X) { ans = mid; hi = mid - 1; }
+        else lo = mid + 1;
+    }
+    return ans;
+}
+
+int upperBound(vector<int>& arr, int X) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1, ans = n;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] > X) { ans = mid; hi = mid - 1; }
+        else lo = mid + 1;
+    }
+    return ans;
+}
+
+int countOccurrences(vector<int>& arr, int X) {
+    return upperBound(arr, X) - lowerBound(arr, X);
+}
+
+int main() {
+    vector<int> arr = {2, 4, 4, 4, 4, 8, 10};
+    cout << "Occurrences of 4: " << countOccurrences(arr, 4) << endl;
+    cout << "Occurrences of 6: " << countOccurrences(arr, 6) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Two binary searches, each $O(\log n)$, giving
+\[
+  O(\log n),
+\]
+a dramatic improvement over the $O(n)$ linear scan that counting
+occurrences would otherwise require.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``How many elements satisfy property $P$'' on a sorted array, where $P$
+itself is monotonic (true on a contiguous range), almost always reduces to
+``find the two boundaries of the true range and subtract.'' This is a
+strictly more general restatement of the lower/upper-bound subtraction
+trick, worth recognizing beyond just counting exact value matches.
+\end{takeawaybox}

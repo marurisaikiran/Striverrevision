@@ -1,0 +1,104 @@
+\section{Next Smaller Element}
+\label{sec:sq-next-smaller}
+
+\problemstatement{Given an array $\textit{arr}$, find, for every element,
+the next element to its right that is strictly \textbf{smaller}, or $-1$
+if none exists.}
+
+\begin{patternbox}
+The mirror image of Section~\ref{sec:sq-next-greater-1}: flip every
+comparison, and the monotonic stack should now be kept strictly
+\textbf{increasing} from bottom to top instead of decreasing.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+By the same reasoning as next greater element, scanning right to left:
+before processing $\textit{arr}[i]$, any stack element $\ge
+\textit{arr}[i]$ can never be the ``next smaller'' answer for anything
+still to the left, since $\textit{arr}[i]$ is closer and at least as
+small. Popping these and keeping whatever survives gives the nearest
+qualifying smaller value.
+
+\begin{ideabox}[Monotonic Increasing Stack, Scanned Right to Left]
+Scan right to left. Before processing $\textit{arr}[i]$, pop every stack
+element $\ge \textit{arr}[i]$. The survivor on top (if any) is $i$'s next
+smaller element. Push $\textit{arr}[i]$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack and a result array.
+  \item For $i$ from $n-1$ down to $0$:
+  \begin{enumerate}
+    \item While the stack is not empty and its top $\ge
+          \textit{arr}[i]$: pop.
+    \item $\textit{result}[i] \gets$ the stack's top if non-empty, else
+          $-1$.
+    \item Push $\textit{arr}[i]$.
+  \end{enumerate}
+  \item Return \textit{result}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [4,8,5,2,25]$.}
+
+\begin{itemize}
+  \item $i=4$ ($25$): stack empty. $\textit{result}[4]=-1$. Push $25$.
+  \item $i=3$ ($2$): top $25\ge2$, pop. Stack empty.
+        $\textit{result}[3]=-1$. Push $2$.
+  \item $i=2$ ($5$): top $2<5$, no pop. $\textit{result}[2]=2$. Push
+        $5$. Stack $=[2,5]$.
+  \item $i=1$ ($8$): top $5<8$, no pop. $\textit{result}[1]=5$. Push
+        $8$. Stack $=[2,5,8]$.
+  \item $i=0$ ($4$): top $8\ge4$, pop. New top $5\ge4$, pop. New top
+        $2<4$, no pop. $\textit{result}[0]=2$. Push $4$.
+\end{itemize}
+
+Result: $[2,5,2,-1,-1]$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> nextSmallerElement(vector<int>& arr) {
+    int n = arr.size();
+    vector<int> result(n, -1);
+    stack<int> st;
+
+    for (int i = n - 1; i >= 0; i--) {
+        while (!st.empty() && st.top() >= arr[i]) {
+            st.pop();
+        }
+        result[i] = st.empty() ? -1 : st.top();
+        st.push(arr[i]);
+    }
+    return result;
+}
+
+int main() {
+    vector<int> arr = {4, 8, 5, 2, 25};
+    for (int x : nextSmallerElement(arr)) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$, by the same amortized argument as
+Section~\ref{sec:sq-next-greater-1}.
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Next/previous greater/smaller'' is really one template with four
+dials: which direction to scan (left-to-right for \emph{previous},
+right-to-left for \emph{next}) and which comparison the stack enforces
+(decreasing for \emph{greater}, increasing for \emph{smaller}). Once you
+have derived one of the four, the rest follow by flipping the relevant
+dial.
+\end{takeawaybox}

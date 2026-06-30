@@ -1,0 +1,153 @@
+\section{Asteroid Collision}
+\label{sec:sq-asteroid-collision}
+
+\problemstatement{We are given an array $\textit{asteroids}$, where each
+element's absolute value is an asteroid's size and its sign is its
+direction of travel (positive moves right, negative moves left; all move
+at the same speed). When two asteroids meet, the smaller one explodes; if
+both are the same size, both explode. Asteroids moving in the same
+direction never meet. Return the state of the asteroids after all
+collisions have finished.}
+
+\begin{patternbox}
+\emph{``Process a sequence left to right, where a new element can
+repeatedly `defeat' and remove previously-kept elements (or be defeated
+by them) based on a comparison''} is, structurally, the same skeleton as
+next greater element (Section~\ref{sec:sq-next-greater-1}): a stack of
+``currently surviving'' items, where each new arrival potentially knocks
+out some suffix of what's already on the stack before either joining it
+or being knocked out itself.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+A collision can only happen between a \textbf{right-moving} asteroid that
+was placed earlier and a \textbf{left-moving} asteroid that arrives later
+(two right-movers never catch up to each other since they move at the
+same speed; a left-mover followed by a right-mover are moving apart and
+never meet). So, scanning left to right and keeping a stack of asteroids
+that have survived so far: whenever a new \emph{left-moving} asteroid
+arrives and the stack's top is a surviving \emph{right-moving} asteroid,
+they are on a collision course, and we must resolve who survives --
+possibly triggering a chain of further collisions if the new asteroid is
+large enough to destroy multiple right-movers in a row.
+
+\begin{ideabox}[Stack of Surviving Asteroids, with Chain Collisions]
+Maintain a stack. For a right-moving asteroid (positive), simply push it
+-- no immediate collision is possible yet. For a left-moving asteroid
+(negative): while the stack's top is positive (a right-mover) and smaller
+in size than the incoming asteroid, pop it (it loses). If the stack's
+top is positive and exactly equal in size, pop it and the incoming
+asteroid is also destroyed (mutual annihilation) -- stop processing this
+asteroid. If the stack's top is positive and larger, the incoming asteroid
+is destroyed -- stop processing this asteroid, do not push it. If the
+stack becomes empty or its top is negative (no more right-movers to
+collide with), and the incoming asteroid was never destroyed, push it.
+\end{ideabox}
+
+\subsection*{Why processing collisions as a chain (not just one comparison) is correct}
+
+A single incoming left-moving asteroid might be large enough to destroy
+\emph{several} consecutive right-moving asteroids already on the stack
+before either finally being destroyed itself or surviving to be pushed.
+Each such destruction is resolved by exactly the comparison rule above,
+applied repeatedly -- this is precisely the same ``pop everything the new
+arrival invalidates'' loop structure as a monotonic stack, except the
+``invalidation'' rule here is a size comparison between asteroids of
+opposite direction rather than a simple value comparison, and the loop
+must also account for the three-way outcome (incoming destroyed, top
+destroyed, or both destroyed) rather than a single binary pop/no-pop
+decision.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize an empty stack.
+  \item For each asteroid $a$ in $\textit{asteroids}$:
+  \begin{enumerate}
+    \item $\textit{alive} \gets \text{true}$.
+    \item While $\textit{alive}$, $a < 0$, the stack is not empty, and
+          the stack's top is $>0$:
+    \begin{itemize}
+      \item If top $< -a$: pop (the top asteroid is destroyed); continue
+            the loop.
+      \item Else if top $= -a$: pop; $\textit{alive} \gets \text{false}$
+            (mutual destruction).
+      \item Else (top $> -a$): $\textit{alive} \gets \text{false}$
+            (the incoming asteroid is destroyed).
+    \end{itemize}
+    \item If $\textit{alive}$: push $a$.
+  \end{enumerate}
+  \item Return the stack's contents, bottom to top.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{asteroids} = [5, 10, -5]$.}
+
+\begin{itemize}
+  \item $a=5$: positive, push. Stack $=[5]$.
+  \item $a=10$: positive, push. Stack $=[5,10]$.
+  \item $a=-5$: negative. Top is $10>0$. Is $10 < 5$? No. Is $10=5$?
+        No. So top ($10$) $> 5$: the incoming asteroid ($-5$) is
+        destroyed. \textit{alive} $=$ false. Do not push.
+\end{itemize}
+
+Final stack: $[5,10]$.
+
+Now take $\textit{asteroids} = [8,-8]$: $a=8$ pushed. $a=-8$: top is $8$,
+and $8 = 8$: pop, mutual destruction, \textit{alive}$=$false. Final
+stack: $[]$ (both annihilated).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> asteroidCollision(vector<int>& asteroids) {
+    vector<int> st; // used as a stack via back()/push_back()/pop_back()
+
+    for (int a : asteroids) {
+        bool alive = true;
+        while (alive && a < 0 && !st.empty() && st.back() > 0) {
+            if (st.back() < -a) {
+                st.pop_back(); // top destroyed, continue checking
+            } else if (st.back() == -a) {
+                st.pop_back();
+                alive = false; // mutual destruction
+            } else {
+                alive = false; // incoming asteroid destroyed
+            }
+        }
+        if (alive) st.push_back(a);
+    }
+    return st;
+}
+
+int main() {
+    vector<int> asteroids = {5, 10, -5};
+    for (int x : asteroidCollision(asteroids)) cout << x << " ";
+    cout << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} Each asteroid is pushed at most once and popped
+at most once across the entire scan, giving
+\[
+  O(n).
+\]
+\textbf{Space Complexity.} $O(n)$ for the stack in the worst case (no
+collisions occur).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Monotonic-stack-style ``pop everything the new arrival invalidates''
+logic generalizes beyond simple value comparisons: here the invalidation
+rule is a three-way size comparison between opposite-direction asteroids,
+but the overall shape -- a while-loop popping a suffix of the stack, then
+conditionally pushing the new arrival -- is unchanged from
+Section~\ref{sec:sq-next-greater-1}.
+\end{takeawaybox}

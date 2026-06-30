@@ -1,0 +1,128 @@
+\section{Count Good Numbers}
+\label{sec:rec-good-numbers}
+
+\problemstatement{A digit string of length $n$ is called \textbf{good} if
+every digit at an \textbf{even} index (0-indexed) is one of the even
+digits $\{0,2,4,6,8\}$, and every digit at an \textbf{odd} index is one
+of the prime digits $\{2,3,5,7\}$. Count how many good digit strings of
+length $n$ exist, modulo $10^9+7$.}
+
+\begin{patternbox}
+Despite involving ``counting all possibilities,'' this is \emph{not} a
+backtracking problem -- there is no need to actually generate any digit
+string, because each position's choice is completely \textbf{independent}
+of every other position's choice. Whenever every position in a sequence
+can be filled independently from a fixed-size choice set, the total count
+is simply the \textbf{product} of each position's choice count, and that
+product is best computed via \textbf{fast exponentiation}, a
+straight-line recursion that shrinks an exponent by half at each step.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Among the $n$ positions, $\lceil n/2 \rceil$ are at even indices ($0, 2,
+4, \dots$) and $\lfloor n/2 \rfloor$ are at odd indices. Each even-index
+position independently has $5$ valid choices ($0,2,4,6,8$), and each
+odd-index position independently has $4$ valid choices ($2,3,5,7$). By
+the multiplication principle (every combination of independent choices
+is a distinct valid string), the total count is
+\[
+  5^{\lceil n/2 \rceil} \times 4^{\lfloor n/2 \rfloor} \pmod{10^9+7}.
+\]
+The only remaining challenge is computing a large power modulo $10^9+7$
+efficiently, since $n$ can be large enough that computing $5^{n/2}$ by
+repeated multiplication, one factor at a time, would be too slow.
+
+\begin{ideabox}[Fast Exponentiation: Halve the Exponent, Not Decrement It]
+To compute $\textit{base}^{\textit{exp}}$: if $\textit{exp}=0$, the
+answer is $1$ (base case). If $\textit{exp}$ is even, recursively compute
+$\textit{half} = \textit{base}^{\textit{exp}/2}$, and the answer is
+$\textit{half} \times \textit{half}$. If $\textit{exp}$ is odd, compute
+$\textit{half} = \textit{base}^{(\textit{exp}-1)/2}$, and the answer is
+$\textit{half} \times \textit{half} \times \textit{base}$.
+\end{ideabox}
+
+\subsection*{Why halving the exponent gives $O(\log n)$ instead of $O(n)$}
+
+A naive recursive power function that decrements the exponent by $1$ at
+each call would need $O(n)$ recursive calls, each doing one
+multiplication. Halving the exponent instead means the recursion depth is
+only $O(\log n)$ -- each level squares an already-computed result rather
+than multiplying by the base value just once, exploiting the identity
+$\textit{base}^{2k} = (\textit{base}^k)^2$ to skip directly from
+computing one power to a power roughly twice as large, in a single
+multiplication. This is the same ``shrink faster than one unit at a
+time'' idea elaborated fully in Section~\ref{sec:rec-pow}.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{evenCount} \gets \lceil n/2 \rceil$,
+        $\textit{oddCount} \gets \lfloor n/2 \rfloor$.
+  \item Compute $\textit{a} \gets 5^{\textit{evenCount}} \bmod
+        (10^9+7)$ via fast exponentiation.
+  \item Compute $\textit{b} \gets 4^{\textit{oddCount}} \bmod
+        (10^9+7)$ via fast exponentiation.
+  \item Return $(\textit{a} \times \textit{b}) \bmod (10^9+7)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Take $n=4$.}
+
+$\textit{evenCount}=2$ (indices $0,2$), $\textit{oddCount}=2$ (indices
+$1,3$). $5^2=25$, $4^2=16$. Answer $=25\times16=400$.
+
+Checking by hand for a tiny case, $n=1$: $\textit{evenCount}=1$,
+$\textit{oddCount}=0$. $5^1=5$, $4^0=1$. Answer $=5$ -- correctly, the
+$5$ single-digit good numbers are $0,2,4,6,8$ (index $0$ is even, so any
+even digit qualifies, and there is no odd index to satisfy).
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1e9 + 7;
+
+long long power(long long base, long long exp) {
+    if (exp == 0) return 1;
+    long long half = power(base, exp / 2) % MOD;
+    long long result = (half * half) % MOD;
+    if (exp % 2 == 1) result = (result * base) % MOD;
+    return result;
+}
+
+int countGoodNumbers(long long n) {
+    long long evenCount = (n + 1) / 2;
+    long long oddCount = n / 2;
+
+    long long a = power(5, evenCount);
+    long long b = power(4, oddCount);
+    return (a * b) % MOD;
+}
+
+int main() {
+    cout << "Good numbers of length 4: " << countGoodNumbers(4) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\log n)$ for each fast-exponentiation call,
+giving an overall time complexity of
+\[
+  O(\log n).
+\]
+\textbf{Space Complexity.} $O(\log n)$ for the recursion stack of fast
+exponentiation.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a counting problem's choices at every position are independent
+of each other, resist the urge to enumerate -- multiply the per-position
+choice counts directly, and reach for fast exponentiation the moment that
+product involves a single base raised to a large power. This pattern of
+recognizing independence to avoid generation entirely recurs throughout
+combinatorial counting problems.
+\end{takeawaybox}

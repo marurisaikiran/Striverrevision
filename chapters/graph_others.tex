@@ -1,0 +1,57 @@
+\chapter{Graphs: Strongly Connected Components, Bridges, and Articulation Points}
+\chapterepigraph{This closing graph chapter asks about structural
+weak points and tightly-knit clusters: which groups of nodes can all
+reach each other (strongly connected components), and which single
+edges or nodes -- if removed -- would break the graph apart (bridges
+and articulation points)? Both questions are answered by one DFS,
+carrying a little extra bookkeeping about \emph{when} each node was
+discovered.}
+
+\section{Discovery Time and Low-Link Value}
+\label{sec:graph-others-intro}
+
+Sections~\ref{sec:graph-bridges} and~\ref{sec:graph-articulation-points}
+both rely on two numbers computed during a single DFS pass:
+
+\begin{ideabox}[The Two Numbers Every Node Tracks]
+\begin{itemize}
+  \item $\textit{tin}[\textit{node}]$: the \textbf{discovery time} --
+        the order in which DFS first visits this node (a simple
+        counter, incremented on each new visit).
+  \item $\textit{low}[\textit{node}]$: the \textbf{lowest discovery
+        time reachable} from this node's DFS subtree, using any
+        combination of tree edges (down to children) and \textbf{back
+        edges} (up to an already-visited ancestor) -- but
+        \textbf{never} the single tree edge back to the immediate
+        parent, since that edge doesn't represent genuine alternate
+        connectivity.
+\end{itemize}
+A node's $\textit{low}$ value answers: ``ignoring the edge I arrived
+through, how far back up the DFS tree can I still reach?'' -- and that
+single question, asked at every node, is what both bridges and
+articulation points are built from.
+\end{ideabox}
+
+\begin{patternbox}[What This Chapter Covers]
+\begin{itemize}
+  \item \textbf{Strongly Connected Components (Section~\ref{sec:graph-kosaraju}):}
+        a different technique entirely (Kosaraju's algorithm, using
+        finish-time ordering and a graph transpose) for the directed-graph
+        analogue of ``which nodes can all reach each other.''
+  \item \textbf{Bridges in a Graph (Section~\ref{sec:graph-bridges})}:
+        an edge $u\to v$ (tree edge) is a bridge exactly when
+        $v$'s subtree has \textbf{no} back edge reaching $u$ or higher
+        -- i.e.\ $\textit{low}[v] > \textit{tin}[u]$.
+  \item \textbf{Articulation Points (Section~\ref{sec:graph-articulation-points})}:
+        a near-identical condition, $\textit{low}[v] \ge
+        \textit{tin}[u]$ (note: $\ge$, not $>$), identifying
+        \textbf{nodes} whose removal disconnects the graph, with one
+        special case for the DFS root.
+\end{itemize}
+\end{patternbox}
+
+\newpage
+
+\input{chapters/graph_others/01_kosaraju.tex}
+\input{chapters/graph_others/02_bridges.tex}
+\input{chapters/graph_others/03_articulation_points.tex}

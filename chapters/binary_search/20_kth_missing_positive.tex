@@ -1,0 +1,161 @@
+\section{Kth Missing Positive Number}
+\label{sec:bs-kth-missing}
+
+\problemstatement{We are given a sorted array $\textit{arr}$ of $n$
+distinct positive integers, and an integer $k$. We must find the $k$-th
+positive integer that is \textbf{missing} from $\textit{arr}$.}
+
+\begin{patternbox}
+There is no array index to ``find $X$ at'' here -- we are counting
+\emph{missing} numbers, which is a different flavor of monotonic quantity
+than anything in Sections~\ref{sec:bs-find-x}--\ref{sec:bs-peak-1d}.
+Whenever a sorted-array problem asks about \emph{missing} elements (gaps in
+an otherwise-expected sequence) and wants the $k$-th such gap, look for a
+formula that counts ``how many integers are missing up to this point in
+the array,'' and binary search for the boundary where that count first
+reaches $k$.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Consider index $i$ (0-indexed) in the array. If none of $\textit{arr}[0],
+\dots, \textit{arr}[i]$ were missing from the positive integers
+$1, \dots, \textit{arr}[i]$, there would be exactly $\textit{arr}[i]$ of
+them present, occupying $\textit{arr}[i]$ slots; but only $i+1$ of them
+\emph{are} actually present (the first $i+1$ elements of the array), so
+\[
+  \textit{missingCount}(i) = \textit{arr}[i] - (i+1)
+\]
+counts exactly how many positive integers from $1$ to $\textit{arr}[i]$ are
+missing from the array. Because $\textit{arr}$ is sorted and strictly
+increasing, $\textit{arr}[i]$ grows at least as fast as $i$ does, so
+$\textit{missingCount}(i)$ is non-decreasing in $i$ -- exactly the
+monotonic structure we need.
+
+\begin{ideabox}[Candidate Space and Predicate]
+The candidate space is indices $0, \dots, n-1$ (with an implicit
+``beyond the array'' fallback). The predicate is
+$P(i) = (\textit{missingCount}(i) \ge k)$, and we want the smallest index
+where $P$ holds.
+\end{ideabox}
+
+\subsection*{Why $k + \textit{lo}$ is the final answer}
+
+Let $\textit{lo}$ be the smallest index where $\textit{missingCount}
+(\textit{lo}) \ge k$ (or $n$, if even the last element's missing count is
+still below $k$, meaning the answer lies beyond the array entirely). Just
+before this index, $\textit{missingCount}(\textit{lo}-1) < k$, meaning
+fewer than $k$ numbers are missing among $1, \dots, \textit{arr}
+[\textit{lo}-1]$; from $\textit{arr}[\textit{lo}-1]+1$ onward (which is not
+yet present in the array, since $\textit{arr}[\textit{lo}]$ is strictly
+larger), missing numbers resume counting up consecutively until reaching
+$\textit{missingCount}(\textit{lo}) \ge k$. A clean way to see the final
+formula: exactly $\textit{lo}$ array elements (indices $0, \dots,
+\textit{lo}-1$) are known to be \emph{smaller} than the answer (since the
+crossover into ``enough missing numbers'' has not yet happened at index
+$\textit{lo}-1$), so among the first $k + \textit{lo}$ positive integers,
+exactly $\textit{lo}$ are present in the array and the remaining $k$ are
+missing -- meaning the $k$-th missing positive integer is precisely
+$k + \textit{lo}$.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$.
+  \item While $\textit{lo} \le \textit{hi}$:
+  \begin{enumerate}
+    \item $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$.
+    \item Compute $\textit{missingCount} \gets \textit{arr}[\textit{mid}] -
+          (\textit{mid}+1)$.
+    \item If $\textit{missingCount} < k$: $\textit{lo} \gets
+          \textit{mid}+1$.
+    \item Else: $\textit{hi} \gets \textit{mid}-1$.
+  \end{enumerate}
+  \item Return $k + \textit{lo}$.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Kth Missing Positive Number}
+\begin{algorithmic}[1]
+\Procedure{KthMissing}{$\textit{arr}, k$}
+  \State $\textit{lo} \gets 0$, $\textit{hi} \gets n-1$
+  \While{$\textit{lo} \le \textit{hi}$}
+    \State $\textit{mid} \gets \textit{lo}+(\textit{hi}-\textit{lo})/2$
+    \State $\textit{missing} \gets \textit{arr}[\textit{mid}] - (\textit{mid}+1)$
+    \If{$\textit{missing} < k$}
+      \State $\textit{lo} \gets \textit{mid} + 1$
+    \Else
+      \State $\textit{hi} \gets \textit{mid} - 1$
+    \EndIf
+  \EndWhile
+  \State \Return $k + \textit{lo}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [2,3,4,7,11]$, $k = 5$.}
+
+\begin{itemize}
+  \item $\textit{lo}=0,\textit{hi}=4$: $\textit{mid}=2$,
+        $\textit{missing}=\textit{arr}[2]-3=4-3=1 < 5$. $\textit{lo}=3$.
+  \item $\textit{lo}=3,\textit{hi}=4$: $\textit{mid}=3$,
+        $\textit{missing}=7-4=3 < 5$. $\textit{lo}=4$.
+  \item $\textit{lo}=4,\textit{hi}=4$: $\textit{mid}=4$,
+        $\textit{missing}=11-5=6 \ge 5$. $\textit{hi}=3$.
+  \item $\textit{lo}=4 > \textit{hi}=3$: loop ends.
+\end{itemize}
+
+The answer is $k+\textit{lo} = 5+4 = 9$. Checking by hand: the missing
+positive integers, in order, are $1, 5, 6, 8, 9, 10, 12, \dots$, and the
+$5$-th one is indeed $9$.
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int findKthMissing(vector<int>& arr, int k) {
+    int n = arr.size();
+    int lo = 0, hi = n - 1;
+
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        int missing = arr[mid] - (mid + 1);
+        if (missing < k) {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return k + lo;
+}
+
+int main() {
+    vector<int> arr = {2, 3, 4, 7, 11};
+    cout << "5th missing positive number: "
+         << findKthMissing(arr, 5) << endl;
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} The search window halves each iteration, giving
+\[
+  O(\log n).
+\]
+This is a substantial improvement over the natural $O(n)$ linear-scan
+approach of walking through the array while counting missing numbers one
+at a time.
+\textbf{Space Complexity.} $O(1)$ auxiliary space.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem asks about ``missing'' elements relative to an expected
+dense sequence (here, the positive integers), look for a closed-form
+counting function -- ``expected count minus actual count up to this
+point'' -- that is monotonic, and binary search on that function's
+crossover rather than scanning and counting one gap at a time.
+\end{takeawaybox}

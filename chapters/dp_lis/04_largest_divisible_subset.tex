@@ -1,0 +1,110 @@
+\section{Largest Divisible Subset}
+\label{sec:dp-largest-divisible-subset}
+
+\problemstatement{Given an array of \textbf{distinct} positive
+integers, find the largest subset such that for every pair of elements
+$(a,b)$ in it, either $a \bmod b = 0$ or $b \bmod a = 0$.}
+
+\begin{patternbox}
+\emph{``Largest subset where every pair divides''} is
+Section~\ref{sec:dp-lis-intro}'s ending-here template with the
+condition $\textit{arr}[j] < \textit{arr}[i]$ replaced by
+$\textit{arr}[i] \bmod \textit{arr}[j] = 0$ -- after first
+\textbf{sorting} the array, exactly the same preparatory step LIS uses
+implicitly (LIS's input is typically already read left to right; here
+we must sort first to make the pairwise-divisibility condition reduce
+to a simple left-to-right chain check).
+\end{patternbox}
+
+\subsection*{Why sorting first is essential}
+
+After sorting, if $\textit{arr}[k]$ divides $\textit{arr}[j]$ and
+$\textit{arr}[j]$ divides $\textit{arr}[i]$ (with $k<j<i$ in the sorted
+order), then $\textit{arr}[k]$ \emph{automatically} divides
+$\textit{arr}[i]$ too (divisibility is transitive). So checking only
+\textbf{consecutive} chain links ($\textit{arr}[j] \mid
+\textit{arr}[i]$ for the immediately preceding chosen element) is
+sufficient to guarantee \emph{every pair} in the resulting chain
+satisfies the divisibility condition -- exactly mirroring why LIS only
+checks $\textit{arr}[j]<\textit{arr}[i]$ pairwise rather than every
+triple.
+
+\subsection*{The recurrence}
+
+\[
+  \textit{dp}[i] = 1 + \max_{j<i,\ \textit{arr}[i] \bmod
+  \textit{arr}[j] = 0} \textit{dp}[j] \quad (\text{or } 1 \text{ if no
+  such } j).
+\]
+
+\subsection*{Algorithm (with reconstruction)}
+
+Exactly Section~\ref{sec:dp-print-lis}'s parent-pointer approach,
+with the extension condition swapped to divisibility.
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> largestDivisibleSubset(vector<int> arr) {
+    int n = arr.size();
+    sort(arr.begin(), arr.end());
+
+    vector<int> dp(n, 1), parent(n);
+    for (int i = 0; i < n; i++) parent[i] = i;
+
+    int lastIndex = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < i; j++) {
+            if (arr[i] % arr[j] == 0 && 1 + dp[j] > dp[i]) {
+                dp[i] = 1 + dp[j];
+                parent[i] = j;
+            }
+        }
+        if (dp[i] > dp[lastIndex]) lastIndex = i;
+    }
+
+    vector<int> result;
+    int cur = lastIndex;
+    while (parent[cur] != cur) {
+        result.push_back(arr[cur]);
+        cur = parent[cur];
+    }
+    result.push_back(arr[cur]);
+    reverse(result.begin(), result.end());
+    return result;
+}
+
+int main() {
+    vector<int> arr = {1, 16, 7, 8, 4};
+    for (int x : largestDivisibleSubset(arr)) cout << x << " ";
+    cout << endl; // 1 4 8 16
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Take $\textit{arr} = [1,16,7,8,4]$, sorted: $[1,4,7,8,16]$.}
+
+$\textit{dp}=[1,2,1,3,4]$: $4 \bmod 1=0 \Rightarrow \textit{dp}[1]=2$;
+$8 \bmod 4=0 \Rightarrow \textit{dp}[3]=3$ (extending the chain
+$1,4,8$); $16 \bmod 8=0 \Rightarrow \textit{dp}[4]=4$ (extending
+$1,4,8,16$). Note $7$ extends nothing (no earlier sorted element
+divides it), so $\textit{dp}[2]=1$. The maximum is $4$, giving the
+subset $[1,4,8,16]$.
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n \log n)$ to sort, plus $O(n^2)$ to fill
+the table: $O(n^2)$ overall.
+\textbf{Space Complexity.} $O(n)$ for \textit{dp} and \textit{parent}.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Whenever a pairwise condition is \textbf{transitive} (if $A$ relates to
+$B$ and $B$ relates to $C$ then $A$ relates to $C$), sorting first and
+then checking only consecutive chain links is enough -- the exact
+property that lets both LIS's ``less than'' and this problem's
+``divides'' collapse an all-pairs condition down to a simple
+left-to-right ending-here DP.
+\end{takeawaybox}
