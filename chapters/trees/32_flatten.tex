@@ -1,0 +1,118 @@
+\section{Flatten a Binary Tree to a Linked List}
+\label{sec:trees-flatten}
+
+\problemstatement{Flatten a binary tree in place so that it becomes a
+``linked list'': every node's left child is null and its right child points
+to the next node in \emph{preorder}. Use the existing right pointers as the
+list's next pointers.}
+
+\begin{patternbox}
+The target order is \emph{preorder}, so the flattened list is node, then
+all of the (flattened) left subtree, then all of the (flattened) right
+subtree. The elegant $O(1)$-space solution is a \textbf{reverse-preorder}
+(right, left, node) walk that stitches each node's right pointer to the
+previously visited node -- building the list backwards.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In the final list, after any node come all its left-subtree nodes, then its
+right-subtree nodes. If we process nodes in the \emph{reverse} of preorder
+-- that is right subtree, then left subtree, then the node -- then at the
+moment we handle a node, the entire portion of the list that should come
+\emph{after} it has already been assembled and is pointed to by a running
+\textit{prev} pointer. So we set node.right $=$ \textit{prev}, node.left
+$=$ null, and update \textit{prev} $=$ node.
+
+\begin{ideabox}[Build the List Backwards with a Running \textit{prev}]
+Traverse in right, left, node order. Keep \textit{prev}, the head of the
+already-flattened suffix. At each node: set its right pointer to
+\textit{prev}, its left pointer to null, then set \textit{prev} to this
+node. When the traversal finishes, \textit{prev} is the root of the fully
+flattened list.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textit{prev} $=$ null.
+  \item \textsc{Flatten}(node):
+  \begin{enumerate}
+    \item If node is null, return.
+    \item \textsc{Flatten}(node.right).
+    \item \textsc{Flatten}(node.left).
+    \item node.right $=$ \textit{prev}; node.left $=$ null; \textit{prev}
+          $=$ node.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (children $3,4$); right $5$ (right child
+$6$). Preorder: $1,2,3,4,5,6$.}
+
+\begin{itemize}
+  \item Reverse-preorder processes $6$ first: $6$.right$=$null,
+        \textit{prev}$=6$.
+  \item Then $5$: $5$.right$=6$, \textit{prev}$=5$. Then $4$:
+        $4$.right$=5$, \textit{prev}$=4$. Then $3$: $3$.right$=4$. Then
+        $2$: $2$.right$=3$, left null. Then $1$: $1$.right$=2$, left null.
+  \item Result chain via right pointers: $1\!\to\!2\!\to\!3\!\to\!4\!\to
+        \!5\!\to\!6$, all left pointers null.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+TreeNode* prevNode = nullptr;
+
+void flatten(TreeNode* node) {
+    if (node == nullptr) return;
+    flatten(node->right);      // right first
+    flatten(node->left);       // then left
+    node->right = prevNode;    // stitch onto the already-built suffix
+    node->left = nullptr;
+    prevNode = node;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(5);
+    root->left->left = new TreeNode(3);
+    root->left->right = new TreeNode(4);
+    root->right->right = new TreeNode(6);
+
+    prevNode = nullptr;
+    flatten(root);
+
+    for (TreeNode* c = root; c != nullptr; c = c->right)
+        cout << c->val << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node is visited once.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack; a Morris-style
+variant achieves $O(1)$ by rewiring the rightmost node of each left subtree
+to the right subtree, in the spirit of the previous two sections.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Processing nodes in reverse of the target order, while carrying a
+\textit{prev} pointer to the already-built tail, is a recurring in-place
+linking technique -- the same idea that reverses a linked list. Flattening
+a tree is that trick applied along a preorder spine.
+\end{takeawaybox}

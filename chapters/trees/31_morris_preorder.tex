@@ -1,0 +1,127 @@
+\section{Morris Preorder Traversal}
+\label{sec:trees-morris-preorder}
+
+\problemstatement{Return the preorder traversal of a binary tree in $O(1)$
+extra space -- no recursion and no explicit stack.}
+
+\begin{patternbox}
+Morris preorder is Morris inorder with the ``record'' step moved. Recall
+from Section~\ref{sec:trees-rec-traversals} that preorder and inorder are
+the same walk with the node recorded at a different moment. In the threaded
+walk, that means recording the node \emph{when you create the thread}
+(first visit) rather than when you remove it.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The Morris machinery -- thread the predecessor's null right pointer, walk
+left, later return and unthread -- visits each node twice when it has a left
+child: once on the way in (creating the thread) and once on the way back
+(removing it). Inorder records on the second visit; preorder must record on
+the \emph{first}. So we output the node's value at the moment we create the
+thread (and immediately for nodes with no left child), which places the
+node before its subtrees -- exactly preorder.
+
+\begin{ideabox}[Same Threads, Record on the First Visit]
+Identical to Morris inorder, with one line moved: when you create a thread
+(first time you reach a node with a left child), record the node
+\emph{then}, before moving left. Nodes without a left child are still
+recorded immediately. When you later remove a thread, do \emph{not} record
+again.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textit{curr} $=$ root.
+  \item While \textit{curr} is non-null:
+  \begin{enumerate}
+    \item If \textit{curr} has no left child: record \textit{curr}; move
+          right.
+    \item Else find predecessor \textit{pred} (rightmost of the left
+          subtree, not through a thread):
+    \begin{enumerate}
+      \item If \textit{pred}.right is null: \textbf{record
+            \textit{curr}} (first visit); set \textit{pred}.right $=$
+            \textit{curr}; move left.
+      \item Else: reset \textit{pred}.right to null; move right (no
+            recording).
+    \end{enumerate}
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$; right $3$.}
+
+\begin{itemize}
+  \item \textit{curr}$=1$, has left. Predecessor $2$.right null $\to$
+        record $1$; thread $2\!\to\!1$; move left to $2$.
+  \item \textit{curr}$=2$, no left $\to$ record $2$; move right via
+        thread to $1$.
+  \item \textit{curr}$=1$, predecessor $2$.right $=1$ (thread) $\to$
+        remove thread; move right to $3$ (no record).
+  \item \textit{curr}$=3$, no left $\to$ record $3$.
+  \item Preorder: $1,2,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> morrisPreorder(TreeNode* root) {
+    vector<int> out;
+    TreeNode* curr = root;
+    while (curr != nullptr) {
+        if (curr->left == nullptr) {
+            out.push_back(curr->val);
+            curr = curr->right;
+        } else {
+            TreeNode* pred = curr->left;
+            while (pred->right != nullptr && pred->right != curr)
+                pred = pred->right;
+            if (pred->right == nullptr) {
+                out.push_back(curr->val);    // record on FIRST visit
+                pred->right = curr;
+                curr = curr->left;
+            } else {
+                pred->right = nullptr;       // second visit: just unthread
+                curr = curr->right;
+            }
+        }
+    }
+    return out;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+
+    for (int x : morrisPreorder(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each edge is walked a constant number
+of times. \textbf{Space Complexity.} $O(1)$ -- threads only, tree restored
+at the end.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Once Morris inorder is understood, preorder is a one-line change -- record
+on the first visit instead of the second -- reaffirming the chapter's
+opening theme that the three depth-first orders differ only in \emph{when}
+the node is recorded, threading or not.
+\end{takeawaybox}

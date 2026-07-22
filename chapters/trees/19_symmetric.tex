@@ -1,0 +1,108 @@
+\section{Symmetric Binary Tree}
+\label{sec:trees-symmetric}
+
+\problemstatement{A binary tree is symmetric if it is a mirror image of
+itself around its centre: the left subtree is the mirror reflection of the
+right subtree. Given the root, determine whether the tree is symmetric.}
+
+\begin{patternbox}
+\emph{``Mirror,'' ``symmetric,'' ``reflection''} is the identical-trees
+lockstep recursion (Section~\ref{sec:trees-same}) with a twist: instead of
+comparing left-with-left and right-with-right, we compare the \emph{outer}
+pair with each other and the \emph{inner} pair with each other. Mirror
+matching crosses the two children.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Symmetry is a statement about the left subtree versus the right subtree.
+Two subtrees are mirror images when their roots are equal \emph{and} the
+left one's left child mirrors the right one's right child (the outer edges)
+\emph{and} the left one's right child mirrors the right one's left child
+(the inner edges). The crossing -- left.left with right.right, left.right
+with right.left -- is what encodes ``reflection'' rather than ``equality.''
+
+\begin{ideabox}[Mirror-Compare: Outer with Outer, Inner with Inner]
+Define \textsc{Mirror}($a$, $b$): they mirror iff both are null, or both
+are non-null with equal values \emph{and} \textsc{Mirror}($a$.left,
+$b$.right) \emph{and} \textsc{Mirror}($a$.right, $b$.left). The whole tree
+is symmetric iff \textsc{Mirror}(root.left, root.right).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If root is null, return true.
+  \item \textsc{Mirror}($a$, $b$):
+  \begin{enumerate}
+    \item If both null, return true; if exactly one null, return false.
+    \item If $a.val \ne b.val$, return false.
+    \item Return \textsc{Mirror}($a$.left, $b$.right) \textbf{and}
+          \textsc{Mirror}($a$.right, $b$.left).
+  \end{enumerate}
+  \item Return \textsc{Mirror}(root.left, root.right).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (children $3,4$); right $2$ (children
+$4,3$).}
+
+\begin{itemize}
+  \item Mirror($2_L$, $2_R$): values equal. Compare outer
+        ($2_L$.left$=3$, $2_R$.right$=3$) and inner ($2_L$.right$=4$,
+        $2_R$.left$=4$).
+  \item Outer $3,3$: equal, children null $\to$ true. Inner $4,4$: true.
+  \item All true $\Rightarrow$ \textbf{symmetric}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+bool mirror(TreeNode* a, TreeNode* b) {
+    if (a == nullptr && b == nullptr) return true;
+    if (a == nullptr || b == nullptr) return false;
+    if (a->val != b->val) return false;
+    return mirror(a->left, b->right) &&    // outer pair
+           mirror(a->right, b->left);      // inner pair
+}
+
+bool isSymmetric(TreeNode* root) {
+    if (root == nullptr) return true;
+    return mirror(root->left, root->right);
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(2);
+    root->left->left = new TreeNode(3);
+    root->left->right = new TreeNode(4);
+    root->right->left = new TreeNode(4);
+    root->right->right = new TreeNode(3);
+
+    cout << (isSymmetric(root) ? "symmetric" : "not symmetric") << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each pair of mirrored nodes is compared
+once. \textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Symmetry is equality with the two children crossed. Recognising it as ``the
+same-tree recursion, but mirror the child pairing'' means you write it
+correctly the first time instead of tangling the four child comparisons.
+\end{takeawaybox}

@@ -1,0 +1,117 @@
+\section{Vertical Order Traversal}
+\label{sec:trees-vertical}
+
+\problemstatement{Assign the root a horizontal distance (HD) of $0$; a left
+child has HD one less than its parent, a right child one more. Return
+nodes grouped by HD from leftmost to rightmost. Within the same HD, order
+by depth (top to bottom); nodes at the same HD \emph{and} same depth are
+ordered by value.}
+
+\begin{patternbox}
+\emph{``Vertical,'' ``columns,'' ``horizontal distance''} says: tag each
+node with a \textbf{(HD, depth)} coordinate, collect everything into a map
+keyed by HD, and sort within each column. The traversal is ordinary BFS or
+DFS; the work is in the coordinate bookkeeping and the tie-breaking rules.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Imagine dropping vertical lines through the tree. Every node falls on one
+line, identified by its horizontal distance. Reading the answer means
+listing lines left to right, and within a line, top to bottom. The precise
+LeetCode-style rule adds a final tie-break: if two nodes share both HD and
+depth, the smaller value comes first. Storing each node as a triple
+$(\text{HD},\text{depth},\text{value})$ and sorting makes all three rules
+fall out of one comparison.
+
+\begin{ideabox}[Order by (HD, then depth, then value)]
+Traverse the tree recording, for each node, the triple $(HD, depth,
+val)$: root is $(0,0,val)$, a left child inherits $(HD-1, depth+1)$, a
+right child $(HD+1, depth+1)$. Group into a map from HD to the list of
+$(depth, val)$ pairs; sort each list by $(depth, val)$; emit columns in
+increasing HD.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item BFS/DFS from the root carrying $(HD, depth)$; append $(depth,
+        val)$ into $\textit{cols}[HD]$.
+  \item For each HD in increasing order, sort its list by $(depth, val)$
+        and output the values.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$; right $3$; $2$'s right child $4$; $3$'s
+left child $5$ (so $4$ and $5$ both land on HD $0$).}
+
+\begin{itemize}
+  \item $1:(0,0)$; $2:(-1,1)$; $3:(1,1)$; $4:(0,2)$; $5:(0,2)$.
+  \item HD $-1$: $[2]$. HD $0$: $\{(0,1),(2,4),(2,5)\}$ sorted by
+        (depth,val) $\to 1,4,5$. HD $1$: $[3]$.
+  \item Result: $[[2],[1,4,5],[3]]$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void dfs(TreeNode* node, int hd, int depth,
+         map<int, vector<pair<int,int>>>& cols) {
+    if (node == nullptr) return;
+    cols[hd].push_back({depth, node->val});
+    dfs(node->left,  hd - 1, depth + 1, cols);
+    dfs(node->right, hd + 1, depth + 1, cols);
+}
+
+vector<vector<int>> verticalTraversal(TreeNode* root) {
+    map<int, vector<pair<int,int>>> cols;   // hd -> (depth, val)
+    dfs(root, 0, 0, cols);
+
+    vector<vector<int>> ans;
+    for (auto& [hd, vec] : cols) {          // map iterates hd ascending
+        sort(vec.begin(), vec.end());       // by depth, then value
+        vector<int> col;
+        for (auto& [d, v] : vec) col.push_back(v);
+        ans.push_back(col);
+    }
+    return ans;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->right = new TreeNode(4);
+    root->right->left = new TreeNode(5);
+
+    for (auto& col : verticalTraversal(root)) {
+        for (int x : col) cout << x << " ";
+        cout << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ -- dominated by sorting the columns
+(total $n$ entries across all columns). \textbf{Space Complexity.} $O(n)$
+for the map and the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Tagging nodes with coordinates and offloading the ordering to a sorted map
+plus a per-column sort turns a geometric-sounding problem into
+bookkeeping. Top view and bottom view (next sections) reuse the same HD
+tag with a simpler rule for which node on each line ``wins.''
+\end{takeawaybox}

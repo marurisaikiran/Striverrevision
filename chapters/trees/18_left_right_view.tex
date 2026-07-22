@@ -1,0 +1,113 @@
+\section{Left View and Right View of a Binary Tree}
+\label{sec:trees-left-right-view}
+
+\problemstatement{The right view is the sequence of nodes visible from the
+right side of the tree: the \emph{last} node at each level (top to bottom).
+The left view is the \emph{first} node at each level. Return both.}
+
+\begin{patternbox}
+\emph{``View from the side,'' ``first/last node per level''} is level-order
+selection: for each level, the rightmost node is the right view, the
+leftmost is the left view. This is even simpler than the HD-based views --
+there is no horizontal distance, only ``which node ends (or begins) each
+level.''
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Standing to the right of the tree, on each level you see only the node
+furthest right, because it blocks the ones behind it. So the right view is
+just ``the last node of each level.'' Equivalently, with a depth-first
+approach that visits \emph{right child before left}, the first node seen
+at each new depth is the right-view node -- which gives an elegant $O(h)$
+recursion.
+
+\begin{ideabox}[First Node Seen per Depth, Right-First DFS]
+Recurse carrying the current depth. Visit the \emph{right} child before
+the left. The first time the recursion reaches a given depth, the node it
+is at is the rightmost at that depth -- record it. For the left view, do
+the same but visit the \emph{left} child first.
+\end{ideabox}
+
+\subsection*{Algorithm (right view)}
+
+\begin{enumerate}
+  \item \textsc{DFS}(\textit{node}, \textit{depth}, \textit{out}):
+  \begin{enumerate}
+    \item If \textit{node} is null, return.
+    \item If $\textit{depth} = \text{size of } \textit{out}$: this is the
+          first node reached at this depth -- append its value.
+    \item \textsc{DFS}(\textit{node}.right, \textit{depth}+1);
+          \textsc{DFS}(\textit{node}.left, \textit{depth}+1).
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (right child $5$); right $3$.}
+
+\begin{itemize}
+  \item DFS($1$,$0$): out empty, depth $0=0 \Rightarrow$ record $1$.
+        Recurse right into $3$, then left into $2$.
+  \item DFS($3$,$1$): depth $1=$ size $1 \Rightarrow$ record $3$. (No
+        children.)
+  \item DFS($2$,$1$): depth $1 \ne$ size $2$ -- skip. Recurse right into
+        $5$.
+  \item DFS($5$,$2$): depth $2=$ size $2 \Rightarrow$ record $5$.
+  \item Right view: $1,3,5$. (Left view by symmetry: $1,2,5$.)
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void rightDFS(TreeNode* node, int depth, vector<int>& out) {
+    if (node == nullptr) return;
+    if (depth == (int)out.size()) out.push_back(node->val);
+    rightDFS(node->right, depth + 1, out);   // right first
+    rightDFS(node->left,  depth + 1, out);
+}
+
+void leftDFS(TreeNode* node, int depth, vector<int>& out) {
+    if (node == nullptr) return;
+    if (depth == (int)out.size()) out.push_back(node->val);
+    leftDFS(node->left,  depth + 1, out);    // left first
+    leftDFS(node->right, depth + 1, out);
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->right = new TreeNode(5);
+
+    vector<int> rv, lv;
+    rightDFS(root, 0, rv);
+    leftDFS(root, 0, lv);
+
+    cout << "Right view: "; for (int x : rv) cout << x << " "; cout << "\n";
+    cout << "Left view:  "; for (int x : lv) cout << x << " "; cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- every node is visited once.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The ``record only when depth equals the current answer size'' test is a
+compact way to detect ``first node reached at a new depth'' without an
+explicit level loop. Swapping the child-visit order flips left view to
+right view -- another example of one algorithm, two mirrored variants.
+\end{takeawaybox}

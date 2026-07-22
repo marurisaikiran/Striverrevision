@@ -1,0 +1,121 @@
+\section{Construct a Binary Tree from Postorder and Inorder}
+\label{sec:trees-construct-post-in}
+
+\problemstatement{Given the postorder and inorder traversals of a binary
+tree with unique values, reconstruct and return the tree.}
+
+\begin{patternbox}
+This is the previous section mirrored. Postorder visits left, right,
+\emph{root} -- so the root is the \textbf{last} element, not the first. Read
+postorder \emph{right to left} and it behaves like preorder with the
+children swapped: root, then right subtree, then left subtree. So build the
+\textbf{right subtree before the left}, consuming postorder from the back.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Because postorder ends with the root, a cursor moving backward through
+postorder yields roots in the order root, right-subtree-root,
+\ldots. Inorder still splits into left and right around the root's
+position. The one change from the preorder version: since we now encounter
+the right subtree's root immediately after the current root (reading
+backward), we must recurse \emph{right first}, then left, so the backward
+cursor lines up with the subtrees correctly.
+
+\begin{ideabox}[Postorder from the Back Names Roots; Build Right, Then Left]
+Take the current root as postorder[\textit{postIdx}] and decrement
+\textit{postIdx}. Split inorder at the root's position. Recurse into the
+\emph{right} subtree first (node.right), then the \emph{left}
+(node.left) -- the reverse of the preorder construction.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build \textit{pos}: value $\to$ inorder index. Set
+        \textit{postIdx} $=n-1$.
+  \item \textsc{Build}(\textit{inLo}, \textit{inHi}):
+  \begin{enumerate}
+    \item If \textit{inLo} $>$ \textit{inHi}, return null.
+    \item \textit{rootVal} $=$ postorder[\textit{postIdx}--]; make node.
+    \item $p=\textit{pos}[\textit{rootVal}]$.
+    \item node.right $=$ \textsc{Build}($p+1$, \textit{inHi}); node.left
+          $=$ \textsc{Build}(\textit{inLo}, $p-1$).
+    \item Return node.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{postorder $=[9,15,7,20,3]$, inorder $=[9,3,15,20,7]$.}
+
+\begin{itemize}
+  \item Root $=3$ (postorder last); inorder index $1$: left $=[9]$, right
+        $=[15,20,7]$.
+  \item Build right first: next root (moving back) $=20$; inorder index
+        $3$: right $=[7]$ (leaf), left $=[15]$ (leaf).
+  \item Build left: next root $=9$ -- leaf.
+  \item Reconstructed tree matches the original.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int postIdx;
+
+TreeNode* build(vector<int>& postorder, int inLo, int inHi,
+                unordered_map<int,int>& pos) {
+    if (inLo > inHi) return nullptr;
+    int rootVal = postorder[postIdx--];
+    TreeNode* node = new TreeNode(rootVal);
+    int p = pos[rootVal];
+    node->right = build(postorder, p + 1, inHi, pos);  // right first
+    node->left  = build(postorder, inLo, p - 1, pos);
+    return node;
+}
+
+TreeNode* buildTree(vector<int>& inorder, vector<int>& postorder) {
+    unordered_map<int,int> pos;
+    for (int i = 0; i < (int)inorder.size(); i++) pos[inorder[i]] = i;
+    postIdx = postorder.size() - 1;
+    return build(postorder, 0, inorder.size() - 1, pos);
+}
+
+void inorderPrint(TreeNode* n) {
+    if (!n) return;
+    inorderPrint(n->left);
+    cout << n->val << " ";
+    inorderPrint(n->right);
+}
+
+int main() {
+    vector<int> inorder   = {9, 3, 15, 20, 7};
+    vector<int> postorder = {9, 15, 7, 20, 3};
+    TreeNode* root = buildTree(inorder, postorder);
+    inorderPrint(root);
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ with the inorder index map. \textbf{Space
+Complexity.} $O(n)$ for the map plus $O(h)$ recursion.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Postorder+inorder is preorder+inorder read backward with the child order
+flipped. Seeing the symmetry means you derive one from the other instead of
+memorising two separate algorithms. Note: preorder+postorder alone cannot
+uniquely rebuild a tree -- inorder is what fixes the left/right split.
+\end{takeawaybox}

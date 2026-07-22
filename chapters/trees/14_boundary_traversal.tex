@@ -1,0 +1,141 @@
+\section{Boundary Traversal of a Binary Tree}
+\label{sec:trees-boundary}
+
+\problemstatement{Given the root of a binary tree, return an
+anti-clockwise boundary traversal: the left boundary (top-down, excluding
+leaves), then all leaves left-to-right, then the right boundary
+(bottom-up, excluding leaves). The root is included once.}
+
+\begin{patternbox}
+\emph{``Boundary,'' ``outline,'' ``perimeter''} decomposes into three
+independent walks that must be stitched without double-counting: the left
+edge going down, the leaves going across, and the right edge coming back
+up. The only real care is avoiding overlap where these parts meet -- which
+is why leaves are deliberately excluded from the two edges.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The perimeter of the tree consists of three disjoint pieces. The
+\textbf{left boundary} is the path you get by always going left (or right
+if there is no left child), from the root's left child down, stopping
+before leaves. The \textbf{leaves} are every node with no children, in
+left-to-right order. The \textbf{right boundary} is the mirror -- always
+go right (or left otherwise) -- collected then reversed so it reads
+bottom-up. Excluding leaves from the two boundaries prevents a corner leaf
+from being listed twice.
+
+\begin{ideabox}[Three Walks, No Overlap]
+(1) Add the root (unless it is itself a leaf). (2) Walk the left boundary
+top-down, adding non-leaf nodes. (3) Add all leaves via any DFS,
+left-to-right. (4) Walk the right boundary top-down into a temporary list,
+adding non-leaf nodes, then append that list \emph{reversed}. Leaves are
+skipped in steps~2 and~4 precisely so step~3 owns them exclusively.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If root is not a leaf, add root's value.
+  \item Left boundary: start at root.left; while the node exists, if it is
+        not a leaf add it; move to its left child, or right child if no
+        left.
+  \item Leaves: DFS the whole tree; whenever a node has no children, add
+        it.
+  \item Right boundary: start at root.right; collect non-leaf nodes
+        top-down (preferring right children) into a list; append that
+        list reversed.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (children $4$,$5$); right $3$ (right
+child $6$, whose left child $7$).}
+
+\begin{itemize}
+  \item Root $1$ (not a leaf): add $1$.
+  \item Left boundary from $2$: $2$ not a leaf, add $2$; go to $4$ -- a
+        leaf, stop. Boundary so far: $1,2$.
+  \item Leaves L$\to$R: $4,5,7$. Now: $1,2,4,5,7$.
+  \item Right boundary from $3$: $3$ not leaf add $3$; go to $6$, not leaf
+        add $6$; $7$ is a leaf, stop. List $[3,6]$ reversed $=[6,3]$.
+  \item Result: $1,2,4,5,7,6,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+bool isLeaf(TreeNode* n) {
+    return n->left == nullptr && n->right == nullptr;
+}
+
+void addLeaves(TreeNode* n, vector<int>& out) {
+    if (n == nullptr) return;
+    if (isLeaf(n)) { out.push_back(n->val); return; }
+    addLeaves(n->left, out);
+    addLeaves(n->right, out);
+}
+
+vector<int> boundaryTraversal(TreeNode* root) {
+    vector<int> out;
+    if (root == nullptr) return out;
+    if (!isLeaf(root)) out.push_back(root->val);
+
+    // left boundary (top-down, non-leaf)
+    TreeNode* cur = root->left;
+    while (cur) {
+        if (!isLeaf(cur)) out.push_back(cur->val);
+        cur = cur->left ? cur->left : cur->right;
+    }
+
+    // all leaves, left to right
+    addLeaves(root, out);
+
+    // right boundary (top-down into temp, then reversed)
+    vector<int> tmp;
+    cur = root->right;
+    while (cur) {
+        if (!isLeaf(cur)) tmp.push_back(cur->val);
+        cur = cur->right ? cur->right : cur->left;
+    }
+    for (int i = (int)tmp.size() - 1; i >= 0; i--) out.push_back(tmp[i]);
+    return out;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->left->left = new TreeNode(4);
+    root->left->right = new TreeNode(5);
+    root->right = new TreeNode(3);
+    root->right->right = new TreeNode(6);
+    root->right->right->left = new TreeNode(7);
+
+    for (int x : boundaryTraversal(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- the leaf DFS is $O(n)$ and each
+boundary walk is $O(h)$. \textbf{Space Complexity.} $O(n)$ for the output
+and $O(h)$ recursion for the leaf pass.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Boundary problems are less about clever algorithms and more about a clean
+decomposition with disciplined de-duplication at the seams. Deciding up
+front that ``leaves belong to exactly one of the three parts'' is what
+keeps the corners from being counted twice.
+\end{takeawaybox}

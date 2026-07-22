@@ -1,0 +1,109 @@
+\section{Root-to-Node Path}
+\label{sec:trees-root-to-node-path}
+
+\problemstatement{Given the root of a binary tree and a target node value
+(assume values are unique), return the sequence of node values on the path
+from the root down to the target.}
+
+\begin{patternbox}
+\emph{``Path from the root to a node,'' ``ancestors of a node''} is a
+backtracking DFS: descend adding the current node to a running path; if
+this node is the target, stop and keep the path; if neither subtree
+contains the target, \textbf{remove the current node} before returning. The
+add-then-remove-on-failure rhythm is the essence of backtracking.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+There is exactly one path from the root to any node in a tree. We build it
+incrementally: push the current node onto the path, then check ``is this
+the target, or is the target somewhere below on the left or right?'' If
+yes, this node is genuinely on the path and stays. If the target is not
+here and not in either subtree, this node was a wrong turn and must be
+popped so it does not pollute the path for other branches.
+
+\begin{ideabox}[Add on Entry, Pop on a Dead End]
+\textsc{Find}(node, target, path): if node is null return false; push
+node.val onto path; if node.val equals target return true; if
+\textsc{Find}(left) or \textsc{Find}(right) returns true, return true
+(node stays on the path); otherwise pop node.val (dead end) and return
+false.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Find}(\textit{node}, \textit{target}, \textit{path}):
+  \begin{enumerate}
+    \item If \textit{node} is null, return false.
+    \item Push \textit{node}.val onto \textit{path}.
+    \item If \textit{node}.val $=$ \textit{target}, return true.
+    \item If \textsc{Find}(left) \textbf{or} \textsc{Find}(right),
+          return true.
+    \item Pop \textit{node}.val; return false.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (children $4,5$); right $3$. Target $5$.}
+
+\begin{itemize}
+  \item Push $1$. Not $5$. Recurse left into $2$.
+  \item Push $2$. Not $5$. Recurse left into $4$: push $4$, not $5$, no
+        children, pop $4$, return false. Recurse right into $5$: push
+        $5$, equals target, return true.
+  \item $2$ keeps ($5$ found below); $1$ keeps.
+  \item Path: $1,2,5$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+bool findPath(TreeNode* node, int target, vector<int>& path) {
+    if (node == nullptr) return false;
+    path.push_back(node->val);
+    if (node->val == target) return true;
+    if (findPath(node->left, target, path) ||
+        findPath(node->right, target, path))
+        return true;
+    path.pop_back();                 // dead end: backtrack
+    return false;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->left = new TreeNode(4);
+    root->left->right = new TreeNode(5);
+
+    vector<int> path;
+    findPath(root, 5, path);
+    for (int x : path) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- in the worst case every node is
+visited once. \textbf{Space Complexity.} $O(h)$ for the recursion stack
+and the path.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The push-on-entry / pop-on-failure pattern is backtracking in its simplest
+tree form, and it is the conceptual basis for the next section's lowest
+common ancestor and for any ``list the ancestors'' query.
+\end{takeawaybox}

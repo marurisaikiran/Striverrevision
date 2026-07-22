@@ -1,0 +1,129 @@
+\section{All Nodes at Distance K from a Target}
+\label{sec:trees-distance-k}
+
+\problemstatement{Given the root, a target node, and an integer $K$, return
+the values of all nodes that are exactly $K$ edges away from the target.
+Distance may go upward (toward ancestors) as well as downward.}
+
+\begin{patternbox}
+The twist is \emph{``distance can go upward.''} A binary tree node has no
+parent pointer, so radiating outward in all directions is impossible with
+the raw structure. The fix: \textbf{build a parent map} so every node
+effectively becomes a graph vertex with up-to-three neighbours (left
+child, right child, parent), then run a plain \textbf{BFS} from the target.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+``All nodes at distance $K$'' is a BFS problem -- but BFS needs to move in
+every direction, including up to the parent. So we first walk the tree
+once recording each node's parent in a hash map. Now the tree behaves like
+an undirected graph: from any node we can step to its left child, right
+child, or parent. A breadth-first expansion from the target, stopping after
+$K$ layers, lands exactly on the distance-$K$ nodes.
+
+\begin{ideabox}[Turn the Tree into a Graph, Then BFS $K$ Layers]
+Record parents with one DFS. Start BFS from the target with a
+\textit{visited} set (so we never walk back the way we came). Expand
+layer by layer; after $K$ layers the queue holds precisely the nodes at
+distance $K$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item DFS to fill \textit{parent}[node] for every node.
+  \item BFS from target: mark it visited, distance $0$.
+  \item Repeat $K$ times: expand the current frontier to all unvisited
+        neighbours (left, right, parent), marking them visited.
+  \item After $K$ expansions, the frontier is the answer.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $3$; left $5$ (children $6,2$); right $1$. Target $5$,
+$K=2$.}
+
+\begin{itemize}
+  \item Parents: $5\!\to\!3$, $6\!\to\!5$, $2\!\to\!5$, $1\!\to\!3$.
+  \item Layer $0$: $\{5\}$. Layer $1$: neighbours of $5$ = $6,2,3$
+        (children and parent).
+  \item Layer $2$: from $6$ nothing new; from $2$ nothing new; from $3$
+        neighbours are $5$ (visited) and $1$ (new). Frontier $=\{1\}$.
+  \item Nodes at distance $2$: $1$ (and, in the classic example, $7,4$ if
+        present under $1$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void markParents(TreeNode* node, unordered_map<TreeNode*, TreeNode*>& par) {
+    if (node == nullptr) return;
+    if (node->left)  { par[node->left]  = node; markParents(node->left,  par); }
+    if (node->right) { par[node->right] = node; markParents(node->right, par); }
+}
+
+vector<int> distanceK(TreeNode* root, TreeNode* target, int K) {
+    unordered_map<TreeNode*, TreeNode*> par;
+    markParents(root, par);
+
+    unordered_set<TreeNode*> visited;
+    queue<TreeNode*> q;
+    q.push(target);
+    visited.insert(target);
+
+    int dist = 0;
+    while (!q.empty()) {
+        if (dist == K) break;
+        int s = q.size();
+        for (int i = 0; i < s; i++) {
+            TreeNode* node = q.front(); q.pop();
+            for (TreeNode* nb : {node->left, node->right, par.count(node) ? par[node] : nullptr}) {
+                if (nb && !visited.count(nb)) { visited.insert(nb); q.push(nb); }
+            }
+        }
+        dist++;
+    }
+
+    vector<int> ans;
+    while (!q.empty()) { ans.push_back(q.front()->val); q.pop(); }
+    return ans;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(3);
+    root->left = new TreeNode(5);
+    root->right = new TreeNode(1);
+    root->left->left  = new TreeNode(6);
+    root->left->right = new TreeNode(2);
+
+    vector<int> res = distanceK(root, root->left, 2);
+    sort(res.begin(), res.end());
+    for (int x : res) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one DFS to record parents and a BFS
+visiting each node at most once. \textbf{Space Complexity.} $O(n)$ for the
+parent map, visited set, and queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Distance in all directions'' on a tree is a graph-BFS problem in
+disguise; the enabling move is manufacturing parent pointers so upward
+travel becomes possible. This parent-map trick recurs in the next section's
+burning-tree problem.
+\end{takeawaybox}

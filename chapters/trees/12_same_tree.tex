@@ -1,0 +1,106 @@
+\section{Check if Two Trees Are Identical}
+\label{sec:trees-same}
+
+\problemstatement{Given the roots of two binary trees, determine whether
+they are structurally identical and have the same node values at every
+corresponding position.}
+
+\begin{patternbox}
+\emph{``Are these two trees the same?''} is a \textbf{simultaneous
+traversal}: walk both trees in lockstep and compare node against node. The
+recursion is the same ``ask both children'' shape, but applied to a pair
+of nodes at once, with equality being the conjunction of ``roots match''
+and ``left subtrees match'' and ``right subtrees match.''
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Two trees are identical exactly when their roots hold equal values and,
+recursively, their left subtrees are identical and their right subtrees
+are identical. The base cases handle the ends of branches: two nulls are
+identical; one null and one node are not.
+
+\begin{ideabox}[Lockstep Recursion with a Three-Way Base Case]
+Compare node $p$ and node $q$ together:
+\begin{itemize}
+  \item If both are null: identical here (return true).
+  \item If exactly one is null, or their values differ: not identical
+        (return false).
+  \item Otherwise: return ``left pair identical'' \textbf{and} ``right
+        pair identical.''
+\end{itemize}
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Same}($p$, $q$):
+  \begin{enumerate}
+    \item If $p$ and $q$ are both null, return true.
+    \item If exactly one is null, return false.
+    \item If $p.val \ne q.val$, return false.
+    \item Return \textsc{Same}($p$.left, $q$.left) \textbf{and}
+          \textsc{Same}($p$.right, $q$.right).
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree A: root $1$, left $2$, right $3$. Tree B: root $1$, left $2$,
+right $4$.}
+
+\begin{itemize}
+  \item Roots $1=1$: recurse on left pair and right pair.
+  \item Left pair $2,2$: equal, children all null $\Rightarrow$ true.
+  \item Right pair $3,4$: $3\ne4 \Rightarrow$ false.
+  \item Conjunction: true \textbf{and} false $=$ \textbf{false}. Not
+        identical.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+bool isSameTree(TreeNode* p, TreeNode* q) {
+    if (p == nullptr && q == nullptr) return true;
+    if (p == nullptr || q == nullptr) return false;
+    if (p->val != q->val) return false;
+    return isSameTree(p->left, q->left) &&
+           isSameTree(p->right, q->right);
+}
+
+int main() {
+    TreeNode* a = new TreeNode(1);
+    a->left = new TreeNode(2);
+    a->right = new TreeNode(3);
+
+    TreeNode* b = new TreeNode(1);
+    b->left = new TreeNode(2);
+    b->right = new TreeNode(4);
+
+    cout << (isSameTree(a, b) ? "identical" : "different") << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ where $n$ is the size of the smaller
+tree -- the recursion stops at the first mismatch or null. \textbf{Space
+Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Comparing two structures by recursing on both in lockstep, with a careful
+null/null vs.\ null/non-null base case, is a template that also underlies
+``symmetric tree'' (compare a tree against its own mirror) and subtree-of
+checks.
+\end{takeawaybox}

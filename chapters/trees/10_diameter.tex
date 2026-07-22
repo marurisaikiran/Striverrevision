@@ -1,0 +1,112 @@
+\section{Diameter of a Binary Tree}
+\label{sec:trees-diameter}
+
+\problemstatement{The diameter of a binary tree is the length (number of
+edges) of the longest path between any two nodes. The path need not pass
+through the root. Given the root, return the diameter.}
+
+\begin{patternbox}
+\emph{``Longest path between any two nodes, not necessarily through the
+root''} is the classic ``return one thing, track another'' pattern. At
+each node the \emph{best path passing through it} is left height $+$ right
+height, but what the node must \emph{return} to its parent is only its own
+height. Two different quantities: a \textbf{global maximum} for the answer,
+a \textbf{return value} for the parent.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Any path has a single highest node -- its ``peak.'' The path through a
+given peak descends into the left subtree and the right subtree, so its
+length is (height of left subtree) $+$ (height of right subtree) edges.
+The overall diameter is the maximum of that quantity over all possible
+peaks. Since every node is the peak of exactly one candidate path, we
+evaluate this candidate at every node during a height computation.
+
+\begin{ideabox}[Compute Height, Update a Global Diameter Along the Way]
+Run the ordinary height recursion. At each node, before returning, update
+a global answer with $L+R$ (the through-this-node path length in edges).
+Then return $1+\max(L,R)$ to the parent as usual. The node contributes its
+own candidate to the global max but hands the parent only what the parent
+needs.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Keep a global \textit{best} $=0$.
+  \item \textsc{Height}(\textit{node}):
+  \begin{enumerate}
+    \item If null, return $0$.
+    \item $L=$\textsc{Height}(left), $R=$\textsc{Height}(right).
+    \item \textit{best} $=\max(\textit{best},\ L+R)$.
+    \item Return $1+\max(L,R)$.
+  \end{enumerate}
+  \item Answer is \textit{best}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ with children $4,5$; right $3$.}
+
+\begin{itemize}
+  \item Height($4$)$=$Height($5$)$=1$. At $2$: $L=1,R=1$, best$=\max(0,2)=2$;
+        return $2$.
+  \item Height($3$)$=1$. At $1$: $L=2,R=1$, best$=\max(2,3)=3$; return
+        $3$.
+  \item Diameter $=3$ edges (path $4\!-\!2\!-\!1\!-\!3$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int best;
+
+int height(TreeNode* node) {
+    if (node == nullptr) return 0;
+    int L = height(node->left);
+    int R = height(node->right);
+    best = max(best, L + R);      // path through this node, in edges
+    return 1 + max(L, R);
+}
+
+int diameterOfBinaryTree(TreeNode* root) {
+    best = 0;
+    height(root);
+    return best;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->left = new TreeNode(4);
+    root->left->right = new TreeNode(5);
+
+    cout << "Diameter: " << diameterOfBinaryTree(root) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one height pass with $O(1)$ extra work
+per node. A naive ``compute height twice at every node'' solution would be
+$O(n^2)$. \textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Return one value to the parent, update a separate global for the answer''
+is the reusable shape for any tree problem where the optimum can bend
+through a node rather than continue straight down. The very next section,
+maximum path sum, is the same idea with values instead of heights.
+\end{takeawaybox}

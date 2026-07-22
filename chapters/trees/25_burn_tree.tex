@@ -1,0 +1,129 @@
+\section{Minimum Time to Burn the Tree}
+\label{sec:trees-burn}
+
+\problemstatement{A fire starts at a given target node. Each second, the
+fire spreads from every burning node to its adjacent nodes (children and
+parent). Return the minimum number of seconds needed to burn the entire
+tree.}
+
+\begin{patternbox}
+This is the ``distance in all directions'' idea taken to its conclusion:
+the answer is the \textbf{maximum distance} from the target to \emph{any}
+node, because the last node to catch fire is the farthest one. Same
+recipe -- \textbf{parent map plus BFS from the target} -- but instead of
+stopping at layer $K$, count how many layers it takes to exhaust the tree.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Fire spreads one edge per second in every direction. A node at graph
+distance $d$ from the source catches fire at second $d$. The whole tree is
+ablaze once the farthest node burns, so the time equals the eccentricity
+of the target: the greatest distance to any node. A BFS from the target,
+counting completed layers until the queue empties, measures exactly this.
+
+\begin{ideabox}[Answer = Number of BFS Layers to Empty the Tree]
+Build the parent map, BFS from the target with a visited set. Each fully
+processed frontier is one second of spread. The number of layers after the
+\emph{initial} one (the source itself, at time $0$) is the burn time --
+i.e.\ increment a timer each time you expand a non-empty next frontier.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item DFS to fill \textit{parent}[node].
+  \item BFS from target; \textit{time} $=-1$ (so the first layer, the
+        source, corresponds to time $0$).
+  \item Each layer: mark all unvisited neighbours; if the layer expanded
+        anything, increment \textit{time}. Actually, increment
+        \textit{time} once per processed frontier.
+  \item Return \textit{time}.
+\end{enumerate}
+
+(Concretely: initialise \textit{time} $=0$, and increment it only when a
+frontier produces at least one newly burning node.)
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (left child $4$); right $3$. Start fire at
+$4$.}
+
+\begin{itemize}
+  \item $t=0$: $\{4\}$ burning.
+  \item $t=1$: neighbour of $4$ is $2$. $\{2\}$.
+  \item $t=2$: neighbours of $2$ are $1$ (and $4$ burnt). $\{1\}$.
+  \item $t=3$: neighbour of $1$ is $3$. $\{3\}$.
+  \item Tree fully burnt at $t=3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void markParents(TreeNode* node, unordered_map<TreeNode*, TreeNode*>& par) {
+    if (node == nullptr) return;
+    if (node->left)  { par[node->left]  = node; markParents(node->left,  par); }
+    if (node->right) { par[node->right] = node; markParents(node->right, par); }
+}
+
+int timeToBurn(TreeNode* root, TreeNode* target) {
+    unordered_map<TreeNode*, TreeNode*> par;
+    markParents(root, par);
+
+    unordered_set<TreeNode*> visited;
+    queue<TreeNode*> q;
+    q.push(target);
+    visited.insert(target);
+
+    int time = 0;
+    while (!q.empty()) {
+        int s = q.size();
+        bool spread = false;
+        for (int i = 0; i < s; i++) {
+            TreeNode* node = q.front(); q.pop();
+            for (TreeNode* nb : {node->left, node->right, par.count(node) ? par[node] : nullptr}) {
+                if (nb && !visited.count(nb)) {
+                    visited.insert(nb);
+                    q.push(nb);
+                    spread = true;
+                }
+            }
+        }
+        if (spread) time++;
+    }
+    return time;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->left = new TreeNode(4);
+
+    cout << "Burn time: " << timeToBurn(root, root->left->left) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one DFS plus one BFS, each visiting
+every node once. \textbf{Space Complexity.} $O(n)$ for the parent map,
+visited set, and queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Burning the tree is ``nodes at distance $K$'' with $K$ pushed to the
+maximum: the answer is the number of BFS layers to consume the whole tree.
+Once you see fire-spread problems as level-counting BFS on the
+parent-augmented graph, they become routine.
+\end{takeawaybox}

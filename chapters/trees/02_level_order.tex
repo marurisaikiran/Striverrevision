@@ -1,0 +1,122 @@
+\section{Level Order Traversal (BFS)}
+\label{sec:trees-level-order}
+
+\problemstatement{Given the root of a binary tree, return its level order
+traversal: the node values grouped level by level, from the root's level
+downward, left to right within each level.}
+
+\begin{patternbox}
+\emph{``Level by level,'' ``breadth-first,'' ``top-to-bottom''} are the
+signature of a \textbf{queue}-based traversal. Whenever a tree problem
+asks for anything organised by \emph{depth} -- level order, left/right
+view, bottom/top view, maximum width, minimum time to burn -- a BFS with a
+queue is almost always the backbone.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Depth-first recursion dives all the way down one branch before touching
+the next, so it visits nodes out of level order. To visit nodes in order
+of increasing depth we need the opposite discipline: fully process one
+level before starting the next. A \textbf{FIFO queue} does exactly this --
+if we always enqueue a node's children when we dequeue it, then all of
+level $k$ is enqueued before any node of level $k+1$, so the queue hands
+nodes back in level order automatically.
+
+\begin{ideabox}[Freeze the Level Size Before Draining It]
+When you begin processing a level, the queue holds \emph{exactly} the
+nodes of that level and nothing else. Record its size $s$ first, then
+dequeue precisely $s$ nodes: those $s$ are the current level, and the
+children you enqueue while draining them form the next level, cleanly
+separated. This ``read the size, then loop that many times'' trick is what
+lets a single queue produce grouped-by-level output.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If root is null, return empty.
+  \item Push root into a queue.
+  \item While the queue is non-empty:
+  \begin{enumerate}
+    \item Let $s$ be the current queue size; start a new level list.
+    \item Repeat $s$ times: pop the front node, append its value to the
+          level list, and push its non-null children.
+    \item Append the level list to the answer.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; children $2$ (left) and $3$ (right); $2$'s
+children $4,5$.}
+
+\begin{itemize}
+  \item Queue $=[1]$, size $1$: pop $1$, push $2,3$. Level $=[1]$.
+  \item Queue $=[2,3]$, size $2$: pop $2$ (push $4,5$), pop $3$. Level
+        $=[2,3]$.
+  \item Queue $=[4,5]$, size $2$: pop $4$, pop $5$. Level $=[4,5]$.
+  \item Result: $[[1],[2,3],[4,5]]$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<vector<int>> levelOrder(TreeNode* root) {
+    vector<vector<int>> ans;
+    if (root == nullptr) return ans;
+
+    queue<TreeNode*> q;
+    q.push(root);
+    while (!q.empty()) {
+        int s = q.size();
+        vector<int> level;
+        for (int i = 0; i < s; i++) {
+            TreeNode* node = q.front();
+            q.pop();
+            level.push_back(node->val);
+            if (node->left)  q.push(node->left);
+            if (node->right) q.push(node->right);
+        }
+        ans.push_back(level);
+    }
+    return ans;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->left = new TreeNode(4);
+    root->left->right = new TreeNode(5);
+
+    for (auto& level : levelOrder(root)) {
+        for (int x : level) cout << x << " ";
+        cout << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- every node is enqueued and dequeued
+exactly once. \textbf{Space Complexity.} $O(n)$ for the queue, which in
+the worst case (a full last level) holds up to $n/2$ nodes at once.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The queue plus the ``freeze the level size'' loop is the single reusable
+engine behind every by-depth view in this chapter. Get it fluent here;
+top view, bottom view, right view and maximum width all reuse it verbatim
+with a small tweak to what gets recorded.
+\end{takeawaybox}

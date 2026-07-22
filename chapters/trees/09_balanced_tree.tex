@@ -1,0 +1,109 @@
+\section{Check for a Balanced Binary Tree}
+\label{sec:trees-balanced}
+
+\problemstatement{A binary tree is height-balanced if, for \emph{every}
+node, the heights of its left and right subtrees differ by at most $1$.
+Given the root, determine whether the tree is balanced.}
+
+\begin{patternbox}
+The naive reading -- ``for every node, compute both subtree heights and
+compare'' -- is an $O(n^2)$ trap on a skewed tree, because height is
+recomputed from scratch at every node. The keyword \emph{``for every
+node''} combined with \emph{``heights''} says: compute height once,
+bottom-up, and \textbf{fold the balance check into that same pass}.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Height and the balance condition are computed from the same recursion. If
+each recursive call returns the height of its subtree, the parent can, in
+$O(1)$, check whether its two child heights differ by more than $1$ before
+returning its own height. A single sentinel value (say $-1$) propagated
+upward can signal ``a violation was found below'' so the whole recursion
+short-circuits.
+
+\begin{ideabox}[Return Height, or $-1$ to Mean ``Already Unbalanced'']
+Write a helper that returns the subtree height normally, but returns $-1$
+the moment it detects imbalance -- either because a child already returned
+$-1$, or because the two child heights differ by more than $1$. The final
+answer is ``balanced'' iff the root's call returns something other than
+$-1$. One pass, $O(n)$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Check}(\textit{node}):
+  \begin{enumerate}
+    \item If \textit{node} is null, return $0$.
+    \item $L = $ \textsc{Check}(\textit{node}.left); if $L=-1$ return
+          $-1$.
+    \item $R = $ \textsc{Check}(\textit{node}.right); if $R=-1$ return
+          $-1$.
+    \item If $|L-R|>1$ return $-1$; else return $1+\max(L,R)$.
+  \end{enumerate}
+  \item The tree is balanced iff \textsc{Check}(root)$\ne -1$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ with a left child $3$ that has a left
+child $4$; right subtree of $1$ empty.}
+
+\begin{itemize}
+  \item Height($4$)$=1$, Height($3$)$=1+\max(1,0)=2$.
+  \item At $2$: left height $2$, right height $0$; $|2-0|=2>1
+        \Rightarrow$ return $-1$.
+  \item $-1$ propagates to $1$; answer: \textbf{not balanced}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int check(TreeNode* node) {
+    if (node == nullptr) return 0;
+    int L = check(node->left);
+    if (L == -1) return -1;
+    int R = check(node->right);
+    if (R == -1) return -1;
+    if (abs(L - R) > 1) return -1;
+    return 1 + max(L, R);
+}
+
+bool isBalanced(TreeNode* root) {
+    return check(root) != -1;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->left->left = new TreeNode(3);
+    root->left->left->left = new TreeNode(4);
+
+    cout << (isBalanced(root) ? "balanced" : "not balanced") << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- height and the balance test share one
+postorder pass, versus $O(n^2)$ if height were recomputed per node.
+\textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Overloading a return value with a sentinel ($-1$ = ``violation found'') is
+a clean way to combine ``compute a quantity'' with ``check a property''
+in one traversal, avoiding the quadratic blow-up of recomputing the
+quantity at every node.
+\end{takeawaybox}

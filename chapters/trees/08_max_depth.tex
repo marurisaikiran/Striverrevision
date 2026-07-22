@@ -1,0 +1,94 @@
+\section{Maximum Depth (Height) of a Binary Tree}
+\label{sec:trees-max-depth}
+
+\problemstatement{Given the root of a binary tree, return its maximum
+depth: the number of nodes along the longest path from the root down to a
+leaf.}
+
+\begin{patternbox}
+\emph{``Height,'' ``depth,'' ``longest path to a leaf''} is the archetypal
+\textbf{bottom-up} recursion, and the first concrete instance of this
+chapter's core rhythm. A node's height depends on its children's heights,
+so you must have both child answers \emph{before} you can answer for the
+node -- that ordering \emph{is} postorder.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The height of a tree rooted at a node is $1$ (for the node itself) plus
+the height of its taller subtree. An empty tree has height $0$. This is
+the purest example of ``ask both children, combine'': the combine step is
+simply $1+\max(\text{left height}, \text{right height})$.
+
+\begin{ideabox}[Height = 1 + max of the Two Child Heights]
+Recurse to the left and right children, obtain their heights, and return
+one more than the larger. The base case (null returns $0$) is what
+terminates the recursion and seeds the count. No global state is needed:
+the answer flows straight up the return values.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Height}(\textit{node}):
+  \begin{enumerate}
+    \item If \textit{node} is null, return $0$.
+    \item $L = $ \textsc{Height}(\textit{node}.left); $R = $
+          \textsc{Height}(\textit{node}.right).
+    \item Return $1 + \max(L, R)$.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (leaf); right $3$ whose right child is
+$4$ (leaf).}
+
+\begin{itemize}
+  \item Height($2$)$=1$ (both children null $\to 1+\max(0,0)$).
+  \item Height($4$)$=1$. Height($3$)$=1+\max(0,1)=2$.
+  \item Height($1$)$=1+\max(1,2)=3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int maxDepth(TreeNode* node) {
+    if (node == nullptr) return 0;
+    int L = maxDepth(node->left);
+    int R = maxDepth(node->right);
+    return 1 + max(L, R);
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->right->right = new TreeNode(4);
+
+    cout << "Max depth: " << maxDepth(root) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node contributes $O(1)$ combine
+work. \textbf{Space Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Height is the ``hello world'' of bottom-up tree recursion, and the exact
+subroutine reused inside balanced-tree, diameter, and max-path-sum
+problems. Each of those is ``compute height, but also check or update
+something extra along the way.''
+\end{takeawaybox}

@@ -1,0 +1,103 @@
+\section{Lowest Common Ancestor in a Binary Tree}
+\label{sec:trees-lca}
+
+\problemstatement{Given the root of a binary tree and two nodes $p$ and
+$q$ (both guaranteed present), return their lowest common ancestor: the
+deepest node that has both $p$ and $q$ as descendants (a node is a
+descendant of itself).}
+
+\begin{patternbox}
+\emph{``Lowest common ancestor'' in a \textbf{general} binary tree} (no BST
+ordering to exploit) is a single bottom-up recursion that reports back up
+which of $p$ and $q$ each subtree contains. The LCA is the unique node
+where the two targets are found on \emph{different sides} -- or which is
+itself one target with the other below it.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Walk the tree once. Each recursive call answers: ``does my subtree contain
+$p$ or $q$ (or one of them being me)?'' by returning a non-null pointer if
+so. If a node finds one target in its left subtree and the other in its
+right subtree, that node is the meeting point -- the LCA. If both are found
+on the same side, the LCA lies deeper on that side and is propagated up
+unchanged.
+
+\begin{ideabox}[The Split Point Is the Answer]
+\textsc{LCA}(node): if node is null or equals $p$ or $q$, return node.
+Recurse left and right. If \emph{both} calls return non-null, the current
+node is where the two targets split -- return it. Otherwise return whichever
+side was non-null (or null). The topmost node receiving non-null from both
+sides is the LCA.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{LCA}(\textit{node}):
+  \begin{enumerate}
+    \item If \textit{node} is null or equals $p$ or $q$, return
+          \textit{node}.
+    \item $L=$\textsc{LCA}(left); $R=$\textsc{LCA}(right).
+    \item If $L$ and $R$ are both non-null, return \textit{node}.
+    \item Return $L$ if non-null, else $R$.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $3$; left $5$ (children $6,2$); right $1$. Find LCA of
+$6$ and $2$.}
+
+\begin{itemize}
+  \item At $5$: left call at $6$ returns $6$; right call at $2$ returns
+        $2$. Both non-null $\Rightarrow$ $5$ is the LCA; return $5$.
+  \item At $3$: left returns $5$, right (subtree $1$) returns null. Only
+        left non-null $\Rightarrow$ return $5$.
+  \item LCA $=5$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+TreeNode* lca(TreeNode* node, TreeNode* p, TreeNode* q) {
+    if (node == nullptr || node == p || node == q) return node;
+    TreeNode* L = lca(node->left,  p, q);
+    TreeNode* R = lca(node->right, p, q);
+    if (L != nullptr && R != nullptr) return node;  // split point
+    return L != nullptr ? L : R;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(3);
+    root->left = new TreeNode(5);
+    root->right = new TreeNode(1);
+    TreeNode* p = root->left->left  = new TreeNode(6);
+    TreeNode* q = root->left->right = new TreeNode(2);
+
+    cout << "LCA: " << lca(root, p, q)->val << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- a single traversal. \textbf{Space
+Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Returning a ``found'' pointer up the recursion and declaring the LCA at
+the node where left and right both report success is a one-pass gem. Unlike
+the BST version, no value ordering is used -- only the tree's shape --
+which is why it works on any binary tree.
+\end{takeawaybox}

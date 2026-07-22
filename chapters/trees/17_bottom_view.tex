@@ -1,0 +1,107 @@
+\section{Bottom View of a Binary Tree}
+\label{sec:trees-bottom-view}
+
+\problemstatement{The bottom view is the set of nodes visible when the tree
+is viewed from directly below: for each horizontal distance (HD), the
+\emph{lowest} node on that vertical line (ties broken by the later node in
+level order). Return these ordered left to right by HD.}
+
+\begin{patternbox}
+Bottom view is top view with one word changed: keep the \emph{last} node
+per HD instead of the first. Under BFS -- which scans top-down -- the last
+node written to a given HD is the deepest, exactly the one visible from
+below. So the code is identical except we \textbf{always overwrite} the
+map entry rather than writing only once.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+From below, on each vertical line the visible node is the lowest one.
+Because BFS visits nodes in non-decreasing depth, repeatedly overwriting
+the value stored for an HD leaves, at the end, the value of the last (hence
+deepest) node BFS placed there. The left-to-right order within a level
+also gives the standard tie-break for two nodes at the same HD and depth.
+
+\begin{ideabox}[BFS, Last Node per HD Wins]
+Run the same level-order BFS with HD tags as top view, but write
+$\textit{map}[HD]=node.val$ \emph{unconditionally} every time. Later
+(deeper) nodes overwrite earlier ones, so each HD ends holding its
+bottommost node. Emit ascending by HD.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item BFS from root with $(node, HD)$; root's HD $=0$.
+  \item For each dequeued $(node, HD)$: set $\textit{map}[HD]=node.val$
+        (overwrite). Enqueue $(left, HD-1)$, $(right, HD+1)$.
+  \item Output the map's values in ascending HD.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (right child $4$); right $3$.}
+
+\begin{itemize}
+  \item $(1,0)$: map$\{0\!:\!1\}$; enqueue $(2,-1),(3,1)$.
+  \item $(2,-1)$: map$\{-1\!:\!2\}$; enqueue $(4,0)$.
+  \item $(3,1)$: map adds $1\!:\!3$.
+  \item $(4,0)$: overwrite HD $0$ with $4$.
+  \item Ascending HD: $2,4,3$ (note HD $0$ now shows $4$, not $1$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> bottomView(TreeNode* root) {
+    vector<int> ans;
+    if (root == nullptr) return ans;
+
+    map<int, int> lowAtHD;               // hd -> last (lowest) value
+    queue<pair<TreeNode*, int>> q;
+    q.push({root, 0});
+    while (!q.empty()) {
+        auto [node, hd] = q.front();
+        q.pop();
+        lowAtHD[hd] = node->val;         // always overwrite
+        if (node->left)  q.push({node->left,  hd - 1});
+        if (node->right) q.push({node->right, hd + 1});
+    }
+    for (auto& [hd, v] : lowAtHD) ans.push_back(v);
+    return ans;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->right = new TreeNode(4);
+
+    for (int x : bottomView(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ with an ordered map (or $O(n)$ with
+a hash map and a final sort). \textbf{Space Complexity.} $O(n)$ for the
+queue and map.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Top view and bottom view differ by exactly one decision -- keep the first
+versus the last node per HD. Recognising that a whole family of ``view''
+problems shares one BFS-with-HD engine, differing only in the per-line
+selection rule, is the real lesson.
+\end{takeawaybox}

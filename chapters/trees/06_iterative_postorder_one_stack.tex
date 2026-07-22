@@ -1,0 +1,128 @@
+\section{Iterative Postorder Traversal (One Stack)}
+\label{sec:trees-iter-post-one}
+
+\problemstatement{Return the postorder traversal of a binary tree without
+recursion, using a single stack and $O(h)$ auxiliary space.}
+
+\begin{patternbox}
+The tell-tale that a one-stack postorder is wanted is a space constraint:
+the two-stack method is simpler but stores all $n$ nodes. With one stack we
+must handle the genuine difficulty head-on -- \emph{a node may sit on the
+stack while we visit first its left subtree and only later its right} --
+so we need a way to know, when a node resurfaces, whether we are returning
+from its left or its right side.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In postorder we record a node only after \emph{both} its children are
+done. When we pop back up to a node, we must distinguish ``I have finished
+its left subtree, now go right'' from ``I have finished its right subtree,
+now record it.'' Tracking the \textbf{last node we recorded} resolves this
+ambiguity: if that last-recorded node is the current node's right child
+(or the right child is null), both subtrees are complete and the node may
+be recorded; otherwise there is still a right subtree to descend into.
+
+\begin{ideabox}[Remember the Last Node You Output]
+Keep \textit{curr} (the cursor) and \textit{lastVisited} (the most
+recently recorded node). Descend left, pushing. At the top of the stack:
+if its right child exists and has not just been visited, move right;
+otherwise record the top, pop it, and set \textit{lastVisited} to it. That
+single comparison against \textit{lastVisited} tells you which side you are
+returning from.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textit{curr} $=$ root; \textit{lastVisited} $=$ null; empty
+        stack.
+  \item While \textit{curr} is non-null or the stack is non-empty:
+  \begin{enumerate}
+    \item While \textit{curr} is non-null: push \textit{curr},
+          \textit{curr} $=$ \textit{curr}.left.
+    \item Let \textit{peek} $=$ top of stack. If \textit{peek}.right
+          exists and \textit{peek}.right $\ne$ \textit{lastVisited}: set
+          \textit{curr} $=$ \textit{peek}.right.
+    \item Else: record \textit{peek}, pop it, set \textit{lastVisited}
+          $=$ \textit{peek}.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$; right $3$.}
+
+\begin{itemize}
+  \item Dive left from $1$: push $1$, push $2$. \textit{curr}$=$null.
+  \item Peek $2$: right is null $\Rightarrow$ record $2$, pop,
+        \textit{lastVisited}$=2$.
+  \item Peek $1$: right $3\ne$\textit{lastVisited} $\Rightarrow$
+        \textit{curr}$=3$. Push $3$.
+  \item Peek $3$: right null $\Rightarrow$ record $3$, pop,
+        \textit{lastVisited}$=3$.
+  \item Peek $1$: right $3=$\textit{lastVisited} $\Rightarrow$ record $1$,
+        pop.
+  \item Result: $2,3,1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> postorderOneStack(TreeNode* root) {
+    vector<int> out;
+    stack<TreeNode*> st;
+    TreeNode* curr = root;
+    TreeNode* lastVisited = nullptr;
+
+    while (curr != nullptr || !st.empty()) {
+        while (curr != nullptr) {
+            st.push(curr);
+            curr = curr->left;
+        }
+        TreeNode* peek = st.top();
+        if (peek->right != nullptr && peek->right != lastVisited) {
+            curr = peek->right;             // still owe the right subtree
+        } else {
+            out.push_back(peek->val);       // both sides done: record
+            lastVisited = peek;
+            st.pop();
+        }
+    }
+    return out;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+
+    for (int x : postorderOneStack(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node is pushed once, and the
+peek/right check amortises to $O(1)$ per node. \textbf{Space Complexity.}
+$O(h)$ -- the stack only ever holds the current root-to-node path, unlike
+the two-stack version's $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When you must return from a node's left versus right side and act
+differently, a \textit{lastVisited} pointer is the standard way to tell
+them apart without extra per-node flags. This ``remember where you came
+from'' idea generalises to any iterative post-processing traversal.
+\end{takeawaybox}

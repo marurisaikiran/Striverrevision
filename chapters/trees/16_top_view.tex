@@ -1,0 +1,112 @@
+\section{Top View of a Binary Tree}
+\label{sec:trees-top-view}
+
+\problemstatement{The top view is the set of nodes visible when the tree is
+viewed from directly above: for each horizontal distance (HD), the single
+\emph{topmost} node on that vertical line. Return these nodes ordered left
+to right by HD.}
+
+\begin{patternbox}
+Reusing the HD tag from vertical order, \emph{``top view / viewed from
+above''} means: on each vertical line, keep only the node encountered
+\emph{first when scanning top-down}. A \textbf{BFS} scans strictly in
+increasing depth, so the first node BFS places on a given HD is
+automatically the topmost -- record an HD only the first time it appears.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Looking down from above, a node is hidden if some other node shares its
+horizontal distance but sits higher. Because BFS processes level $0$
+before level $1$ before level $2$, the earliest time an HD is seen during
+BFS corresponds to the highest node on that line. So we simply record the
+first value per HD and ignore all later ones.
+
+\begin{ideabox}[BFS, First Node per HD Wins]
+Run level-order BFS carrying each node's HD (root $0$, left $-1$, right
+$+1$). Keep a map from HD to value, writing an entry \emph{only if that HD
+is not already present}. BFS's increasing-depth order guarantees the first
+write for each HD is the topmost node. Emit the map in ascending HD order.
+\end{ideabox}
+
+\emph{Why BFS, not DFS:} a DFS might reach a deep node on some HD before a
+shallower node on the same HD (down a different branch), wrongly recording
+the deeper one. BFS's level-by-level order removes that hazard.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item BFS from root with a queue of $(node, HD)$; root's HD $=0$.
+  \item For each dequeued $(node, HD)$: if $HD$ not yet in the map, set
+        $\textit{map}[HD]=node.val$. Enqueue $(left, HD-1)$ and
+        $(right, HD+1)$.
+  \item Output the map's values in ascending HD.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (right child $4$); right $3$.}
+
+\begin{itemize}
+  \item $(1,0)$: map$\{0\!:\!1\}$; enqueue $(2,-1),(3,1)$.
+  \item $(2,-1)$: map$\{-1\!:\!2,0\!:\!1\}$; enqueue $(4,0)$.
+  \item $(3,1)$: map adds $1\!:\!3$.
+  \item $(4,0)$: HD $0$ already present -- skip.
+  \item Ascending HD: $2,1,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> topView(TreeNode* root) {
+    vector<int> ans;
+    if (root == nullptr) return ans;
+
+    map<int, int> topAtHD;               // hd -> first (topmost) value
+    queue<pair<TreeNode*, int>> q;
+    q.push({root, 0});
+    while (!q.empty()) {
+        auto [node, hd] = q.front();
+        q.pop();
+        if (topAtHD.find(hd) == topAtHD.end())
+            topAtHD[hd] = node->val;     // first sighting wins
+        if (node->left)  q.push({node->left,  hd - 1});
+        if (node->right) q.push({node->right, hd + 1});
+    }
+    for (auto& [hd, v] : topAtHD) ans.push_back(v);
+    return ans;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->right = new TreeNode(4);
+
+    for (int x : topView(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ -- $n$ BFS steps, each doing an
+$O(\log n)$ map operation (or $O(n)$ overall with a hash map plus a final
+sort). \textbf{Space Complexity.} $O(n)$ for the queue and map.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``First per HD under BFS'' is the whole trick for top view. The insistence
+on BFS over DFS is the subtle correctness point: only a strictly
+increasing-depth scan makes ``first seen'' equal to ``topmost.''
+\end{takeawaybox}

@@ -1,0 +1,127 @@
+\section{Serialize and Deserialize a Binary Tree}
+\label{sec:trees-serialize}
+
+\problemstatement{Design two functions: \emph{serialize}, which encodes a
+binary tree into a single string, and \emph{deserialize}, which rebuilds
+the exact tree from that string. Values may repeat and the tree may be
+arbitrary.}
+
+\begin{patternbox}
+Unlike reconstruction from two traversals, here we control the format --
+so we choose one that is \emph{self-describing} by \textbf{recording null
+children explicitly}. With null markers, a \emph{single} preorder walk
+carries all the structure needed to rebuild the tree unambiguously. The
+design freedom is the whole point.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Two traversals are needed to rebuild a tree only because a normal traversal
+hides where subtrees end. If we instead emit a special token (say \verb|#|)
+whenever we hit a null child, the string records the tree's exact shape.
+Reading that string back in the same preorder order, a null token means
+``this child is empty,'' so deserialization mirrors serialization step for
+step -- read a token, build a node (or return null), then recursively build
+its left and right children.
+
+\begin{ideabox}[Preorder with Explicit Null Markers Is Self-Sufficient]
+\textbf{Serialize:} preorder traversal; output each value, and output a
+sentinel \verb|#| for every null child, separated by commas.
+\textbf{Deserialize:} read tokens in order; \verb|#| yields null,
+otherwise create a node and recursively deserialize its left then right
+child. The null markers tell the reader exactly where each subtree stops.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Serialize}(node, out): if node is null, append
+        \verb|#,|; else append \verb|node.val,| then
+        \textsc{Serialize}(left) and \textsc{Serialize}(right).
+  \item \textsc{Deserialize}: read the next token; if \verb|#| return
+        null; else make a node, set node.left $=$ \textsc{Deserialize},
+        node.right $=$ \textsc{Deserialize}; return node.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$; right $3$ (with children $4,5$).}
+
+\begin{itemize}
+  \item Serialize: \verb|1,2,#,#,3,4,#,#,5,#,#,| -- $2$ is a leaf (two
+        \verb|#|), then $3$, then its children $4,5$.
+  \item Deserialize reads $1$ (node), builds left from $2$ (then two
+        \verb|#| $\to$ leaf), builds right from $3$, whose children come
+        from $4$ and $5$.
+  \item The rebuilt tree is identical to the original.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void serialize(TreeNode* node, string& out) {
+    if (node == nullptr) { out += "#,"; return; }
+    out += to_string(node->val) + ",";
+    serialize(node->left, out);
+    serialize(node->right, out);
+}
+
+TreeNode* deserialize(istringstream& in) {
+    string token;
+    getline(in, token, ',');
+    if (token == "#") return nullptr;
+    TreeNode* node = new TreeNode(stoi(token));
+    node->left  = deserialize(in);
+    node->right = deserialize(in);
+    return node;
+}
+
+void inorderPrint(TreeNode* n) {
+    if (!n) return;
+    inorderPrint(n->left);
+    cout << n->val << " ";
+    inorderPrint(n->right);
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->right->left = new TreeNode(4);
+    root->right->right = new TreeNode(5);
+
+    string s;
+    serialize(root, s);
+    cout << "Serialized: " << s << "\n";
+
+    istringstream in(s);
+    TreeNode* rebuilt = deserialize(in);
+    cout << "Inorder of rebuilt: ";
+    inorderPrint(rebuilt);
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ for both serialize and deserialize --
+each node and each null marker is written and read once. \textbf{Space
+Complexity.} $O(n)$ for the string, plus $O(h)$ recursion.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When you own the encoding, adding explicit null markers makes a single
+traversal invertible -- no second traversal required. This ``sentinel for
+absence'' idea is the general trick for making any recursive structure
+round-trip through a flat string.
+\end{takeawaybox}

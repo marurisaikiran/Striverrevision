@@ -1,0 +1,118 @@
+\section{Maximum Path Sum}
+\label{sec:trees-max-path-sum}
+
+\problemstatement{A path is any sequence of nodes connected by edges, where
+each adjacent pair shares an edge and no node repeats; it need not pass
+through the root. The path sum is the total of its node values. Given the
+root (values may be negative), return the maximum path sum.}
+
+\begin{patternbox}
+This is the diameter problem with \emph{values instead of edge counts},
+plus one subtlety: because values can be negative, a subtree that would
+\emph{lower} the total should be dropped entirely. The keywords
+\emph{``maximum,'' ``path,'' ``may be negative''} say: bottom-up, track a
+global best through each node, but clamp negative child contributions to
+zero.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+At any node, the best path with that node as its peak is: the node's value,
+plus the best downward path into the left subtree (if positive), plus the
+best downward path into the right subtree (if positive). That is the
+candidate we compare against a global best. But the value we \emph{return}
+to the parent can only continue \emph{one} way -- a path cannot fork at the
+parent -- so we return the node's value plus the better of its two
+downward gains.
+
+\begin{ideabox}[Return a Straight-Down Gain, Score a Bent Path]
+Let \textsc{Gain}(node) return the maximum sum of a path that starts at
+\textit{node} and goes strictly downward. Compute
+$l=\max(0,\textsc{Gain}(\text{left}))$ and
+$r=\max(0,\textsc{Gain}(\text{right}))$ (the $\max(0,\cdot)$ drops
+harmful subtrees). Update the global best with $node.val+l+r$ (the path
+bending through this node). Return $node.val+\max(l,r)$ to the parent (only
+one branch may continue).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Global \textit{best} $=-\infty$.
+  \item \textsc{Gain}(\textit{node}):
+  \begin{enumerate}
+    \item If null, return $0$.
+    \item $l=\max(0,\textsc{Gain}(\text{left}))$;
+          $r=\max(0,\textsc{Gain}(\text{right}))$.
+    \item \textit{best} $=\max(\textit{best},\ node.val+l+r)$.
+    \item Return $node.val+\max(l,r)$.
+  \end{enumerate}
+  \item Answer is \textit{best}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $-10$; left $9$; right $20$ with children $15,7$.}
+
+\begin{itemize}
+  \item Gain($9$)$=9$, Gain($15$)$=15$, Gain($7$)$=7$.
+  \item At $20$: $l=15,r=7$; best$=\max(-\infty,20+15+7)=42$; return
+        $20+15=35$.
+  \item At $-10$: $l=\max(0,9)=9$, $r=\max(0,35)=35$;
+        best$=\max(42,-10+9+35)=42$; return $-10+35=25$.
+  \item Maximum path sum $=42$ (path $15\!-\!20\!-\!7$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int best;
+
+int gain(TreeNode* node) {
+    if (node == nullptr) return 0;
+    int l = max(0, gain(node->left));   // drop harmful subtrees
+    int r = max(0, gain(node->right));
+    best = max(best, node->val + l + r); // path bending through node
+    return node->val + max(l, r);        // parent can continue one way
+}
+
+int maxPathSum(TreeNode* root) {
+    best = INT_MIN;
+    gain(root);
+    return best;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(-10);
+    root->left = new TreeNode(9);
+    root->right = new TreeNode(20);
+    root->right->left = new TreeNode(15);
+    root->right->right = new TreeNode(7);
+
+    cout << "Max path sum: " << maxPathSum(root) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one postorder pass. \textbf{Space
+Complexity.} $O(h)$ for the recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The $\max(0,\cdot)$ clamp -- ``take a subtree's contribution only if it
+helps'' -- is the one new idea beyond the diameter template. Whenever a
+downward contribution can be negative, clamping it to zero is how greedy
+``skip the bad branch'' decisions are expressed inside a bottom-up
+recursion.
+\end{takeawaybox}

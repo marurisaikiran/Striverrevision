@@ -1,0 +1,112 @@
+\section{Iterative Inorder Traversal}
+\label{sec:trees-iter-inorder}
+
+\problemstatement{Return the inorder traversal (left, node, right) of a
+binary tree without recursion, using an explicit stack.}
+
+\begin{patternbox}
+Inorder's record step is \emph{delayed}: a node cannot be output until its
+entire left subtree is done. So the iterative version has two phases that
+alternate -- \textbf{dive left pushing everything}, then \textbf{pop,
+record, and turn right}. This ``go as far left as possible, then process,
+then step right'' loop is worth memorising; it reappears in the BST
+iterator.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In inorder we must reach the leftmost node before recording anything. The
+stack stores the chain of ancestors we still owe a visit to. We push
+nodes as we descend left; when we can descend no further, the top of the
+stack is the next node to record; after recording it we move to its right
+subtree and repeat the leftward dive from there.
+
+\begin{ideabox}[A Pointer and a Stack, Cooperating]
+Keep a running pointer \textit{curr}. While \textit{curr} is non-null,
+push it and move \textit{curr} to its left child (the leftward dive). When
+\textit{curr} becomes null, pop a node, record it, and set \textit{curr}
+to that node's right child (turn right, then dive left again). The loop
+ends only when both the stack is empty \emph{and} \textit{curr} is null.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Set \textit{curr} $=$ root; use an empty stack.
+  \item While \textit{curr} is non-null \textbf{or} the stack is
+        non-empty:
+  \begin{enumerate}
+    \item While \textit{curr} is non-null: push \textit{curr}, set
+          \textit{curr} $=$ \textit{curr}.left.
+    \item Pop a node; append its value; set \textit{curr} $=$
+          node.right.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $2$; left child $1$; right child $3$.}
+
+\begin{itemize}
+  \item \textit{curr}$=2$: push $2$, \textit{curr}$=1$. Push $1$,
+        \textit{curr}$=$null.
+  \item Pop $1$, record $1$, \textit{curr}$=$null (right of $1$).
+  \item Pop $2$, record $2$, \textit{curr}$=3$.
+  \item Push $3$, \textit{curr}$=$null. Pop $3$, record $3$.
+  \item Result: $1,2,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> inorderIterative(TreeNode* root) {
+    vector<int> out;
+    stack<TreeNode*> st;
+    TreeNode* curr = root;
+
+    while (curr != nullptr || !st.empty()) {
+        while (curr != nullptr) {   // dive left
+            st.push(curr);
+            curr = curr->left;
+        }
+        curr = st.top();            // leftmost pending node
+        st.pop();
+        out.push_back(curr->val);   // record
+        curr = curr->right;         // turn right
+    }
+    return out;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(2);
+    root->left = new TreeNode(1);
+    root->right = new TreeNode(3);
+
+    for (int x : inorderIterative(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node is pushed once and popped
+once. \textbf{Space Complexity.} $O(h)$ -- the stack holds at most one
+node per level along the current leftmost chain.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The ``dive left, pop-record, turn right'' loop is the canonical iterative
+inorder and the exact engine behind a BST iterator that returns sorted
+values one at a time. Memorise the two-part loop shape; the same structure
+handles ``next smallest'' queries on demand.
+\end{takeawaybox}

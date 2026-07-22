@@ -1,0 +1,136 @@
+\section{Preorder, Inorder, and Postorder in One Traversal}
+\label{sec:trees-all-three}
+
+\problemstatement{Compute all three depth-first traversals -- preorder,
+inorder, and postorder -- in a \emph{single} pass over the tree, using one
+explicit stack.}
+
+\begin{patternbox}
+\emph{``All three in one traversal''} is a state-machine problem. Each node
+is genuinely visited three times during a depth-first walk: on the way
+down (before its left subtree), between its subtrees, and on the way up
+(after its right subtree). Attaching a \textbf{state counter $1/2/3$} to
+each stacked node lets one loop record the node into the right list at the
+right moment.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Picture the classic ``draw a line around the tree'' visualisation of a
+DFS: your pen touches each node three times -- once on its left, once
+underneath, once on its right. Preorder records the first touch, inorder
+the second, postorder the third. If we stack each node together with a
+counter saying which touch is next, a single loop can dispatch it to the
+correct output list and advance its counter.
+
+\begin{ideabox}[One Node, Three Touches, Three States]
+Push each node with state $1$. When popped:
+\begin{itemize}
+  \item \textbf{State 1} (first touch): add to \emph{preorder}; increment
+        its state to $2$ and re-push it; then push its left child (state
+        $1$).
+  \item \textbf{State 2} (second touch): add to \emph{inorder}; increment
+        to $3$ and re-push; then push its right child (state $1$).
+  \item \textbf{State 3} (third touch): add to \emph{postorder}; discard
+        the node.
+\end{itemize}
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Push $(\text{root}, 1)$ onto a stack. While non-empty, pop
+        $(node, state)$:
+  \begin{enumerate}
+    \item If $state=1$: append to preorder; push $(node,2)$; if left
+          child exists push $(\text{left},1)$.
+    \item If $state=2$: append to inorder; push $(node,3)$; if right
+          child exists push $(\text{right},1)$.
+    \item If $state=3$: append to postorder.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$; right $3$.}
+
+\begin{itemize}
+  \item Pop $(1,1)$: pre$=[1]$; push $(1,2)$; push $(2,1)$.
+  \item Pop $(2,1)$: pre$=[1,2]$; push $(2,2)$ (no left).
+  \item Pop $(2,2)$: in$=[2]$; push $(2,3)$ (no right).
+  \item Pop $(2,3)$: post$=[2]$.
+  \item Pop $(1,2)$: in$=[2,1]$; push $(1,3)$; push $(3,1)$.
+  \item Pop $(3,1)$: pre$=[1,2,3]$; push $(3,2)$. Pop $(3,2)$:
+        in$=[2,1,3]$; push $(3,3)$. Pop $(3,3)$: post$=[2,3]$.
+  \item Pop $(1,3)$: post$=[2,3,1]$.
+  \item Pre $=1,2,3$; \; In $=2,1,3$; \; Post $=2,3,1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void allThree(TreeNode* root, vector<int>& pre,
+              vector<int>& in, vector<int>& post) {
+    if (root == nullptr) return;
+    stack<pair<TreeNode*, int>> st;
+    st.push({root, 1});
+
+    while (!st.empty()) {
+        auto [node, state] = st.top();
+        st.pop();
+        if (state == 1) {
+            pre.push_back(node->val);
+            st.push({node, 2});
+            if (node->left) st.push({node->left, 1});
+        } else if (state == 2) {
+            in.push_back(node->val);
+            st.push({node, 3});
+            if (node->right) st.push({node->right, 1});
+        } else {
+            post.push_back(node->val);
+        }
+    }
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+
+    vector<int> pre, in, post;
+    allThree(root, pre, in, post);
+
+    auto printv = [](const string& n, vector<int>& v) {
+        cout << n << ": ";
+        for (int x : v) cout << x << " ";
+        cout << "\n";
+    };
+    printv("pre ", pre);
+    printv("in  ", in);
+    printv("post", post);
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node is pushed and popped exactly
+three times, a constant factor. \textbf{Space Complexity.} $O(h)$ for the
+stack, plus $O(n)$ for the three output arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The state $1/2/3$ per stack frame is exactly what a recursive DFS stores
+implicitly as ``which line am I on when I return.'' Making that state
+explicit is a general technique for merging several traversal-order tasks
+into one pass.
+\end{takeawaybox}

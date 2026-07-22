@@ -1,0 +1,124 @@
+\section{Children Sum Property}
+\label{sec:trees-children-sum}
+
+\problemstatement{The children-sum property holds if, for every node with
+at least one child, the node's value equals the sum of its children's
+values (a missing child counts as $0$). Given a tree, \emph{modify node
+values} (you may only increase them) so the property holds, without
+changing the tree's structure.}
+
+\begin{patternbox}
+This is not a check but a \textbf{construction}, and the ``you may only
+increase values'' rule forces a specific two-pass shape: push required
+values \emph{down} on the way in (raise children up to at least the
+parent), then fix parents \emph{up} on the way out (set each parent to its
+children's actual sum). The down-then-up structure is the key insight.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+If we only tried to fix parents to equal their children on the way up, a
+parent larger than its children's total would have no legal move (we cannot
+decrease). So first, descending, we \emph{raise} the children: give each
+child at least the parent's value (bump the larger child, or either, up to
+the parent). Now the children's total is $\ge$ the parent, so on the way
+back up we can safely set each parent to the exact sum of its (possibly
+raised) children.
+
+\begin{ideabox}[Push Down, Then Fix Up]
+\textbf{Descent:} at each node, compute the sum of its children's current
+values; if that sum is $\ge$ the node, set the node to the sum, else push
+the node's value down into (one of) its children. Recurse.
+\textbf{Ascent:} after both children are finalised, set the node to the sum
+of its children's values. Leaves are left untouched.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textsc{Fix}(\textit{node}):
+  \begin{enumerate}
+    \item If \textit{node} is null or a leaf, return.
+    \item Let \textit{childSum} $=$ (left val if any) $+$ (right val if
+          any). If \textit{childSum} $\ge$ \textit{node}.val, set
+          \textit{node}.val $=$ \textit{childSum}; else copy
+          \textit{node}.val into an existing child.
+    \item Recurse into left and right.
+    \item Set \textit{node}.val $=$ (left val if any) $+$ (right val if
+          any).
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $50$; children $7$ and $2$.}
+
+\begin{itemize}
+  \item Descent at $50$: childSum $=7+2=9<50$, so push $50$ down: set left
+        child to $50$ (now $50,2$).
+  \item Recurse into leaves $50$ and $2$: nothing to do.
+  \item Ascent at root: set root $=50+2=52$.
+  \item Final: root $52$, children $50,2$; $50+2=52$. Property holds.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+void fix(TreeNode* node) {
+    if (node == nullptr) return;
+    if (node->left == nullptr && node->right == nullptr) return;
+
+    int childSum = 0;
+    if (node->left)  childSum += node->left->val;
+    if (node->right) childSum += node->right->val;
+
+    if (childSum >= node->val) {
+        node->val = childSum;               // children already suffice
+    } else {                                // push node value down
+        if (node->left)  node->left->val  = node->val;
+        else             node->right->val = node->val;
+    }
+
+    fix(node->left);
+    fix(node->right);
+
+    int total = 0;                          // fix up from actual children
+    if (node->left)  total += node->left->val;
+    if (node->right) total += node->right->val;
+    node->val = total;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(50);
+    root->left = new TreeNode(7);
+    root->right = new TreeNode(2);
+
+    fix(root);
+    cout << root->val << " -> "
+         << root->left->val << ", " << root->right->val << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node is handled once on the way
+down and once on the way up. \textbf{Space Complexity.} $O(h)$ for the
+recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a constraint restricts \emph{how} you may change values (here, only
+increases), a single pass rarely suffices -- you pre-condition on the way
+down so the fix-up on the way back is always legal. Down-then-up is a
+recurring shape for tree mutations under monotone constraints.
+\end{takeawaybox}

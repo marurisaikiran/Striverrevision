@@ -1,0 +1,131 @@
+\section{Morris Inorder Traversal}
+\label{sec:trees-morris-inorder}
+
+\problemstatement{Return the inorder traversal of a binary tree using
+$O(1)$ extra space -- no recursion and no explicit stack.}
+
+\begin{patternbox}
+\emph{``$O(1)$ space,'' ``no stack,'' ``no recursion''} points to
+\textbf{Morris traversal}, which recovers the ``go back up to the
+ancestor'' capability -- normally provided by a stack -- by temporarily
+rewiring the tree's own unused null pointers into \textbf{threads} back to
+the ancestor, then undoing them.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+The only reason inorder needs a stack is to remember, after finishing a
+left subtree, which node to return to. Morris's insight: the node we must
+return to is exactly the \emph{inorder predecessor}'s successor -- and the
+inorder predecessor of a node (the rightmost node of its left subtree) has
+a null right pointer we can borrow. We point that null back at the current
+node, creating a temporary ``thread.'' After the left subtree is walked, we
+arrive back via the thread, record the node, remove the thread (restoring
+the tree), and move right.
+
+\begin{ideabox}[Thread the Predecessor's Null Right Pointer Back to You]
+At each node with a left child, find its inorder predecessor (go left once,
+then all the way right). If the predecessor's right is null, set it to the
+current node (make the thread) and move left. If it is already the current
+node, the left subtree is done: remove the thread, record the node, and
+move right. Nodes without a left child are recorded immediately and you
+move right.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \textit{curr} $=$ root.
+  \item While \textit{curr} is non-null:
+  \begin{enumerate}
+    \item If \textit{curr} has no left child: record \textit{curr}; move
+          \textit{curr} $=$ \textit{curr}.right.
+    \item Else find \textit{pred} $=$ rightmost node of
+          \textit{curr}.left (not passing through an existing thread):
+    \begin{enumerate}
+      \item If \textit{pred}.right is null: set it to \textit{curr};
+            move \textit{curr} $=$ \textit{curr}.left.
+      \item Else (\textit{pred}.right $=$ \textit{curr}): reset
+            \textit{pred}.right to null; record \textit{curr}; move
+            \textit{curr} $=$ \textit{curr}.right.
+    \end{enumerate}
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $2$; left $1$; right $3$.}
+
+\begin{itemize}
+  \item \textit{curr}$=2$, has left $1$. Predecessor of $2$ is $1$;
+        $1$.right null $\to$ thread $1\!\to\!2$; move left to $1$.
+  \item \textit{curr}$=1$, no left $\to$ record $1$; move right via
+        thread to $2$.
+  \item \textit{curr}$=2$, has left; predecessor $1$.right $=2$ (thread)
+        $\to$ remove thread, record $2$, move right to $3$.
+  \item \textit{curr}$=3$, no left $\to$ record $3$.
+  \item Inorder: $1,2,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> morrisInorder(TreeNode* root) {
+    vector<int> out;
+    TreeNode* curr = root;
+    while (curr != nullptr) {
+        if (curr->left == nullptr) {
+            out.push_back(curr->val);        // no left: record, go right
+            curr = curr->right;
+        } else {
+            TreeNode* pred = curr->left;
+            while (pred->right != nullptr && pred->right != curr)
+                pred = pred->right;          // find inorder predecessor
+            if (pred->right == nullptr) {
+                pred->right = curr;          // create thread
+                curr = curr->left;
+            } else {
+                pred->right = nullptr;       // remove thread
+                out.push_back(curr->val);    // left subtree done: record
+                curr = curr->right;
+            }
+        }
+    }
+    return out;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(2);
+    root->left = new TreeNode(1);
+    root->right = new TreeNode(3);
+
+    for (int x : morrisInorder(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- although finding predecessors seems to
+add work, each edge is traversed at most a constant number of times, so
+the total remains linear. \textbf{Space Complexity.} $O(1)$ -- no stack or
+recursion; only a few pointers, with the tree restored to its original
+shape at the end.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Morris trades the stack for temporary threads woven from the tree's own
+null pointers, achieving true $O(1)$ space. The discipline that keeps it
+correct is always removing a thread the second time you meet it, so the
+tree is left exactly as it began.
+\end{takeawaybox}

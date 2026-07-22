@@ -1,0 +1,113 @@
+\section{Maximum Width of a Binary Tree}
+\label{sec:trees-max-width}
+
+\problemstatement{The width of a level is the number of positions between
+its leftmost and rightmost non-null nodes, \emph{including} the null gaps
+between them (as if the tree were a complete binary tree). Return the
+maximum width over all levels.}
+
+\begin{patternbox}
+The phrase \emph{``including null gaps''} is the whole difficulty:
+counting only present nodes is wrong. The fix is to give every node a
+\textbf{positional index} as if the tree were complete -- a node at index
+$i$ has children at $2i$ and $2i+1$ -- and measure each level's width as
+(rightmost index $-$ leftmost index $+1$). This is BFS with indices.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+In a complete binary tree numbered from the root as index $0$, a node at
+index $i$ places its left child at $2i+1$ and right child at $2i+2$. These
+indices encode horizontal position \emph{including} the empty slots. So for
+each level, the first and last real nodes carry indices whose difference,
+plus one, is exactly the width that counts the gaps between them. To keep
+the indices from overflowing on deep trees, subtract the level's leftmost
+index from every node's index (re-basing each level to start at $0$).
+
+\begin{ideabox}[Number Nodes as if the Tree Were Complete]
+BFS level by level, pairing each node with an index (root $=0$; children
+$2i+1$, $2i+2$). For each level, width $=$ (last index $-$ first index
+$+1$); track the maximum. Re-base each level's indices by subtracting the
+first node's index to prevent overflow.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Queue holds $(node, index)$; push $(root, 0)$.
+  \item For each level: let \textit{first} be the index of the level's
+        first node. For every node, push $(left, 2\cdot(i-\textit{first})+1)$
+        and $(right, 2\cdot(i-\textit{first})+2)$. Width $=$ last index
+        $-$ first index $+1$; update the maximum.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; left $2$ (left child $4$); right $3$ (right child
+$5$).}
+
+\begin{itemize}
+  \item Level $0$: $(1,0)$. Width $1$.
+  \item Level $1$: $(2,0),(3,1)$ (re-based). Width $1-0+1=2$.
+  \item Level $2$: from $2$ push $(4,1)$; from $3$ push $(5,4)$. First
+        index $1$; re-base to $(4,0),(5,3)$. Width $3-0+1=4$.
+  \item Maximum width $=4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+int widthOfBinaryTree(TreeNode* root) {
+    if (root == nullptr) return 0;
+    long long best = 0;
+    queue<pair<TreeNode*, long long>> q;
+    q.push({root, 0});
+    while (!q.empty()) {
+        int s = q.size();
+        long long first = q.front().second, last = first;
+        for (int i = 0; i < s; i++) {
+            auto [node, idx] = q.front();
+            q.pop();
+            idx -= first;                 // re-base to avoid overflow
+            last = idx;
+            if (node->left)  q.push({node->left,  2 * idx + 1});
+            if (node->right) q.push({node->right, 2 * idx + 2});
+        }
+        best = max(best, last + 1);
+    }
+    return (int)best;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->left = new TreeNode(4);
+    root->right->right = new TreeNode(5);
+
+    cout << "Max width: " << widthOfBinaryTree(root) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one BFS pass. \textbf{Space
+Complexity.} $O(n)$ for the queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Positional indexing ($2i+1$, $2i+2$) is the standard way to reason about a
+tree's geometry when empty slots matter. Re-basing per level is the
+practical detail that keeps those indices from overflowing on a deep,
+sparse tree.
+\end{takeawaybox}

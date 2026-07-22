@@ -1,0 +1,129 @@
+\chapter{Binary Trees}
+\chapterepigraph{A binary tree is recursion made visible. Almost every
+problem in this chapter has the same shape underneath: solve the left
+subtree, solve the right subtree, then combine those two answers into an
+answer for the current node. Master that single ``ask both children, then
+decide'' rhythm and the entire chapter -- traversals, heights, diameters,
+views, path sums, reconstruction -- collapses into variations on one
+idea.}
+
+\section{The Shape of Every Tree Problem}
+\label{sec:trees-intro}
+
+A \textbf{binary tree} is either empty, or a \textbf{node} holding a value
+together with two children, each itself the root of a binary tree. That
+recursive definition is not just a formality -- it is the template for
+almost every algorithm here. A node knows nothing about the tree except
+its own value and two pointers; any global fact (the height, the diameter,
+whether the tree is balanced, the maximum path sum) must be assembled by
+asking each child for its answer and combining.
+
+\begin{ideabox}[The One Rhythm Behind This Whole Chapter]
+For a huge fraction of tree problems the skeleton is identical:
+\[
+  \textit{solve}(node) = \textit{combine}\big(\textit{solve}(node.left),\
+  \textit{solve}(node.right),\ node.val\big).
+\]
+The only thing that changes from problem to problem is \emph{what each
+call returns} and \emph{how the two child answers are combined}. Height
+returns $1+\max$; ``is balanced'' returns height but also checks a
+condition; diameter returns height but also updates a global best;
+max-path-sum returns the best downward path but updates a global best
+using both sides. Learn to see every problem as ``what do I return, and
+how do I combine,'' and the code writes itself.
+\end{ideabox}
+
+\subsection*{How to Recognise Which Technique a Tree Problem Needs}
+
+\begin{patternbox}[Recurring Binary-Tree Keywords]
+\begin{itemize}
+  \item \textbf{``Visit/print every node in some order''} -- a
+        \textbf{traversal}. Depth-first (preorder, inorder, postorder)
+        is plain recursion, or an explicit stack when an interviewer
+        forbids recursion; breadth-first (level order) is a
+        \textbf{queue}.
+  \item \textbf{``Height, depth, balanced, diameter, maximum path
+        sum''} -- \textbf{bottom-up (postorder) recursion}: each node's
+        answer needs both children's answers \emph{first}, so compute
+        children, then the node. A single global variable often records
+        the best answer while each call returns the value its parent
+        needs.
+  \item \textbf{``Top view, bottom view, vertical order, width''} --
+        \textbf{level-order (BFS) with coordinates}: tag each node with a
+        horizontal distance (and sometimes depth), then read the map off
+        in the required order.
+  \item \textbf{``Left view, right view, level order, zigzag''} --
+        \textbf{BFS level by level}, picking the first/last node of each
+        level or alternating direction.
+  \item \textbf{``Lowest common ancestor, root-to-node path, nodes at
+        distance K, minimum time to burn''} -- \textbf{path/relationship
+        problems}: either a single recursion that reports back up whether
+        a target was found, or a preprocessing pass that records each
+        node's parent so the tree can be walked in \emph{any} direction.
+  \item \textbf{``Construct a tree from its traversals,
+        serialize/deserialize''} -- \textbf{reconstruction}: one
+        traversal fixes the root, another (or a delimiter scheme) splits
+        the remainder into left and right, applied recursively.
+  \item \textbf{``$O(1)$ space traversal, no stack, no recursion''} --
+        \textbf{Morris traversal}, which borrows the tree's own null
+        right pointers as temporary threads back to ancestors.
+\end{itemize}
+\end{patternbox}
+
+Throughout this chapter a node is the following structure, and every code
+listing is a complete, compilable program:
+
+\begin{lstlisting}
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+\end{lstlisting}
+
+Each section follows the established structure: problem statement and
+keywords; the reasoning that identifies the right traversal or recursive
+technique and why it is correct; the algorithm in words and pseudocode; a
+hand-traced dry run; complete compilable C++ code; and a time/space
+complexity analysis.
+
+\newpage
+
+% ---- Traversals ----
+\input{chapters/trees/01_traversals_recursive.tex}
+\input{chapters/trees/02_level_order.tex}
+\input{chapters/trees/03_iterative_preorder.tex}
+\input{chapters/trees/04_iterative_inorder.tex}
+\input{chapters/trees/05_iterative_postorder_two_stacks.tex}
+\input{chapters/trees/06_iterative_postorder_one_stack.tex}
+\input{chapters/trees/07_all_three_one_traversal.tex}
+
+% ---- Medium ----
+\input{chapters/trees/08_max_depth.tex}
+\input{chapters/trees/09_balanced_tree.tex}
+\input{chapters/trees/10_diameter.tex}
+\input{chapters/trees/11_max_path_sum.tex}
+\input{chapters/trees/12_same_tree.tex}
+\input{chapters/trees/13_zigzag.tex}
+\input{chapters/trees/14_boundary_traversal.tex}
+\input{chapters/trees/15_vertical_order.tex}
+\input{chapters/trees/16_top_view.tex}
+\input{chapters/trees/17_bottom_view.tex}
+\input{chapters/trees/18_left_right_view.tex}
+\input{chapters/trees/19_symmetric.tex}
+
+% ---- Hard ----
+\input{chapters/trees/20_root_to_node_path.tex}
+\input{chapters/trees/21_lca.tex}
+\input{chapters/trees/22_max_width.tex}
+\input{chapters/trees/23_children_sum.tex}
+\input{chapters/trees/24_nodes_at_distance_k.tex}
+\input{chapters/trees/25_burn_tree.tex}
+\input{chapters/trees/26_count_complete_tree.tex}
+\input{chapters/trees/27_construct_preorder_inorder.tex}
+\input{chapters/trees/28_construct_postorder_inorder.tex}
+\input{chapters/trees/29_serialize_deserialize.tex}
+\input{chapters/trees/30_morris_inorder.tex}
+\input{chapters/trees/31_morris_preorder.tex}
+\input{chapters/trees/32_flatten.tex}

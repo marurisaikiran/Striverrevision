@@ -1,0 +1,112 @@
+\section{Iterative Postorder Traversal (Two Stacks)}
+\label{sec:trees-iter-post-two}
+
+\problemstatement{Return the postorder traversal (left, right, node) of a
+binary tree without recursion, using two stacks.}
+
+\begin{patternbox}
+Postorder is the hardest to make iterative, because a node is recorded
+only \emph{after both} subtrees. The two-stack method sidesteps the
+difficulty with a slick observation: postorder is the exact
+\textbf{reverse} of a slightly modified preorder. If you can produce
+``node, right, left'' and then reverse it, you have postorder for free.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Postorder is left, right, node. Read it backwards and you get node, right,
+left -- which is just preorder with the two child visits swapped. So if we
+run a preorder-like traversal that pushes \emph{left before right} (giving
+node, right, left order) and collect the results, then reverse the whole
+collection, we recover true postorder. The second stack is simply the
+container we reverse.
+
+\begin{ideabox}[Postorder = reverse of (node, right, left)]
+Run a preorder variant using stack~1 that emits nodes in \emph{node,
+right, left} order, pushing each emitted node onto stack~2. Popping
+stack~2 at the end yields those nodes in reverse -- i.e.\ \emph{left,
+right, node}, exactly postorder. No delayed-visit bookkeeping is needed.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If root is null, return empty. Push root onto stack~1.
+  \item While stack~1 is non-empty:
+  \begin{enumerate}
+    \item Pop a node from stack~1 and push it onto stack~2.
+    \item Push that node's \emph{left} child, then its \emph{right}
+          child, onto stack~1 (if they exist).
+  \end{enumerate}
+  \item Pop everything off stack~2 into the output; that is the
+        postorder.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; children $2$ (left), $3$ (right).}
+
+\begin{itemize}
+  \item Stack1 $=[1]$: pop $1\to$ stack2 $=[1]$; push $2$ then $3$. Stack1
+        $=[2,3]$.
+  \item Pop $3\to$ stack2 $=[1,3]$ (no children). Stack1 $=[2]$.
+  \item Pop $2\to$ stack2 $=[1,3,2]$. Stack1 empty.
+  \item Empty stack2: $2,3,1$. That is the postorder.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> postorderTwoStacks(TreeNode* root) {
+    vector<int> out;
+    if (root == nullptr) return out;
+
+    stack<TreeNode*> s1, s2;
+    s1.push(root);
+    while (!s1.empty()) {
+        TreeNode* node = s1.top();
+        s1.pop();
+        s2.push(node);
+        if (node->left)  s1.push(node->left);
+        if (node->right) s1.push(node->right);
+    }
+    while (!s2.empty()) {
+        out.push_back(s2.top()->val);
+        s2.pop();
+    }
+    return out;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+
+    for (int x : postorderTwoStacks(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- every node passes through both stacks
+once. \textbf{Space Complexity.} $O(n)$ -- stack~2 accumulates all $n$
+nodes before the final reversal, which is the price of the simpler logic.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Recognising that postorder is a reversed, child-swapped preorder turns a
+fiddly problem into two easy passes. The trade is memory: it holds all $n$
+nodes at once. When an interviewer demands $O(h)$ space, use the one-stack
+method in the next section instead.
+\end{takeawaybox}

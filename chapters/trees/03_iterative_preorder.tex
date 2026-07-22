@@ -1,0 +1,110 @@
+\section{Iterative Preorder Traversal}
+\label{sec:trees-iter-preorder}
+
+\problemstatement{Return the preorder traversal (node, left, right) of a
+binary tree \emph{without} recursion, using an explicit stack.}
+
+\begin{patternbox}
+\emph{``Do this traversal iteratively / without recursion''} means:
+simulate the call stack yourself with an explicit \textbf{stack}. Preorder
+is the easiest of the three to convert because the node is recorded the
+instant it is seen, before either child -- so there is no ``come back to
+this node later'' bookkeeping to manage.
+\end{patternbox}
+
+\subsection*{Understanding the problem carefully}
+
+Recursion works by an implicit stack of pending calls. To remove the
+recursion we make that stack explicit. In preorder we want to output a
+node, then fully handle its left subtree, then its right subtree. A stack
+(LIFO) lets us achieve exactly this if we are careful about push order.
+
+\begin{ideabox}[Push Right Before Left So Left Pops First]
+Pop a node and immediately record it. Then push its \emph{right} child and
+\emph{then} its \emph{left} child. Because a stack returns the most
+recently pushed item first, the left child is processed before the right
+-- matching preorder's ``node, then all of left, then all of right.''
+Pushing right first is the whole trick; reverse it and you would get
+``node, right, left.''
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If root is null, return empty. Push root onto a stack.
+  \item While the stack is non-empty:
+  \begin{enumerate}
+    \item Pop a node; append its value to the output.
+    \item If it has a right child, push it.
+    \item If it has a left child, push it.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Tree: root $1$; children $2$ (left), $3$ (right); $2$'s left child
+$4$.}
+
+\begin{itemize}
+  \item Stack $=[1]$: pop $1$, record $1$, push $3$ then $2$. Stack
+        $=[3,2]$ (top is $2$).
+  \item Pop $2$, record $2$, push (no right), push $4$. Stack $=[3,4]$.
+  \item Pop $4$, record $4$ (no children). Stack $=[3]$.
+  \item Pop $3$, record $3$. Stack empty.
+  \item Result: $1,2,4,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+};
+
+vector<int> preorderIterative(TreeNode* root) {
+    vector<int> out;
+    if (root == nullptr) return out;
+
+    stack<TreeNode*> st;
+    st.push(root);
+    while (!st.empty()) {
+        TreeNode* node = st.top();
+        st.pop();
+        out.push_back(node->val);
+        if (node->right) st.push(node->right);   // right first
+        if (node->left)  st.push(node->left);    // so left pops first
+    }
+    return out;
+}
+
+int main() {
+    TreeNode* root = new TreeNode(1);
+    root->left = new TreeNode(2);
+    root->right = new TreeNode(3);
+    root->left->left = new TreeNode(4);
+
+    for (int x : preorderIterative(root)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node is pushed and popped exactly
+once. \textbf{Space Complexity.} $O(h)$ for the stack in the worst case
+(the stack never holds more than one node per level of the current path
+plus pending right children).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Preorder is the friendliest traversal to make iterative because ``record''
+happens on first sight. The push-right-then-left order is the reusable
+detail. Inorder and postorder are harder precisely because their record
+step is delayed until after one or both subtrees are done.
+\end{takeawaybox}
