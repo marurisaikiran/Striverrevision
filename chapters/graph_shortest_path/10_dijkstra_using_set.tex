@@ -1,0 +1,126 @@
+\section{Dijkstra's Algorithm Using a Set}
+\label{sec:graph-dijkstra-set}
+
+\problemstatement{Solve the same non-negative-weight shortest-path
+problem as Section~\ref{sec:graph-dijkstra}, but use a \textbf{balanced
+BST set} instead of a priority queue -- a variant that lets you actively
+remove stale entries.}
+
+\begin{patternbox}
+The priority-queue Dijkstra tolerates stale duplicate entries and skips
+them on pop. A \texttt{std::set} instead supports \textbf{erase}, so
+when a node's distance improves we can \emph{delete} its old
+$(\textit{dist},\textit{node})$ pair before inserting the new one --
+emulating a decrease-key and keeping the structure free of outdated
+copies.
+\end{patternbox}
+
+\subsection*{Set vs priority queue: the same algorithm, a different container}
+
+The logic is identical to heap-based Dijkstra: repeatedly take the
+smallest tentative-distance node, finalize it, and relax its edges. The
+only difference is bookkeeping. A \texttt{set<pair<int,int>>} keeps
+$(\textit{distance},\textit{node})$ pairs sorted, so
+\texttt{begin()} is the minimum. When we find a shorter path to a
+neighbor that already sits in the set with an older, larger distance, we
+first \texttt{erase} that stale pair and then insert the improved one.
+This keeps the set size bounded by $V$ rather than growing with every
+improvement.
+
+\begin{ideabox}[Erase-Then-Insert Emulates Decrease-Key]
+The heap version cannot cheaply delete an interior element, so it lets
+stale entries pile up and skips them later. The set version can delete
+in $O(\log V)$, so it removes the obsolete pair up front. Both are
+correct; the set trades a slightly larger constant factor for a smaller,
+cleaner frontier.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialize $\textit{dist}[\textit{src}]=0$, others $\infty$.
+        Insert $(0,\textit{src})$ into the set.
+  \item While the set is non-empty: take and erase the smallest pair
+        $(\textit{d},\textit{node})$ from \texttt{begin()}.
+  \item Relax each edge $\textit{node}\to\textit{nbr}$ of weight $w$: if
+        $\textit{dist}[\textit{node}]+w<\textit{dist}[\textit{nbr}]$,
+        erase the old $(\textit{dist}[\textit{nbr}],\textit{nbr})$ if
+        present, update the distance, and insert the new pair.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> dijkstraSet(int n, vector<vector<pair<int,int>>>& adj, int src) {
+    vector<int> dist(n, INT_MAX);
+    dist[src] = 0;
+    set<pair<int,int>> st;               // {distance, node}, sorted
+    st.insert({0, src});
+
+    while (!st.empty()) {
+        auto [d, node] = *st.begin();
+        st.erase(st.begin());            // take the minimum
+
+        for (auto& [nbr, w] : adj[node]) {
+            if (dist[node] + w < dist[nbr]) {
+                if (dist[nbr] != INT_MAX)
+                    st.erase({dist[nbr], nbr});   // remove stale pair
+                dist[nbr] = dist[node] + w;
+                st.insert({dist[nbr], nbr});
+            }
+        }
+    }
+    return dist;
+}
+
+int main() {
+    int n = 5;
+    vector<vector<pair<int,int>>> adj(n);   // {neighbor, weight}
+    auto addEdge = [&](int u, int v, int w) {
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    };
+    addEdge(0, 1, 4); addEdge(0, 2, 1); addEdge(2, 1, 2);
+    addEdge(1, 3, 1); addEdge(2, 3, 5); addEdge(3, 4, 3);
+
+    vector<int> dist = dijkstraSet(n, adj, 0);
+    for (int d : dist) cout << d << " ";
+    cout << endl;                        // 0 3 1 4 7
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Same graph as Section~\ref{sec:graph-dijkstra}, source $0$.}
+
+\begin{itemize}
+  \item Set $\{(0,0)\}$. Take $(0,0)$; relax $1\!\to\!4$, $2\!\to\!1$.
+        Set $\{(1,2),(4,1)\}$.
+  \item Take $(1,2)$; relax $1$ via $2$: $3<4$, so erase $(4,1)$,
+        insert $(3,1)$; relax $3\!\to\!6$. Set $\{(3,1),(6,3)\}$.
+  \item Take $(3,1)$; relax $3$ via $1$: $4<6$, erase $(6,3)$, insert
+        $(4,3)$. Set $\{(4,3)\}$.
+  \item Take $(4,3)$; relax $4\!\to\!7$. Take $(7,4)$: nothing.
+        Final $[0,3,1,4,7]$ -- no stale entries were ever skipped.
+\end{itemize}
+
+\subsection*{Complexity}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((V+E)\log V)$ -- same asymptotics as the
+heap version; each edge may cause an erase and an insert, each
+$O(\log V)$. \textbf{Space Complexity.} $O(V)$ -- the set never holds
+more than one entry per node.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The set-based Dijkstra is the same greedy algorithm with a container
+that supports deletion, so the frontier stays free of stale entries at
+the cost of a larger constant. Use the priority-queue form by default;
+reach for the set form when you specifically want an explicit
+decrease-key or a frontier bounded by $V$.
+\end{takeawaybox}

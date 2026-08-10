@@ -1,0 +1,121 @@
+\section{Print the Shortest Path}
+\label{sec:graph-print-shortest-path}
+
+\problemstatement{Given a weighted undirected graph with non-negative
+weights, find not just the shortest distance from node $1$ to node $n$,
+but the actual \textbf{sequence of nodes} on one shortest path.}
+
+\begin{patternbox}
+\emph{``Print/return the path,'' not just its length}, means: run
+Dijkstra's as usual, but additionally remember, for each node, the
+\textbf{predecessor} through which its best distance was achieved.
+Following those predecessor links backward from the destination
+reconstructs the path.
+\end{patternbox}
+
+\subsection*{Recording where each improvement came from}
+
+Every time relaxation improves $\textit{dist}[v]$ using edge $u\to v$,
+node $u$ is the current best ``parent'' of $v$ on the shortest path.
+Store $\textit{parent}[v]=u$ at that moment. When the algorithm
+finishes, $\textit{parent}$ encodes a shortest-path tree rooted at the
+source. Starting from the destination and repeatedly moving to the
+parent walks the path in reverse; reversing that list gives the path
+from source to destination.
+
+\begin{ideabox}[A Parent Pointer Turns Distances into Paths]
+Any shortest-\emph{distance} algorithm becomes a shortest-\emph{path}
+algorithm by adding one array. The parent is updated in lockstep with
+the distance -- exactly when, and only when, a strictly better distance
+is found -- so it always reflects the edge on the current best path.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Run Dijkstra's from the source. Initialize
+        $\textit{parent}[i]=i$ for all $i$.
+  \item On each successful relaxation of edge $u\to v$, set
+        $\textit{parent}[v]=u$.
+  \item If $\textit{dist}[\textit{dest}]=\infty$, no path exists.
+        Otherwise start at \textit{dest}, follow \textit{parent} until
+        reaching the source, collecting nodes, then reverse.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> shortestPath(int n, vector<vector<pair<int,int>>>& adj, int src, int dest) {
+    vector<int> dist(n + 1, INT_MAX), parent(n + 1);
+    for (int i = 1; i <= n; i++) parent[i] = i;
+    dist[src] = 0;
+    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> pq;
+    pq.push({0, src});
+
+    while (!pq.empty()) {
+        auto [d, node] = pq.top(); pq.pop();
+        if (d > dist[node]) continue;
+        for (auto& [nbr, w] : adj[node]) {
+            if (dist[node] + w < dist[nbr]) {
+                dist[nbr] = dist[node] + w;
+                parent[nbr] = node;          // remember predecessor
+                pq.push({dist[nbr], nbr});
+            }
+        }
+    }
+
+    if (dist[dest] == INT_MAX) return {};    // unreachable
+    vector<int> path;
+    for (int cur = dest; cur != src; cur = parent[cur]) path.push_back(cur);
+    path.push_back(src);
+    reverse(path.begin(), path.end());
+    return path;
+}
+
+int main() {
+    int n = 5;
+    vector<vector<pair<int,int>>> adj(n + 1);   // 1-indexed
+    auto addEdge = [&](int u, int v, int w) {
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    };
+    addEdge(1, 2, 2); addEdge(1, 3, 4); addEdge(2, 3, 1);
+    addEdge(2, 4, 7); addEdge(3, 5, 3); addEdge(5, 4, 2);
+
+    vector<int> path = shortestPath(n, adj, 1, 4);
+    for (int node : path) cout << node << " ";
+    cout << endl;                            // 1 2 3 5 4
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Source $1$, destination $4$.}
+
+\begin{itemize}
+  \item Dijkstra finalizes: $\textit{dist}[1]=0$, $[2]=2$ (parent
+        $1$), $[3]=3$ (parent $2$, via $2\!+\!1$), $[5]=6$ (parent
+        $3$), $[4]=8$ (parent $5$, via $6\!+\!2$, better than
+        $2\!+\!7=9$).
+  \item Backtrack from $4$: $4\to5\to3\to2\to1$.
+  \item Reverse: $1,2,3,5,4$ (total distance $8$).
+\end{itemize}
+
+\subsection*{Complexity}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((V+E)\log V)$ -- Dijkstra's cost; the
+backtrack is $O(V)$. \textbf{Space Complexity.} $O(V)$ for the distance
+and parent arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+To turn any relaxation-based shortest-distance algorithm into one that
+prints the path, record a parent pointer at each successful relaxation
+and walk it backward from the destination. The same trick works for
+BFS, Dijkstra's, and Bellman-Ford alike.
+\end{takeawaybox}

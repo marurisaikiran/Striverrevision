@@ -1,0 +1,111 @@
+\section{Minimum Multiplications to Reach End}
+\label{sec:graph-min-multiplications}
+
+\problemstatement{Given a start number, an end number, and an array of
+multipliers, in each step you may replace the current number $x$ with
+$(x \times \textit{arr}[i]) \bmod 100000$ for any $i$. Find the minimum
+number of steps to turn \textit{start} into \textit{end}, or $-1$ if
+impossible.}
+
+\begin{patternbox}
+The disguise here is strong: there is no explicit graph. But each
+reachable number $0\ldots99999$ is a \textbf{node}, and each multiplier
+defines an \textbf{edge} of cost one step. ``Minimum steps, all costs
+equal'' is again a \textbf{unit-weight shortest path}, so \textbf{BFS}
+over the $100000$ possible numbers solves it.
+\end{patternbox}
+
+\subsection*{Modeling numbers as nodes}
+
+The modulo keeps every reachable value in $[0,99999]$, a finite state
+space. From a value $x$, applying multiplier $\textit{arr}[i]$ produces
+a neighbor $(x\cdot\textit{arr}[i])\bmod 100000$. Every such transition
+is one step, so all edges have equal weight and BFS from \textit{start}
+finds the fewest steps to \textit{end}. A visited array over the
+$100000$ states prevents revisiting and guarantees termination.
+
+\begin{ideabox}[A Bounded State Space Makes BFS Finite]
+The $\bmod\,100000$ is what makes this tractable: without it the numbers
+could grow without bound. With it, there are only $100000$ possible
+states, so BFS explores each at most once and either reaches
+\textit{end} or exhausts the reachable set.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If \textit{start} equals \textit{end}, return $0$. Push
+        \textit{start} with $\textit{steps}=0$; mark it visited.
+  \item While the queue is non-empty, pop $(\textit{value},
+        \textit{steps})$.
+  \item For each multiplier, compute
+        $\textit{next}=(\textit{value}\cdot\textit{arr}[i])\bmod
+        100000$; if $\textit{next}=\textit{end}$, return
+        $\textit{steps}+1$; if unvisited, mark and push it with
+        $\textit{steps}+1$.
+  \item If the queue empties, return $-1$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int minimumMultiplications(vector<int>& arr, int start, int end) {
+    if (start == end) return 0;
+    const int MOD = 100000;
+    vector<bool> vis(MOD, false);
+    queue<pair<int,int>> q;                  // {value, steps}
+    q.push({start, 0});
+    vis[start] = true;
+
+    while (!q.empty()) {
+        auto [value, steps] = q.front(); q.pop();
+        for (int m : arr) {
+            int next = (int)((long long)value * m % MOD);
+            if (next == end) return steps + 1;
+            if (!vis[next]) {
+                vis[next] = true;
+                q.push({next, steps + 1});
+            }
+        }
+    }
+    return -1;
+}
+
+int main() {
+    vector<int> arr = {2, 5, 7};
+    cout << minimumMultiplications(arr, 3, 30) << endl;   // 2  (3*2=6, 6*5=30)
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{\textit{arr}$=\{2,5,7\}$, start $3$, end $30$.}
+
+\begin{itemize}
+  \item Step $0$: value $3$. Neighbors: $6$ (via $2$), $15$ (via $5$),
+        $21$ (via $7$) -- none is $30$; enqueue all with steps $1$.
+  \item Step $1$, value $6$: $6\times2=12$, $6\times5=30$ --
+        \textbf{match!} Return $1+1=2$.
+  \item Shortest: $3\xrightarrow{\times2}6\xrightarrow{\times5}30$, two
+        steps.
+\end{itemize}
+
+\subsection*{Complexity}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(100000 \times \lvert\textit{arr}\rvert)$ --
+each of the $100000$ states is expanded once, trying every multiplier.
+\textbf{Space Complexity.} $O(100000)$ for the visited array and queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a problem asks for the minimum number of equal-cost transformations
+between two values, model each value as a node and each transformation
+as a unit edge, then run BFS -- even when no graph is stated. A bounded
+state space (here, the modulo) is the signal that this modeling is
+finite and BFS applies.
+\end{takeawaybox}

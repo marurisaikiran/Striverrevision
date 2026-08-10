@@ -1,0 +1,126 @@
+\section{Shortest Path in a Directed Acyclic Graph}
+\label{sec:graph-shortest-path-dag}
+
+\problemstatement{Given a weighted \textbf{directed acyclic graph}
+(DAG) and a source node, find the shortest distance from the source to
+every other node. Weights may even be negative -- the absence of cycles
+is what makes this safe.}
+
+\begin{patternbox}
+\emph{``Shortest path'' + ``directed acyclic''} unlocks something
+neither BFS nor Dijkstra needs: a \textbf{topological order}. If we
+relax every node's outgoing edges in topological order, then by the
+time we process a node its own shortest distance is already final,
+because every path into it comes from nodes appearing \emph{earlier}
+in the order.
+\end{patternbox}
+
+\subsection*{Why a topological order makes one pass enough}
+
+In a DAG every edge $u \to v$ points from an earlier node to a later
+node in topological order. So when we reach $u$ in that order, all
+edges that could ever improve $\textit{dist}[u]$ have already been
+relaxed -- they all originate from nodes before $u$. Thus
+$\textit{dist}[u]$ is final the moment we start processing $u$, and a
+single left-to-right sweep relaxing each node's out-edges suffices. No
+priority queue and no repeated passes are needed, which is why this
+beats both Dijkstra's ($O((V+E)\log V)$) and Bellman-Ford's
+($O(VE)$) for DAGs, and tolerates negative weights that Dijkstra's
+cannot.
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Topologically sort the DAG (DFS-based, pushing nodes onto a
+        stack after visiting all descendants).
+  \item Initialize $\textit{dist}[\textit{src}]=0$, all others
+        $\infty$.
+  \item Pop nodes in topological order; for each node with a finite
+        distance, relax every outgoing edge $u\to v$ of weight $w$: if
+        $\textit{dist}[u]+w<\textit{dist}[v]$, update
+        $\textit{dist}[v]$.
+\end{enumerate}
+
+\begin{ideabox}[Topological Order Replaces the Priority Queue]
+Dijkstra's uses a heap to always pick the next node whose distance is
+final. A DAG hands you that order for free: any topological order is
+already a valid ``finalization order.'' Sorting once ($O(V+E)$) removes
+the need to repeatedly find the minimum.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void topoDFS(int node, vector<vector<pair<int,int>>>& adj,
+             vector<bool>& vis, stack<int>& st) {
+    vis[node] = true;
+    for (auto& [nbr, w] : adj[node])
+        if (!vis[nbr]) topoDFS(nbr, adj, vis, st);
+    st.push(node);                       // push after all descendants
+}
+
+vector<int> shortestPathDAG(int n, vector<vector<pair<int,int>>>& adj, int src) {
+    vector<bool> vis(n, false);
+    stack<int> st;
+    for (int i = 0; i < n; i++) if (!vis[i]) topoDFS(i, adj, vis, st);
+
+    vector<int> dist(n, INT_MAX);
+    dist[src] = 0;
+    while (!st.empty()) {
+        int node = st.top(); st.pop();   // topological order
+        if (dist[node] == INT_MAX) continue;
+        for (auto& [nbr, w] : adj[node])
+            if (dist[node] + w < dist[nbr])
+                dist[nbr] = dist[node] + w;   // relax
+    }
+    return dist;
+}
+
+int main() {
+    int n = 6;
+    vector<vector<pair<int,int>>> adj(n);   // directed {neighbor, weight}
+    adj[0].push_back({1, 2}); adj[0].push_back({4, 1});
+    adj[1].push_back({2, 3}); adj[2].push_back({3, 6});
+    adj[4].push_back({2, 2}); adj[4].push_back({5, 4});
+    adj[5].push_back({3, 1});
+
+    vector<int> dist = shortestPathDAG(n, adj, 0);
+    for (int d : dist) cout << (d == INT_MAX ? -1 : d) << " ";
+    cout << endl;                        // 0 2 3 8 1 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Source $0$; a topological order is $0,4,5,1,2,3$.}
+
+\begin{itemize}
+  \item $0$ ($\textit{dist}=0$): relax $1\to2$, $4\to1$.
+  \item $4$ ($\textit{dist}=1$): relax $2\to1+2=3$, $5\to1+4=5$.
+  \item $5$ ($\textit{dist}=5$): relax $3\to5+1=6$.
+  \item $1$ ($\textit{dist}=2$): relax $2$ via $1$: $2+3=5>3$, no
+        change.
+  \item $2$ ($\textit{dist}=3$): relax $3$ via $2$: $3+6=9>6$, no
+        change.
+  \item $3$ ($\textit{dist}=6$): no out-edges. Final:
+        $[0,2,3,6,1,5]$.
+\end{itemize}
+
+\subsection*{Complexity}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V+E)$ -- one topological sort plus one
+relaxation sweep, each linear. \textbf{Space Complexity.} $O(V)$ for
+the distance array, visited array, and stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+On a DAG, a topological order \emph{is} the order in which distances
+become final, so a single linear sweep beats Dijkstra's and Bellman-Ford
+and even handles negative weights. Whenever a shortest-path problem
+promises ``no cycles,'' reach for topological sort before any heap.
+\end{takeawaybox}

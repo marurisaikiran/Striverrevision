@@ -1,0 +1,116 @@
+\section{Number of Provinces}
+\label{sec:graph-number-of-provinces}
+
+\problemstatement{Given an $n\times n$ adjacency matrix
+\textit{isConnected}, where $\textit{isConnected}[i][j]=1$ means cities
+$i$ and $j$ are directly connected, a \emph{province} is a maximal group
+of directly or indirectly connected cities. Return the number of
+provinces.}
+
+\begin{patternbox}
+\emph{``Count the connected components / groups''} is the plainest use
+of \textbf{Disjoint Set}: union every directly connected pair, and the
+number of provinces is simply the number of \textbf{distinct roots}
+left. (A DFS/BFS component count also works; DSU is shown here because
+this chapter is about wielding it.)
+\end{patternbox}
+
+\subsection*{From matrix to unions}
+
+Scan the upper triangle of the matrix. Every $1$ at $(i,j)$ says ``$i$
+and $j$ belong to the same province,'' which is exactly a
+$\textit{union}(i,j)$. After processing all pairs, cities in the same
+province share one root, so counting how many cities are their own root
+(\,$\textit{find}(i)=i$\,) counts the provinces.
+
+\begin{ideabox}[Components = Number of Distinct Roots]
+Disjoint Set never explicitly stores group membership lists; it stores a
+forest. After all unions, each tree is one component, and each tree has
+exactly one root. So iterating once and counting self-parents yields the
+component count in $O(n\,\alpha(n))$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Create a Disjoint Set over $n$ cities.
+  \item For every pair $i<j$ with $\textit{isConnected}[i][j]=1$, call
+        $\textit{unite}(i,j)$.
+  \item Count the indices $i$ with $\textit{find}(i)=i$; that is the
+        number of provinces.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent, size;
+public:
+    DisjointSet(int n) : parent(n), size(n, 1) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);        // path compression
+    }
+    void unite(int x, int y) {
+        int rx = find(x), ry = find(y);
+        if (rx == ry) return;
+        if (size[rx] < size[ry]) swap(rx, ry);
+        parent[ry] = rx; size[rx] += size[ry];     // smaller under larger
+    }
+};
+
+int numProvinces(vector<vector<int>>& isConnected) {
+    int n = isConnected.size();
+    DisjointSet ds(n);
+    for (int i = 0; i < n; i++)
+        for (int j = i + 1; j < n; j++)
+            if (isConnected[i][j] == 1) ds.unite(i, j);
+
+    int provinces = 0;
+    for (int i = 0; i < n; i++) if (ds.find(i) == i) provinces++;
+    return provinces;
+}
+
+int main() {
+    vector<vector<int>> isConnected = {
+        {1, 1, 0},
+        {1, 1, 0},
+        {0, 0, 1}
+    };
+    cout << numProvinces(isConnected) << endl;     // 2
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{The $3\times3$ matrix above.}
+
+\begin{itemize}
+  \item Pair $(0,1)$ is $1$: $\textit{unite}(0,1)$ -- $1$'s root becomes
+        $0$.
+  \item Pair $(0,2)$ and $(1,2)$ are $0$: no union.
+  \item Roots: $\textit{find}(0)=0$, $\textit{find}(1)=0$,
+        $\textit{find}(2)=2$. Self-parents are $0$ and $2$ -- two
+        provinces.
+\end{itemize}
+
+\subsection*{Complexity}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2\,\alpha(n))$ -- scanning the matrix
+dominates, with near-constant union/find. \textbf{Space Complexity.}
+$O(n)$ for the Disjoint Set arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Counting provinces is Disjoint Set at its most direct: union every
+connected pair, then count distinct roots. Recognize ``how many separate
+groups?'' as a component-count question and DSU (or a DFS/BFS flood)
+answers it immediately.
+\end{takeawaybox}

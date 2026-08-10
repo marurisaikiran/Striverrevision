@@ -1,0 +1,137 @@
+\section{Swim in Rising Water}
+\label{sec:graph-swim-rising-water}
+
+\problemstatement{Given an $n\times n$ grid where
+$\textit{grid}[r][c]$ is the elevation of a cell, at time $t$ the water
+level is $t$ and you may move (in four directions) into any adjacent
+cell whose elevation is $\le t$. Starting at $(0,0)$, find the least
+time to reach $(n-1,n-1)$.}
+
+\begin{patternbox}
+\emph{``Least time until a path exists,'' where time is a rising
+threshold}, is a connectivity-over-time question, and
+\textbf{Disjoint Set} answers it beautifully: activate cells in
+increasing elevation order, union each with its already-active
+neighbors, and the answer is the elevation at which the start and end
+first become connected.
+\end{patternbox}
+
+\subsection*{Turning a threshold into unions over time}
+
+At time $t$, exactly the cells with elevation $\le t$ are usable. As $t$
+rises, cells switch on one by one in increasing-elevation order. When a
+cell switches on, it may bridge previously separate open regions -- a
+$\textit{union}$ with each adjacent already-active cell. The moment
+$(0,0)$ and $(n-1,n-1)$ land in the same set, a fully-submerged-enough
+path exists, and the elevation of the just-activated cell is the minimum
+time needed.
+
+\begin{ideabox}[Process Cells in Elevation Order]
+Sorting cells by elevation and activating them in that order means the
+current cell's elevation is the current water level $t$. Because we stop
+the instant start and end connect, that elevation is exactly the least
+$t$ for which a path exists -- equivalently, the minimum over all paths
+of the maximum elevation on the path.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Collect all cells as $(\textit{elevation}, r, c)$ and sort
+        ascending.
+  \item Create a Disjoint Set over the $n^2$ cells; keep an
+        \textit{active} flag per cell.
+  \item Activate cells in order. For each activated cell, unite it with
+        every adjacent active cell. After each activation, if $(0,0)$
+        and $(n-1,n-1)$ are connected, return the current cell's
+        elevation.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet {
+    vector<int> parent, size;
+public:
+    DisjointSet(int n) : parent(n), size(n, 1) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+    void unite(int x, int y) {
+        int rx = find(x), ry = find(y);
+        if (rx == ry) return;
+        if (size[rx] < size[ry]) swap(rx, ry);
+        parent[ry] = rx; size[rx] += size[ry];
+    }
+    bool connected(int x, int y) { return find(x) == find(y); }
+};
+
+int swimInWater(vector<vector<int>>& grid) {
+    int n = grid.size();
+    vector<tuple<int,int,int>> cells;              // {elevation, r, c}
+    for (int r = 0; r < n; r++)
+        for (int c = 0; c < n; c++)
+            cells.push_back({grid[r][c], r, c});
+    sort(cells.begin(), cells.end());
+
+    DisjointSet ds(n * n);
+    vector<vector<bool>> active(n, vector<bool>(n, false));
+    int dr[] = {-1,1,0,0}, dc[] = {0,0,-1,1};
+
+    for (auto& [elev, r, c] : cells) {
+        active[r][c] = true;
+        for (int k = 0; k < 4; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+            if (active[nr][nc]) ds.unite(r * n + c, nr * n + nc);
+        }
+        if (ds.connected(0, n * n - 1)) return elev;   // start & end joined
+    }
+    return -1;
+}
+
+int main() {
+    vector<vector<int>> grid = {{0,2},{1,3}};
+    cout << swimInWater(grid) << endl;             // 3
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Grid $\begin{smallmatrix}0&2\\1&3\end{smallmatrix}$; start
+$(0,0)$, end $(1,1)$ with id $3$.}
+
+\begin{itemize}
+  \item Elevation order: $0\,(0,0)$, $1\,(1,0)$, $2\,(0,1)$,
+        $3\,(1,1)$.
+  \item Activate $0$: no active neighbors. Activate $1\,(1,0)$: unite
+        with $(0,0)$. Activate $2\,(0,1)$: unite with $(0,0)$.
+  \item Activate $3\,(1,1)$: unite with active neighbors $(0,1)$ and
+        $(1,0)$ -- now $(0,0)$ and $(1,1)$ are connected. Return
+        elevation $\mathbf{3}$.
+\end{itemize}
+
+\subsection*{Complexity}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2\log n)$ -- sorting the $n^2$ cells
+dominates; each activation does $O(1)$ near-constant unions.
+\textbf{Space Complexity.} $O(n^2)$ for the Disjoint Set, the cell
+list, and the active grid.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When the question is ``the least threshold at which two points become
+connected,'' add elements in threshold order and use Disjoint Set to
+detect the moment of connection. This ``union over increasing time''
+technique also solves problems phrased as minimizing the maximum edge on
+a path -- for which a Dijkstra-style ``minimize the max'' (as in
+Section~\ref{sec:graph-path-min-effort}) is the alternative.
+\end{takeawaybox}

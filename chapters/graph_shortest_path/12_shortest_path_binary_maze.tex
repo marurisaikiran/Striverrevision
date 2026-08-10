@@ -1,0 +1,119 @@
+\section{Shortest Distance in a Binary Maze}
+\label{sec:graph-shortest-binary-maze}
+
+\problemstatement{Given an $n\times m$ grid of $0$s (blocked) and $1$s
+(open), a source cell and a destination cell, find the length of the
+shortest path between them moving only through open cells in the four
+cardinal directions. Return $-1$ if unreachable.}
+
+\begin{patternbox}
+A grid where every move costs the same one step is a
+\textbf{unit-weight} graph, so plain \textbf{BFS} finds the shortest
+path -- exactly the case from
+Section~\ref{sec:graph-shortest-path-unit-weights}, just with the
+graph given implicitly as a grid rather than an adjacency list. No
+Dijkstra's is needed when all moves cost $1$.
+\end{patternbox}
+
+\subsection*{The grid is a graph in disguise}
+
+Each open cell is a node; each pair of side-adjacent open cells is an
+edge of weight $1$. Because BFS explores strictly in order of increasing
+number of steps, the first time it reaches the destination it has done
+so by a shortest path. We store $(\textit{row},\textit{col},
+\textit{distance})$ in the queue (or track distance in a separate grid)
+and expand the four neighbors, skipping blocked or out-of-bounds cells
+and cells already visited.
+
+\begin{ideabox}[BFS Layers Are Distance Layers]
+Since every edge weighs $1$, BFS's $k$-th layer holds exactly the cells
+at distance $k$ from the source. Marking a cell visited the moment it is
+enqueued guarantees each cell is reached by its shortest distance and
+never reprocessed.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the source is blocked, return $-1$ (or $0$ if source equals
+        destination). Push the source with distance $0$; mark it
+        visited.
+  \item While the queue is non-empty, pop $(r,c,d)$; if it is the
+        destination, return $d$.
+  \item For each of the four neighbors that is in bounds, open, and
+        unvisited: mark visited and push it with distance $d+1$.
+  \item If the queue empties without reaching the destination, return
+        $-1$.
+\end{enumerate}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int shortestPathBinaryMaze(vector<vector<int>>& grid,
+                           pair<int,int> src, pair<int,int> dest) {
+    int n = grid.size(), m = grid[0].size();
+    if (grid[src.first][src.second] == 0) return -1;
+    if (src == dest) return 0;
+
+    vector<vector<bool>> vis(n, vector<bool>(m, false));
+    queue<tuple<int,int,int>> q;             // {row, col, distance}
+    q.push({src.first, src.second, 0});
+    vis[src.first][src.second] = true;
+    int dr[] = {-1, 1, 0, 0}, dc[] = {0, 0, -1, 1};
+
+    while (!q.empty()) {
+        auto [r, c, d] = q.front(); q.pop();
+        for (int k = 0; k < 4; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m) continue;
+            if (grid[nr][nc] == 0 || vis[nr][nc]) continue;
+            if (nr == dest.first && nc == dest.second) return d + 1;
+            vis[nr][nc] = true;
+            q.push({nr, nc, d + 1});
+        }
+    }
+    return -1;
+}
+
+int main() {
+    vector<vector<int>> grid = {
+        {1, 1, 1, 1},
+        {1, 0, 0, 1},
+        {1, 1, 1, 1}
+    };
+    cout << shortestPathBinaryMaze(grid, {0,0}, {2,3}) << endl;  // 5
+    return 0;
+}
+\end{lstlisting}
+
+\subsection*{Dry run}
+
+\dryrun{Source $(0,0)$, destination $(2,3)$ on the $3\times4$ grid
+above.}
+
+\begin{itemize}
+  \item Layer $0$: $(0,0)$. Layer $1$: $(1,0),(0,1)$.
+  \item Layer $2$: $(2,0),(0,2)$. Layer $3$: $(2,1),(0,3)$.
+  \item Layer $4$: $(2,2),(1,3)$. Layer $5$: expanding $(2,2)$ or
+        $(1,3)$ reaches $(2,3)$ -- return $5$.
+  \item The blocked cells $(1,1),(1,2)$ force the path around the
+        edges.
+\end{itemize}
+
+\subsection*{Complexity}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\cdot m)$ -- each cell is enqueued and
+processed at most once. \textbf{Space Complexity.} $O(n\cdot m)$ for the
+visited grid and the BFS queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When every move on a grid costs the same, BFS -- not Dijkstra's -- is the
+right tool, and the grid is simply an implicit unit-weight graph. Save
+Dijkstra's for grids where cells carry differing move costs, such as
+Path With Minimum Effort (Section~\ref{sec:graph-path-min-effort}).
+\end{takeawaybox}
