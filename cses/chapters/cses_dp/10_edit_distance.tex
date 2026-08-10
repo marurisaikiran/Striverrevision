@@ -1,0 +1,96 @@
+\section{Edit Distance}
+\label{sec:cses-edit-distance}
+
+\problemstatement{Given two strings, find their edit (Levenshtein)
+distance: the minimum number of single-character insertions, deletions,
+and substitutions needed to turn one string into the other.}
+
+\begin{patternbox}
+\emph{``Minimum operations to transform one sequence into another''} is
+the canonical two-sequence grid DP. Let $\textit{dp}[i][j]$ be the edit
+distance between the first $i$ characters of $A$ and the first $j$ of $B$;
+the last operation is an insert, delete, or match/substitute.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+$\textit{dp}[i][j]$ = edit distance between prefixes $A[1..i]$ and
+$B[1..j]$. Consider the last operation aligning the two prefixes:
+\begin{itemize}
+  \item If $A[i]=B[j]$, they match for free:
+        $\textit{dp}[i-1][j-1]$.
+  \item Otherwise substitute: $1+\textit{dp}[i-1][j-1]$.
+  \item Delete $A[i]$: $1+\textit{dp}[i-1][j]$.
+  \item Insert $B[j]$: $1+\textit{dp}[i][j-1]$.
+\end{itemize}
+\[
+  \textit{dp}[i][j]=\min\!\big(\textit{dp}[i-1][j-1]+[A_i\ne B_j],\
+  \textit{dp}[i-1][j]+1,\ \textit{dp}[i][j-1]+1\big).
+\]
+Base cases: $\textit{dp}[i][0]=i$ (delete all), $\textit{dp}[0][j]=j$
+(insert all).
+
+\begin{ideabox}[Three Operations, Three Predecessors]
+Each cell chooses the cheapest of the three edits that could have produced
+it, so the recurrence has exactly three incoming states. The diagonal move
+is free on a character match -- that is where the strings' similarity saves
+operations.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Fill the first row and column with $0,1,2,\ldots$ (transform to
+        or from the empty string).
+  \item For $i=1\ldots|A|$, $j=1\ldots|B|$: apply the recurrence above.
+  \item Answer $\textit{dp}[|A|][|B|]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$A=$``LOVE'', $B=$``MOVIE''.}
+
+\begin{itemize}
+  \item Align: L$\to$M (substitute), O=O, V=V, insert I, E=E.
+  \item The DP settles $\textit{dp}[4][5]=2$ -- one substitution
+        (L$\to$M) and one insertion (I).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    string a, b;
+    cin >> a >> b;
+    int n = a.size(), m = b.size();
+
+    vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+    for (int i = 0; i <= n; i++) dp[i][0] = i;
+    for (int j = 0; j <= m; j++) dp[0][j] = j;
+
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= m; j++) {
+            int cost = (a[i - 1] == b[j - 1]) ? 0 : 1;
+            dp[i][j] = min({ dp[i-1][j-1] + cost,   // match/substitute
+                             dp[i-1][j] + 1,        // delete
+                             dp[i][j-1] + 1 });     // insert
+        }
+    cout << dp[n][m] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nm)$. \textbf{Space Complexity.} $O(nm)$,
+reducible to $O(\min(n,m))$ with two rolling rows.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Edit Distance is the two-string grid DP every alignment problem descends
+from: three edit operations map to three predecessor cells, and a matching
+character makes the diagonal free. The same $(i,j)$-prefix state solves
+LCS, sequence alignment, and diff.
+\end{takeawaybox}

@@ -1,0 +1,91 @@
+\section{Book Shop}
+\label{sec:cses-book-shop}
+
+\problemstatement{You have $x$ money and there are $n$ books, each with a
+price and a page count. You may buy each book at most once. Maximise the
+total number of pages you can buy within your budget.}
+
+\begin{patternbox}
+\emph{``Each item at most once, maximise value under a capacity''} is the
+classic \textbf{0/1 knapsack}. Price is weight, pages are value, $x$ is
+capacity. Let $\textit{dp}[b]$ be the maximum pages achievable with
+budget exactly $\le b$.
+\end{patternbox}
+
+\subsection*{State, transition, and the reverse inner loop}
+
+Process books one at a time. $\textit{dp}[b]$ = best pages using books
+considered so far with budget $b$. For a book with price $p$ and pages
+$s$, either skip it ($\textit{dp}[b]$ unchanged) or buy it
+($\textit{dp}[b-p]+s$). The decisive implementation detail: when using a
+1D array, iterate $b$ \textbf{downward} from $x$ to $p$, so that
+$\textit{dp}[b-p]$ still refers to a state \emph{without} the current
+book -- guaranteeing each book is used at most once.
+\[
+  \textit{dp}[b]=\max\big(\textit{dp}[b],\ \textit{dp}[b-p]+s\big).
+\]
+
+\begin{ideabox}[Downward Loop Enforces ``At Most Once'']
+In 0/1 knapsack the inner budget loop must go high-to-low. A low-to-high
+loop would let $\textit{dp}[b-p]$ already include the current book,
+effectively allowing it to be bought repeatedly -- which is the unbounded
+knapsack (Coin Combinations II). The loop direction is the whole
+difference.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[b]=0$ for all $b$.
+  \item For each book $(p,s)$: for $b=x$ down to $p$,
+        $\textit{dp}[b]=\max(\textit{dp}[b],\textit{dp}[b-p]+s)$.
+  \item Answer $\textit{dp}[x]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Budget $x=10$; books $(\text{price},\text{pages})=(4,5),(8,12),
+(5,8),(3,1)$.}
+
+\begin{itemize}
+  \item After book $(4,5)$: $\textit{dp}[b]=5$ for $b\ge4$.
+  \item After $(5,8)$: $\textit{dp}[9]=\max(5,\textit{dp}[4]+8)=13$
+        (buy the $4$ and the $5$).
+  \item Final $\textit{dp}[10]=13$ -- books priced $4$ and $5$ give
+        $5+8=13$ pages within budget $10$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, x;
+    cin >> n >> x;
+    vector<int> price(n), pages(n);
+    for (int& p : price) cin >> p;
+    for (int& s : pages) cin >> s;
+
+    vector<int> dp(x + 1, 0);
+    for (int i = 0; i < n; i++)
+        for (int b = x; b >= price[i]; b--)        // downward: 0/1
+            dp[b] = max(dp[b], dp[b - price[i]] + pages[i]);
+
+    cout << dp[x] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nx)$ -- each book sweeps the budget once.
+\textbf{Space Complexity.} $O(x)$ with the rolling 1D array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Book Shop is 0/1 knapsack in disguise; the only thing to get right is the
+downward inner loop that forbids reusing an item. Contrast with the coin
+problems' upward loop (items reusable). Loop direction is the recurring
+knapsack tell.
+\end{takeawaybox}

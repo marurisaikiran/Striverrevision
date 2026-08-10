@@ -1,0 +1,115 @@
+\section{Counting Tilings}
+\label{sec:cses-counting-tilings}
+
+\problemstatement{Count the number of ways to tile an $n\times m$ grid
+completely with $1\times2$ dominoes (each placed horizontally or
+vertically), modulo $10^9+7$.}
+
+\begin{patternbox}
+\emph{``Domino tilings of a grid''} with one small dimension ($m\le10$) is
+solved by \textbf{broken-profile (bitmask) DP}: sweep column by column,
+and let the state be the bitmask of cells in the current column that are
+already occupied by a horizontal domino protruding from the previous
+column.
+\end{patternbox}
+
+\subsection*{The profile between columns}
+
+Fill the grid one column at a time. When moving from column $c$ to column
+$c+1$, the only thing the next column needs to know is which of its cells
+are \emph{already filled} by horizontal dominoes sticking out of column
+$c$. That set of $n$ bits is the \textbf{profile}. For each incoming
+profile \textit{mask}, we enumerate every legal way to complete column $c$
+using vertical dominoes (within the column) and horizontal dominoes
+(extending into column $c+1$), producing an outgoing profile.
+
+\begin{ideabox}[Recursively Fill One Column]
+Process the current column cell by cell from top to bottom. A cell already
+covered by the incoming profile is skipped. An empty cell must be covered
+either by a vertical domino with the cell below it, or by a horizontal
+domino that sets the corresponding bit in the \emph{next} column's
+profile. Enumerating these choices generates all valid transitions.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Ensure $n$ (the profile height) is the smaller dimension; if not,
+        swap $n$ and $m$.
+  \item Start with $\textit{cur}[0]=1$ (empty profile before column $0$).
+  \item For each column, for each profile with nonzero count, recursively
+        fill the column to produce all next-column profiles, accumulating
+        counts.
+  \item After the last column, the answer is $\textit{cur}[0]$ (nothing
+        protrudes past the grid).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$2\times2$ grid.}
+
+\begin{itemize}
+  \item Column $0$, incoming profile $00$: either two horizontals (both
+        cells extend right, next profile $11$) or one vertical (next
+        profile $00$).
+  \item Column $1$: profile $11$ means both cells already filled -- valid,
+        next $00$. Profile $00$ needs a vertical -- valid, next $00$.
+  \item Total tilings of $2\times2$: $2$ (two horizontals or two
+        verticals).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1e9 + 7;
+
+int n, m;
+vector<long long> cur, nxt;
+
+// fill column: row = current row, mask = incoming profile,
+// newmask = outgoing profile being built, ways = count to propagate
+void fill(int row, int mask, int newmask, long long ways) {
+    if (row == n) { nxt[newmask] = (nxt[newmask] + ways) % MOD; return; }
+    if (mask & (1 << row)) {                     // already filled
+        fill(row + 1, mask, newmask, ways);
+        return;
+    }
+    // place a horizontal domino: extends into next column
+    fill(row + 1, mask, newmask | (1 << row), ways);
+    // place a vertical domino covering row and row+1
+    if (row + 1 < n && !(mask & (1 << (row + 1))))
+        fill(row + 2, mask, newmask, ways);
+}
+
+int main() {
+    cin >> n >> m;
+    if (n > m) swap(n, m);                        // keep profile small
+    int full = 1 << n;
+    cur.assign(full, 0);
+    cur[0] = 1;
+    for (int col = 0; col < m; col++) {
+        nxt.assign(full, 0);
+        for (int mask = 0; mask < full; mask++)
+            if (cur[mask]) fill(0, mask, 0, cur[mask]);
+        cur = nxt;
+    }
+    cout << cur[0] << "\n";                       // nothing protrudes out
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(m\cdot 2^n\cdot n)$ roughly -- each column
+processes $2^n$ profiles, each filled in $O(n)$ recursive steps.
+\textbf{Space Complexity.} $O(2^n)$ for the two profile arrays.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Broken-profile DP tiles a grid by carrying, as state, only the boundary
+between the filled and unfilled regions -- one column's protrusion mask.
+It is Counting Towers (Section~\ref{sec:cses-counting-towers}) generalised
+from two boundary states to $2^n$, and the standard tool for domino and
+polyomino tiling counts.
+\end{takeawaybox}

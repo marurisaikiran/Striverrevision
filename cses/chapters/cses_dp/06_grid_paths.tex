@@ -1,0 +1,95 @@
+\section{Grid Paths}
+\label{sec:cses-grid-paths}
+
+\problemstatement{Given an $n\times n$ grid where some cells are traps
+(\texttt{*}) and the rest are free (\texttt{.}), count the number of
+paths from the top-left to the bottom-right cell moving only right or
+down, never through a trap. Output modulo $10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count paths in a grid, moving right/down only''} is the textbook
+2D grid DP. A cell $(i,j)$ is reached only from directly above or
+directly left, so $\textit{dp}[i][j]=\textit{dp}[i-1][j]+
+\textit{dp}[i][j-1]$, with traps forced to $0$.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+$\textit{dp}[i][j]$ = number of valid paths from $(0,0)$ to $(i,j)$.
+Since the only moves are right and down, the last step into $(i,j)$ came
+from $(i-1,j)$ (a down move) or $(i,j-1)$ (a right move). Summing those
+two counts every path once. A trap cell contributes zero paths, so we
+set its DP value to $0$ regardless.
+\[
+  \textit{dp}[i][j]=\begin{cases}0 & (i,j)\text{ is a trap}\\
+  \textit{dp}[i-1][j]+\textit{dp}[i][j-1] & \text{otherwise.}\end{cases}
+\]
+
+\begin{ideabox}[Two Incoming Directions, One Sum]
+Grid DP works because the move set is acyclic and monotone: you can only
+increase $i$ or $j$, so processing rows top-to-bottom, columns
+left-to-right, guarantees both predecessors are already computed. Traps
+are handled by zeroing, which naturally propagates ``no path through
+here.''
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0][0]=1$ if the start is free, else $0$.
+  \item For each cell in row-major order: if it is a trap set $0$; else
+        add the values from above and from the left (treating
+        out-of-bounds as $0$).
+  \item Answer $\textit{dp}[n-1][n-1]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$3\times3$ grid with a trap at the centre $(1,1)$.}
+
+\begin{itemize}
+  \item Row $0$: $1,1,1$. Column $0$: $1,1,1$.
+  \item $(1,1)$ is a trap $\to0$. $(1,2)=\textit{dp}[0][2]+
+        \textit{dp}[1][1]=1+0=1$. $(2,1)=0+1=1$.
+  \item $(2,2)=\textit{dp}[1][2]+\textit{dp}[2][1]=1+1=2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<string> g(n);
+    for (auto& row : g) cin >> row;
+
+    vector<vector<long long>> dp(n, vector<long long>(n, 0));
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++) {
+            if (g[i][j] == '*') { dp[i][j] = 0; continue; }
+            if (i == 0 && j == 0) { dp[i][j] = 1; continue; }
+            long long up   = (i > 0) ? dp[i - 1][j] : 0;
+            long long left = (j > 0) ? dp[i][j - 1] : 0;
+            dp[i][j] = (up + left) % MOD;
+        }
+    cout << dp[n - 1][n - 1] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ -- one pass over the grid.
+\textbf{Space Complexity.} $O(n^2)$, reducible to $O(n)$ by keeping only
+the previous row.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Grid path counting is the 2D analogue of the 1D coin sums: sum over the
+directions the last move could have come from. Obstacles become zeros
+that propagate automatically. This $(i,j)$-state template underlies Edit
+Distance and Counting Tilings later in the chapter.
+\end{takeawaybox}

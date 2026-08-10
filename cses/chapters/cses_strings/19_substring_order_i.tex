@@ -1,0 +1,135 @@
+\section{Substring Order I}
+\label{sec:cses-substring-order-i}
+
+\problemstatement{Given a string and an index $k$, find the $k$-th
+\emph{distinct} substring in lexicographic order (each distinct substring
+counted once).}
+
+\begin{patternbox}
+\emph{``$k$-th distinct substring lexicographically''} is a guided walk on
+the \textbf{suffix automaton}: precompute, for each state, how many
+distinct substrings can be spelled starting from it, then descend edges in
+alphabetical order, subtracting counts until $k$ lands on the target.
+\end{patternbox}
+
+\subsection*{Counting continuations per state}
+
+Every distinct substring corresponds to a unique path from the initial
+state along transitions. Define $d[v]$ = number of distinct substrings
+obtainable by continuing from state $v$:
+\[
+  d[v]=\sum_{(c,u)\ \text{edge from }v}\big(1+d[u]\big),
+\]
+the $1$ for the single-character extension $c$ and $d[u]$ for everything
+that continues past it. Compute $d$ in decreasing order of state length
+(edges only go to longer states). To find the $k$-th substring, start at
+the root and examine outgoing edges in increasing character order: an edge
+to $u$ accounts for $1+d[u]$ substrings. If $k=1$, the current prefix plus
+this character is the answer; if $k\le1+d[u]$, append the character, move
+to $u$, and decrement $k$ by $1$; otherwise subtract $1+d[u]$ and try the
+next character.
+
+\begin{ideabox}[Rank by Skipping Whole Subtrees]
+Because $d[u]$ counts \emph{all} distinct substrings through edge $(c,u)$,
+we can skip an entire branch by subtracting its total when $k$ is larger --
+turning a $k$-th-element search into an $O(\text{answer length}\times
+\Sigma)$ descent, never enumerating substrings.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the SAM; compute $d[v]$ over states in decreasing
+        $\textit{len}$.
+  \item From the root, repeatedly scan edges in sorted order: locate the
+        edge whose cumulative $1+d[u]$ contains $k$; append its character;
+        if $k$ becomes $1$ stop, else move into $u$ with $k\gets k-1$.
+  \item Output the accumulated string.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aba''; distinct substrings sorted: ``a'',``ab'',``aba'',
+``b'',``ba''; find $k=4$.}
+
+\begin{itemize}
+  \item From root, edge ``a'' covers ``a'',``ab'',``aba'' ($1+d=3$
+        substrings). $k=4>3$, subtract $\to k=1$, move to edge ``b''.
+  \item Edge ``b'': $k=1\Rightarrow$ answer is ``b''.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link; map<char,int> next; };
+    vector<State> st; int last;
+    SAM() { st.push_back({0, -1, {}}); last = 0; }
+    void extend(char c) {
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, {}});
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]);
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string s;
+    long long k;
+    cin >> s >> k;
+    SAM sam;
+    for (char c : s) sam.extend(c);
+
+    int m = sam.st.size();
+    vector<int> order(m);
+    iota(order.begin(), order.end(), 0);
+    sort(order.begin(), order.end(),
+         [&](int a, int b){ return sam.st[a].len > sam.st[b].len; });
+
+    vector<long long> d(m, 0);
+    for (int v : order)
+        for (auto& [c, u] : sam.st[v].next)
+            d[v] += 1 + d[u];                        // distinct continuations
+
+    string res;
+    int v = 0;
+    while (k > 0) {
+        for (auto& [c, u] : sam.st[v].next) {        // sorted char order
+            long long here = 1 + d[u];
+            if (k <= here) { res += c; k--; v = u; break; }
+            k -= here;
+        }
+    }
+    cout << res << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log\Sigma)$ to build and count; the descent
+is $O(|\text{answer}|\cdot\Sigma)$. \textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Ranking distinct substrings is a count-and-descend on the suffix
+automaton: $d[v]=\sum(1+d[u])$ lets you skip whole branches. This
+``precompute subtree sizes, then walk to the $k$-th'' pattern is the
+lexicographic-order workhorse, extended to multiplicity in the next
+section.
+\end{takeawaybox}

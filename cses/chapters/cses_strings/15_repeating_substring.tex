@@ -1,0 +1,121 @@
+\section{Repeating Substring}
+\label{sec:cses-repeating-substring}
+
+\problemstatement{Given a string, find the longest substring that occurs
+at least twice (occurrences may overlap). If none exists, report so;
+otherwise output one such longest repeating substring.}
+
+\begin{patternbox}
+\emph{``Longest substring occurring $\ge2$ times''} falls straight out of
+the \textbf{suffix automaton} augmented with endpos sizes: a substring
+repeats iff its state's endpos set has size $\ge2$, so the answer is the
+longest such state.
+\end{patternbox}
+
+\subsection*{Longest state with endpos size at least two}
+
+Recall each SAM state's endpos-set size (computed by propagating counts up
+the suffix-link tree) is the number of occurrences of its substrings. A
+substring repeats exactly when that count is at least $2$. Among all states
+with count $\ge2$, the one with the largest $\textit{len}$ gives the
+longest repeating substring; its stored first ending position
+(\textit{firstpos}) lets us extract the actual characters.
+
+\begin{ideabox}[Repetition = Endpos Size $\ge 2$]
+The suffix automaton already knows how often each substring occurs. So the
+longest repeating substring is simply the deepest (largest-\textit{len})
+state whose occurrence count is at least two -- no binary search or hashing
+needed, and no collision risk.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the SAM with endpos counts and \textit{firstpos} per state.
+  \item Over all states with count $\ge2$, take the one with maximum
+        $\textit{len}$.
+  \item Output the substring ending at its \textit{firstpos} of that
+        length (or state that none exists if no such state).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aabaa''.}
+
+\begin{itemize}
+  \item ``aa'' occurs at positions ending $2$ and $5$ -- count $2$,
+        length $2$.
+  \item ``a'' occurs more but is shorter. The longest repeating substring
+        is ``aa''.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link, firstpos; map<char,int> next; };
+    vector<State> st; vector<long long> cnt; int last;
+    SAM() { st.push_back({0, -1, 0, {}}); cnt.push_back(0); last = 0; }
+    void extend(char c, int pos) {
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, pos, {}}); cnt.push_back(1);
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]); cnt.push_back(0);
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string s;
+    cin >> s;
+    SAM sam;
+    for (int i = 0; i < (int)s.size(); i++) sam.extend(s[i], i + 1);
+
+    int m = sam.st.size();
+    vector<int> order(m);
+    iota(order.begin(), order.end(), 0);
+    sort(order.begin(), order.end(),
+         [&](int a, int b){ return sam.st[a].len > sam.st[b].len; });
+    for (int v : order)
+        if (sam.st[v].link >= 0) sam.cnt[sam.st[v].link] += sam.cnt[v];
+
+    int best = 0;
+    for (int v = 1; v < m; v++)
+        if (sam.cnt[v] >= 2 && sam.st[v].len > sam.st[best].len) best = v;
+
+    if (best == 0) cout << "-1\n";
+    else {
+        int len = sam.st[best].len, end = sam.st[best].firstpos;
+        cout << s.substr(end - len, len) << "\n";
+        // (end is 1-indexed end position; substring is s[end-len .. end-1])
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log\Sigma)$ to build and propagate.
+\textbf{Space Complexity.} $O(n)$ states.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The longest repeating substring is the deepest suffix-automaton state with
+occurrence count $\ge2$ -- reusing the endpos-size and first-position
+augmentations from earlier sections. A binary-search-plus-hashing solution
+also works but risks collisions; the SAM answer is exact.
+\end{takeawaybox}

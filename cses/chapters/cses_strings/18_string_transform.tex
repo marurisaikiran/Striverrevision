@@ -1,0 +1,103 @@
+\section{String Transform}
+\label{sec:cses-string-transform}
+
+\problemstatement{The Burrows--Wheeler transform (BWT) of a string sorts
+all rotations of the string (with an appended sentinel \texttt{\#} that is
+lexicographically smallest) and outputs the last column. Given a BWT
+string, reconstruct the original string.}
+
+\begin{patternbox}
+\emph{``Invert the Burrows--Wheeler transform''} is done with the
+\textbf{LF-mapping}: from the last column alone you can recover the first
+column (it is just the last column sorted), and a rank-based mapping links
+each character to its predecessor, letting you walk the original string out
+one character at a time.
+\end{patternbox}
+
+\subsection*{LF-mapping in one idea}
+
+Let $L$ be the given last column. The first column $F$ is $L$ sorted. The
+\textbf{LF-mapping} exploits a key invariant: the $k$-th occurrence of a
+character in $L$ corresponds to the $k$-th occurrence of that same
+character in $F$. Concretely, for a row $i$, the character $L[i]$ maps to
+row $\textit{start}[L[i]]+\textit{rank}_i$, where $\textit{start}[c]$ is
+the first row in $F$ beginning with $c$ and $\textit{rank}_i$ is how many
+$L[i]$ appeared before index $i$. Following this mapping from the sentinel
+row spells the original string in reverse.
+
+\begin{ideabox}[Same Rank in Last and First Columns]
+Because equal characters keep their relative order between the sorted-first
+and last columns, the LF-mapping is exact: it reconstructs which character
+precedes each one in the original. Iterating it $n$ times recovers the
+whole string with no ambiguity.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Count characters of $L$; compute $\textit{start}[c]$ = number of
+        characters smaller than $c$.
+  \item Compute $\textit{rank}_i$ for each row and the LF map
+        $\textit{lf}[i]=\textit{start}[L[i]]+\textit{rank}_i$.
+  \item Start at the sentinel row (row $0$ of $F$), emit $L[\text{row}]$,
+        follow $\textit{lf}$; after $n$ steps reverse to get the original.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Conceptually, $L$'s sorted copy is $F$; equal letters keep order.}
+
+\begin{itemize}
+  \item From the sentinel row, each LF step jumps to the row whose first
+        character is the current $L$ character, at the matching rank.
+  \item Emitting characters along this chain and reversing reproduces the
+        original string ending in \texttt{\#}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    string L;
+    cin >> L;                                    // BWT (last column), contains '#'
+    int n = L.size();
+
+    vector<int> cnt(128, 0);
+    for (char c : L) cnt[c]++;
+    vector<int> start(128, 0);
+    for (int c = 1; c < 128; c++) start[c] = start[c - 1] + cnt[c - 1];
+
+    vector<int> lf(n);
+    vector<int> occ(128, 0);
+    for (int i = 0; i < n; i++) {
+        lf[i] = start[(int)L[i]] + occ[(int)L[i]];
+        occ[(int)L[i]]++;
+    }
+
+    // sentinel '#' is smallest -> first column row 0 begins with '#'
+    string res;
+    int row = 0;
+    for (int i = 0; i < n; i++) {
+        res += L[row];
+        row = lf[row];
+    }
+    reverse(res.begin(), res.end());
+    cout << res << "\n";                          // original (ending in '#')
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+\Sigma)$ -- linear counting sort plus a
+linear LF walk. \textbf{Space Complexity.} $O(n+\Sigma)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Inverting the BWT hinges on the LF-mapping's rank-preservation between the
+first and last columns, letting you unwind the original one character at a
+time in linear time. The same rank correspondence underlies FM-index
+search used in bioinformatics.
+\end{takeawaybox}

@@ -1,0 +1,81 @@
+\section{Sliding Window XOR}
+\label{sec:cses-sw-xor}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$,
+output the bitwise XOR of every contiguous window of size $k$.}
+
+\begin{patternbox}
+XOR is its own inverse ($x\oplus x=0$), so, like sum, the window XOR slides
+in $O(1)$: XOR in the entering element and XOR out the leaving one.
+Equivalently, a \textbf{prefix-XOR} array answers each window as
+$\textit{pre}[i+k]\oplus\textit{pre}[i]$.
+\end{patternbox}
+
+\subsection*{Prefix XOR}
+
+Let $\textit{pre}[0]=0$ and $\textit{pre}[i]=a[0]\oplus\cdots\oplus
+a[i-1]$. Then the XOR of $a[l..r]$ is $\textit{pre}[r+1]\oplus
+\textit{pre}[l]$, because the shared prefix $a[0..l-1]$ cancels itself
+(each bit XORed twice returns to $0$). A window of size $k$ starting at $i$
+is $\textit{pre}[i+k]\oplus\textit{pre}[i]$.
+
+\begin{ideabox}[Self-Inverse Means Cancellation]
+Because $x\oplus x=0$, overlapping prefixes cancel exactly, so a
+prefix-XOR array reduces any window XOR to a single operation. The same
+self-inverse property lets a running XOR drop the departing element by
+simply XORing it again.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the prefix-XOR array (or maintain a running XOR).
+  \item For each window $i$, output
+        $\textit{pre}[i+k]\oplus\textit{pre}[i]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[1,2,3,4]$, $k=2$.}
+
+\begin{itemize}
+  \item $\textit{pre}=[0,1,3,0,4]$.
+  \item Window $[1,2]$: $\textit{pre}[2]\oplus\textit{pre}[0]=3$.
+        $[2,3]$: $\textit{pre}[3]\oplus\textit{pre}[1]=0\oplus1=1$.
+        $[3,4]$: $\textit{pre}[4]\oplus\textit{pre}[2]=4\oplus3=7$.
+  \item Output $3,1,7$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    vector<int> pre(n + 1, 0);
+    for (int i = 0; i < n; i++) pre[i + 1] = pre[i] ^ a[i];
+
+    for (int i = 0; i + k <= n; i++)
+        cout << (pre[i + k] ^ pre[i]) << " ";     // window XOR
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(n)$ for the
+prefix array (or $O(1)$ with a running XOR).
+\end{complexitybox}
+
+\begin{takeawaybox}
+XOR joins sum in the ``invertible, slides in $O(1)$'' category thanks to
+being its own inverse. Prefix XOR is the range-query form and reappears in
+counting subarrays with a target XOR. Contrast with OR (next), which is
+\emph{not} invertible and needs per-bit counts.
+\end{takeawaybox}

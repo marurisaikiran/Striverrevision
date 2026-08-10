@@ -1,0 +1,123 @@
+\section{Counting Patterns}
+\label{sec:cses-counting-patterns}
+
+\problemstatement{Given a text $t$ and $k$ patterns, count for each
+pattern how many times it occurs in $t$ (occurrences may overlap).}
+
+\begin{patternbox}
+This is Finding Patterns with counts: the number of occurrences of a
+substring equals the size of its \textbf{endpos} set, which the suffix
+automaton stores per state. Compute those sizes once, then each pattern's
+count is a lookup after walking to its state.
+\end{patternbox}
+
+\subsection*{Endpos sizes count occurrences}
+
+In a suffix automaton, each state represents a set of substrings that
+share the same set of ending positions (their \emph{endpos} set). The
+number of occurrences of any substring in a state equals that state's
+endpos-set size. To compute these: mark each state created as a genuine
+prefix-endpoint (the ``\textit{last}'' after each extension) with count
+$1$ and clones with $0$, then propagate counts up the suffix-link tree in
+order of decreasing length -- each state adds its count to its link. A
+pattern's count is the endpos size of the state its walk ends in.
+
+\begin{ideabox}[Propagate Counts Up the Link Tree]
+The suffix-link tree groups substrings by endpos containment: a child's
+occurrences are a subset that also count toward the parent. Summing counts
+from longer states into their links (processing by decreasing $\textit{len}$)
+computes every endpos size in one linear pass.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the SAM of $t$; set $\textit{cnt}=1$ for each non-clone
+        state (the \textit{last} after each extend), $0$ for clones.
+  \item Sort states by $\textit{len}$ descending; add each state's
+        $\textit{cnt}$ to its suffix link's $\textit{cnt}$.
+  \item For each pattern, walk to its state; output that state's
+        $\textit{cnt}$ (or $0$ if the walk fails).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$t=$``aaa''; pattern ``a''.}
+
+\begin{itemize}
+  \item ``a'' occurs at positions $1,2,3$ -- endpos size $3$.
+  \item The SAM state for ``a'' accumulates count $3$ after propagation,
+        which is the reported answer.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link; map<char,int> next; };
+    vector<State> st; vector<long long> cnt; int last;
+    SAM() { st.push_back({0, -1, {}}); cnt.push_back(0); last = 0; }
+    void extend(char c) {
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, {}}); cnt.push_back(1);  // real endpoint
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]); cnt.push_back(0);              // clone: no endpoint
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string t; int k;
+    cin >> t >> k;
+    SAM sam;
+    for (char c : t) sam.extend(c);
+
+    int m = sam.st.size();
+    vector<int> order(m);
+    for (int i = 0; i < m; i++) order[i] = i;
+    sort(order.begin(), order.end(),
+         [&](int a, int b){ return sam.st[a].len > sam.st[b].len; });
+    for (int v : order)
+        if (sam.st[v].link >= 0) sam.cnt[sam.st[v].link] += sam.cnt[v];
+
+    while (k--) {
+        string p; cin >> p;
+        int cur = 0; bool ok = true;
+        for (char c : p) {
+            auto it = sam.st[cur].next.find(c);
+            if (it == sam.st[cur].next.end()) { ok = false; break; }
+            cur = it->second;
+        }
+        cout << (ok ? sam.cnt[cur] : 0) << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(|t|\log\Sigma)$ build and count propagation,
+plus $O(\sum|p_i|\log\Sigma)$ queries. \textbf{Space Complexity.}
+$O(|t|)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Occurrence count = endpos-set size, computed by propagating counts up the
+suffix-link tree. This single augmentation upgrades the SAM from ``does it
+occur?'' to ``how many times?'' -- and the same endpos machinery drives
+distinct-substring counting and ranking later in the chapter.
+\end{takeawaybox}

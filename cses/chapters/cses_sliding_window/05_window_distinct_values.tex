@@ -1,0 +1,89 @@
+\section{Sliding Window Distinct Values}
+\label{sec:cses-sw-distinct}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$,
+output the number of distinct values in every contiguous window of size
+$k$.}
+
+\begin{patternbox}
+Distinct-count slides cleanly with a \textbf{frequency hash map}: track how
+many times each value appears in the window. A value contributes to the
+distinct count exactly while its frequency is positive, so the count
+changes only when a frequency crosses between $0$ and $1$.
+\end{patternbox}
+
+\subsection*{Frequency map with a distinct counter}
+
+Keep $\textit{freq}[v]$ and a running $\textit{distinct}$. Adding a value
+$v$: if its frequency was $0$, it is newly present, so increment
+$\textit{distinct}$; then increment $\textit{freq}[v]$. Removing a value
+$v$: decrement $\textit{freq}[v]$; if it drops to $0$, the value has left
+the window, so decrement $\textit{distinct}$. Each slide performs one add
+and one remove, both $O(1)$ amortised.
+
+\begin{ideabox}[Watch the Zero Boundary]
+The distinct count only moves when a frequency transitions $0\to1$ (a value
+appears) or $1\to0$ (a value disappears). Checking that boundary on each
+add/remove keeps the counter exact without rescanning the window.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Add the first $k$ elements, updating $\textit{freq}$ and
+        $\textit{distinct}$.
+  \item For each slide: add $a[i]$ (increment distinct if it was absent),
+        remove $a[i-k]$ (decrement distinct if it becomes absent).
+  \item Output $\textit{distinct}$ per window.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[1,2,1,3]$, $k=3$.}
+
+\begin{itemize}
+  \item Window $[1,2,1]$: freqs $\{1{:}2,2{:}1\}$, distinct $=2$.
+  \item Slide to $[2,1,3]$: remove a $1$ (freq $2{\to}1$, still present),
+        add $3$ (new) $\Rightarrow$ distinct $=3$.
+  \item Output $2,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    unordered_map<int,int> freq;
+    int distinct = 0;
+    auto add = [&](int v) { if (freq[v]++ == 0) distinct++; };
+    auto remove = [&](int v) { if (--freq[v] == 0) distinct--; };
+
+    for (int i = 0; i < k; i++) add(a[i]);
+    cout << distinct << " ";
+    for (int i = k; i < n; i++) {
+        add(a[i]); remove(a[i - k]);
+        cout << distinct << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ amortised with a hash map.
+\textbf{Space Complexity.} $O(k)$ distinct keys at most.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Distinct-value counting is a frequency map plus a counter that only reacts
+at the zero boundary. This add/remove-with-boundary-check idiom generalises
+to ``count of values with property P'' whenever P depends on a per-value
+frequency.
+\end{takeawaybox}

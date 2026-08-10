@@ -1,0 +1,82 @@
+\section{Sliding Window Advertisement (Maximum)}
+\label{sec:cses-sw-advertisement}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$,
+output the maximum of every contiguous window. (This ``advertisement''
+variant is the maximum counterpart of the sliding window minimum.)}
+
+\begin{patternbox}
+Maximum, like minimum, is not invertible, so the same \textbf{monotonic
+deque} applies -- kept in \emph{decreasing} order this time, so the front is
+always the current window's maximum. Each index is pushed and popped once,
+giving $O(n)$.
+\end{patternbox}
+
+\subsection*{A decreasing deque}
+
+Maintain a deque of indices whose values are strictly decreasing from front
+to back. When a new element arrives, pop from the back every index whose
+value is $\le$ the new value -- those are dominated and can never be the
+maximum again while the newer, larger element is present. Push the new
+index, drop the front if it has left the window, and read the front as the
+window maximum.
+
+\begin{ideabox}[Mirror of the Minimum Deque]
+The only change from sliding window minimum is the comparison direction:
+pop while the back is $\le$ the incoming value (instead of $\ge$), keeping
+the deque decreasing so its front is the maximum. One structure, two mirror
+uses.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For each index $i$: pop back while its value $\le a[i]$; push $i$.
+  \item Pop front while it is $\le i-k$ (out of window).
+  \item Once $i\ge k-1$, output $a[\text{front}]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[3,1,4,2]$, $k=2$.}
+
+\begin{itemize}
+  \item $[3,1]$: deque front $3$; max $3$.
+  \item $[1,4]$: $4$ pops $1$ (and $3$ leaves window); max $4$.
+  \item $[4,2]$: front $4$; max $4$. Output $3,4,4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    deque<int> dq;                            // indices, values decreasing
+    for (int i = 0; i < n; i++) {
+        while (!dq.empty() && a[dq.back()] <= a[i]) dq.pop_back();
+        dq.push_back(i);
+        if (dq.front() <= i - k) dq.pop_front();
+        if (i >= k - 1) cout << a[dq.front()] << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each index enters and leaves the deque
+once. \textbf{Space Complexity.} $O(k)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Sliding window maximum is the minimum deque mirrored: pop while the back is
+no larger than the incoming value. Master the monotonic deque once and both
+extremes -- and many ``nearest greater/smaller'' problems -- follow from it.
+\end{takeawaybox}

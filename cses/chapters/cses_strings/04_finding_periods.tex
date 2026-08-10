@@ -1,0 +1,95 @@
+\section{Finding Periods}
+\label{sec:cses-finding-periods}
+
+\problemstatement{A period of a string $s$ of length $n$ is an integer
+$p$ ($1\le p\le n$) such that $s[i]=s[i+p]$ for all valid $i$ (equivalently,
+$s$ is a prefix of an infinite repetition of its first $p$ characters).
+Output all periods in increasing order.}
+
+\begin{patternbox}
+Periods and borders are two sides of one coin: \textbf{$p$ is a period of
+$s$ if and only if $s$ has a border of length $n-p$}. So compute the
+prefix function, enumerate all border lengths $b$ (including $0$), and
+each gives a period $n-b$.
+\end{patternbox}
+
+\subsection*{The period--border duality}
+
+If $s$ has a border of length $b$, the first $n-b$ characters repeat to
+cover the string, making $n-b$ a period; conversely every period $p$
+leaves a border of length $n-p$. The border lengths of the whole string
+are the failure chain $\pi[n-1],\pi[\pi[n-1]-1],\ldots$ together with $0$
+(the empty border, which corresponds to the trivial period $p=n$). Mapping
+each border length $b$ to $n-b$ and sorting gives all periods.
+
+\begin{ideabox}[Every Border Length $b$ Gives Period $n-b$]
+Include the empty border ($b=0$) so that $p=n$ (the whole string is always
+its own period) is present. The failure chain supplies the remaining
+borders. One prefix-function pass yields every period.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute the prefix function $\pi$.
+  \item Collect border lengths via the failure chain from $\pi[n-1]$,
+        plus $0$.
+  \item For each border length $b$, output $n-b$; sort ascending.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``abcabca'' ($n=7$).}
+
+\begin{itemize}
+  \item Longest border ``abca'' has length $4$; chain gives borders
+        $4,1$; plus $0$.
+  \item Periods: $7-4=3$, $7-1=6$, $7-0=7$.
+  \item Increasing: $3,6,7$ (indeed ``abc'' repeats with period $3$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> prefixFunction(const string& s) {
+    int n = s.size();
+    vector<int> pi(n, 0);
+    for (int i = 1; i < n; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && s[i] != s[j]) j = pi[j - 1];
+        if (s[i] == s[j]) j++;
+        pi[i] = j;
+    }
+    return pi;
+}
+
+int main() {
+    string s;
+    cin >> s;
+    int n = s.size();
+    vector<int> pi = prefixFunction(s);
+
+    vector<int> periods;
+    for (int b = pi[n - 1]; b > 0; b = pi[b - 1]) periods.push_back(n - b);
+    periods.push_back(n);                         // border 0 -> period n
+    sort(periods.begin(), periods.end());
+
+    for (int p : periods) cout << p << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Period equals $n$ minus a border length. Once you see that borders and
+periods are complementary, every ``how does this string repeat?'' question
+becomes a prefix-function query. This duality also underlies detecting the
+smallest repeating block of a string.
+\end{takeawaybox}

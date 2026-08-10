@@ -1,0 +1,47 @@
+\chapter{Two Pointers and Subarrays}
+\chapterepigraph{The sliding window's cousin, the two-pointer method, and
+its algebraic sibling, the prefix sum, solve the ``count or find a
+subarray with a property'' family. When the property grows monotonically
+as the window widens, two moving pointers suffice; when it does not, a
+prefix sum plus a hash map turns the search into counting equal keys.
+These problems from the Sorting and Searching section round out the
+window toolkit.}
+
+\section{Two Pointers vs Prefix Sums}
+\label{sec:cses-tp-intro}
+
+Both techniques avoid examining all $O(n^2)$ subarrays, but they apply in
+different regimes.
+
+\begin{patternbox}[Which Technique for Which Subarray Problem?]
+\begin{itemize}
+  \item \textbf{Two pointers} -- when a window's property is
+        \emph{monotonic}: widening the right end only ever increases the
+        sum (positive values) or the distinct count, so the left end can
+        chase it without ever moving backward. Used for Subarray Sums I,
+        Subarray Distinct Values, Playlist.
+  \item \textbf{Prefix sums + hash map} -- when values can be negative or
+        the target is exact equality, monotonicity is lost; instead count
+        how many earlier prefixes give the needed difference or residue.
+        Used for Subarray Sums II, Subarray Divisibility.
+  \item \textbf{Running best (Kadane)} -- when maximising a subarray sum,
+        a single scan tracking ``best ending here'' suffices: Maximum
+        Subarray Sum.
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Prefix Sums Turn Subarray Questions into Pair Questions]
+The sum of $a[l..r]$ is $\textit{pre}[r]-\textit{pre}[l-1]$. So ``a subarray
+with sum $x$'' becomes ``two prefixes differing by $x$,'' countable in one
+pass with a hash map of prefix values. This transform is the backbone of
+the exact-sum and divisibility problems.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/cses_two_pointers/01_subarray_sums_i.tex}
+\input{chapters/cses_two_pointers/02_subarray_sums_ii.tex}
+\input{chapters/cses_two_pointers/03_subarray_divisibility.tex}
+\input{chapters/cses_two_pointers/04_subarray_distinct_values.tex}
+\input{chapters/cses_two_pointers/05_playlist.tex}
+\input{chapters/cses_two_pointers/06_maximum_subarray_sum.tex}

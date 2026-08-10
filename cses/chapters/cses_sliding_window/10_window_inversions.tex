@@ -1,0 +1,119 @@
+\section{Sliding Window Inversions}
+\label{sec:cses-sw-inversions}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$,
+output the number of inversions in every contiguous window -- pairs of
+positions $i<j$ within the window with $a_i>a_j$.}
+
+\begin{patternbox}
+Recomputing inversions per window is $O(nk\log k)$. Instead maintain a
+running inversion count and a \textbf{Fenwick tree} over value ranks:
+adding the new right element and removing the old left element each change
+the count by a range query answerable in $O(\log n)$.
+\end{patternbox}
+
+\subsection*{Incremental inversion count}
+
+Keep a Fenwick tree of the value counts currently in the window and a
+running total $\textit{inv}$. When a new element $x$ enters on the
+\emph{right}, it forms an inversion with every current element strictly
+greater than $x$ (all of which sit to its left), so
+$\textit{inv}\mathrel{+}=(\text{window size})-\#\{\le x\}$; then insert
+$x$. When the leftmost element $y$ leaves, it was to the left of everything
+else, so it formed an inversion with every current element strictly less
+than $y$: $\textit{inv}\mathrel{-}=\#\{<y\}$; then remove $y$. Coordinate-
+compress values so ranks fit the Fenwick tree.
+
+\begin{ideabox}[Add on the Right, Remove on the Left, Query the Rank]
+The window's geometry makes the updates clean: a right-entering element
+pairs with larger existing elements; a left-leaving element pairs with
+smaller ones. Both counts are Fenwick prefix queries, so each slide is
+$O(\log n)$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compress values to ranks $1\ldots m$. Build the first window,
+        adding elements and accumulating inversions.
+  \item Per slide: remove the leftmost ($\textit{inv}\mathrel{-}=$ count
+        of smaller present), then add the new ($\textit{inv}
+        \mathrel{+}=$ count of larger present).
+  \item Output $\textit{inv}$ per window.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[2,1,3]$, $k=2$.}
+
+\begin{itemize}
+  \item Window $[2,1]$: $2>1$ is one inversion $\Rightarrow1$.
+  \item Slide to $[1,3]$: remove $2$ (it had $1$ smaller element $\to
+        \textit{inv}=0$), add $3$ (nothing greater present $\to$ stays
+        $0$).
+  \item Output $1,0$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct BIT {
+    int n; vector<int> t;
+    BIT(int n) : n(n), t(n + 1, 0) {}
+    void update(int i, int v) { for (; i <= n; i += i & -i) t[i] += v; }
+    int query(int i) { int s = 0; for (; i > 0; i -= i & -i) s += t[i]; return s; }
+};
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    vector<int> vals(a);
+    sort(vals.begin(), vals.end());
+    vals.erase(unique(vals.begin(), vals.end()), vals.end());
+    auto rankOf = [&](int x) {
+        return int(lower_bound(vals.begin(), vals.end(), x) - vals.begin()) + 1;
+    };
+    int m = vals.size();
+    BIT bit(m);
+
+    long long inv = 0;
+    int inWin = 0;
+    for (int i = 0; i < k; i++) {              // build first window
+        int r = rankOf(a[i]);
+        inv += inWin - bit.query(r);           // existing elements > a[i]
+        bit.update(r, +1); inWin++;
+    }
+    cout << inv << " ";
+    for (int i = k; i < n; i++) {
+        int ry = rankOf(a[i - k]);             // remove leftmost
+        inv -= bit.query(ry - 1);              // present elements < y
+        bit.update(ry, -1); inWin--;
+
+        int rx = rankOf(a[i]);                 // add new right
+        inv += inWin - bit.query(rx);          // present elements > x
+        bit.update(rx, +1); inWin++;
+        cout << inv << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ -- each slide does a constant number
+of Fenwick operations. \textbf{Space Complexity.} $O(n)$ for the Fenwick
+tree and compression.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Sliding-window inversions become linear-log by maintaining a running count
+plus a Fenwick tree of present values: the right-entering element pairs
+with larger elements, the left-leaving with smaller. Recognising which side
+an element joins/leaves fixes which prefix query to run.
+\end{takeawaybox}

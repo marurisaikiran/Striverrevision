@@ -1,0 +1,116 @@
+\section{Palindrome Queries}
+\label{sec:cses-palindrome-queries}
+
+\problemstatement{Given a string, process two kinds of queries: (1) change
+the character at position $k$; (2) ask whether the substring $[a,b]$ is a
+palindrome. Answer all type-2 queries online.}
+
+\begin{patternbox}
+\emph{``Update a character, then test a substring for palindrome''}
+combines point updates with range equality checks -- exactly what
+\textbf{polynomial hashing over a Fenwick tree} supports. Maintain a
+forward hash and a reversed hash; the substring is a palindrome iff the
+two agree.
+\end{patternbox}
+
+\subsection*{Two hashes, both point-updatable}
+
+Store the string's characters weighted by powers of a base $B$ in two
+Fenwick (BIT) trees: one for the forward direction, one for the reversed
+direction. The hash of $[a,b]$ read forwards is a normalised range sum
+from the forward BIT; the hash of $[a,b]$ read backwards is the
+corresponding range sum from the reversed BIT. Normalising both to the
+same starting power lets them be compared directly. A character update is
+two point updates (one per tree). The substring is a palindrome exactly
+when the forward and reversed hashes match.
+
+\begin{ideabox}[Palindrome = Forward Hash Equals Reversed Hash]
+A substring reads the same both ways iff its forward and backward hashes
+coincide. Encoding each character as $c\cdot B^{\text{pos}}$ in a BIT makes
+both hashes range sums, so point updates and range queries are each
+$O(\log n)$. Use two independent moduli/bases to make hash collisions
+negligible.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Precompute powers of $B$; insert each character into a forward
+        and a reversed Fenwick tree.
+  \item Update: point-update both trees at the changed position.
+  \item Query $[a,b]$: fetch the forward and reversed range hashes,
+        normalise to a common power, compare; equal $\Rightarrow$
+        palindrome.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aybabtu''; query palindrome on ``bab'' ($[2,4]$).}
+
+\begin{itemize}
+  \item Forward hash of ``bab'' and reversed hash of ``bab'' both encode
+        $b,a,b$ in mirror order and match.
+  \item After updating position $3$ (`a'$\to$`x'), ``bxb'' still matches
+        (palindrome); ``bxa'' would not.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+typedef unsigned long long ull;
+const ull B = 131;
+
+struct BIT {
+    int n; vector<ull> tree;
+    BIT(int n) : n(n), tree(n + 1, 0) {}
+    void update(int i, ull val) { for (++i; i <= n; i += i & -i) tree[i] += val; }
+    ull query(int i) { ull s = 0; for (++i; i > 0; i -= i & -i) s += tree[i]; return s; }
+    ull range(int l, int r) { return query(r) - (l ? query(l - 1) : 0); }
+};
+
+int main() {
+    int n, q;
+    string s;
+    cin >> n >> q >> s;
+    vector<ull> pw(n + 1, 1);
+    for (int i = 1; i <= n; i++) pw[i] = pw[i - 1] * B;
+
+    BIT fwd(n), rev(n);
+    for (int i = 0; i < n; i++) {
+        fwd.update(i, (ull)s[i] * pw[i]);          // weight by position
+        rev.update(i, (ull)s[i] * pw[n - 1 - i]);
+    }
+
+    while (q--) {
+        int type; cin >> type;
+        if (type == 1) {
+            int k; char c; cin >> k >> c; k--;
+            fwd.update(k, ((ull)c - s[k]) * pw[k]);
+            rev.update(k, ((ull)c - s[k]) * pw[n - 1 - k]);
+            s[k] = c;
+        } else {
+            int a, b; cin >> a >> b; a--; b--;
+            ull h1 = fwd.range(a, b) * pw[n - 1 - b];       // normalise
+            ull h2 = rev.range(a, b) * pw[a];
+            cout << (h1 == h2 ? "YES" : "NO") << "\n";
+        }
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((n+q)\log n)$ -- each update and query is
+$O(\log n)$. \textbf{Space Complexity.} $O(n)$ for the two Fenwick trees
+and power table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Dynamic substring equality is polynomial hashing plus a point-updatable
+Fenwick tree; a palindrome test is just ``forward hash equals reversed
+hash.'' For safety against adversarial collisions, run two independent
+hashes. This forward/reversed-hash pattern answers many online substring
+comparison queries.
+\end{takeawaybox}

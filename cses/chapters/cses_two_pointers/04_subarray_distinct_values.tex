@@ -1,0 +1,90 @@
+\section{Subarray Distinct Values}
+\label{sec:cses-subarray-distinct}
+
+\problemstatement{Given an array of $n$ integers and an integer $k$, count
+the number of contiguous subarrays that contain at most $k$ distinct
+values.}
+
+\begin{patternbox}
+``At most $k$ distinct'' is monotone -- shrinking a window never increases
+its distinct count -- so a \textbf{variable-size two-pointer window} works:
+for each right end, advance the left end until at most $k$ distinct remain,
+and every subarray ending here within the window is valid.
+\end{patternbox}
+
+\subsection*{Count subarrays ending at each right end}
+
+Maintain a window $[l,r]$ with a frequency map and its distinct count.
+Extend $r$; if adding $a[r]$ pushes the distinct count above $k$, advance
+$l$ (removing elements) until it drops back to $k$. Now every subarray that
+ends at $r$ and starts anywhere in $[l,r]$ has at most $k$ distinct values,
+contributing $r-l+1$ subarrays. Summing that over all $r$ gives the total.
+
+\begin{ideabox}[Window Width Is the Count of Valid Subarrays]
+Because the ``at most $k$ distinct'' property is preserved under shrinking,
+once the window $[l,r]$ is valid, so is every subarray ending at $r$ with a
+start $\ge l$. Adding $r-l+1$ per right end counts them all without
+enumeration.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $l=0$, empty frequency map, $\textit{distinct}=0$,
+        $\textit{ans}=0$.
+  \item For $r=0\ldots n-1$: add $a[r]$; while $\textit{distinct}>k$
+        remove $a[l]$ and advance $l$; add $r-l+1$ to $\textit{ans}$.
+  \item Output $\textit{ans}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[1,2,1,3]$, $k=2$.}
+
+\begin{itemize}
+  \item $r=0$: window $[1]$, add $1$. $r=1$: $[1,2]$, add $2$. $r=2$:
+        $[1,2,1]$ (distinct $2$), add $3$.
+  \item $r=3$: adding $3$ gives distinct $3$; shrink to $[2,1,3]$? still
+        $3$; shrink to $[1,3]$, distinct $2$; add $2$.
+  \item Total $=1+2+3+2=8$ subarrays with at most $2$ distinct.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    unordered_map<int,int> freq;
+    long long ans = 0;
+    int l = 0, distinct = 0;
+    for (int r = 0; r < n; r++) {
+        if (freq[a[r]]++ == 0) distinct++;
+        while (distinct > k) {
+            if (--freq[a[l]] == 0) distinct--;
+            l++;
+        }
+        ans += r - l + 1;                      // subarrays ending at r
+    }
+    cout << ans << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ amortised -- each pointer moves forward at
+most $n$ times. \textbf{Space Complexity.} $O(k)$ distinct keys.
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Count subarrays with at most $k$ (property)'' is a variable window where
+each right end contributes its window width. To count \emph{exactly} $k$
+distinct, take atMost$(k)-$atMost$(k-1)$ -- a standard follow-up on the same
+routine.
+\end{takeawaybox}

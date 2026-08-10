@@ -1,0 +1,94 @@
+\section{Finding Borders}
+\label{sec:cses-finding-borders}
+
+\problemstatement{A border of a string is a proper prefix that is also a
+suffix (shorter than the whole string). Given a string, output the lengths
+of all its borders in increasing order.}
+
+\begin{patternbox}
+\emph{``All borders of a string''} is a direct application of the
+\textbf{prefix function} (KMP failure function). The longest border of the
+whole string is $\pi[n-1]$; following the ``failure chain''
+$\pi[n-1]\to\pi[\pi[n-1]-1]\to\cdots$ enumerates every border.
+\end{patternbox}
+
+\subsection*{Prefix function and the failure chain}
+
+The prefix function $\pi[i]$ is the length of the longest proper border of
+the prefix $s[0..i]$. A key fact: the set of all border lengths of the
+\emph{whole} string is exactly $\{\pi[n-1],\ \pi[\pi[n-1]-1],\ \ldots\}$
+down to $0$. This is because the longest border's own longest border is
+the next-longest border of the whole string, and so on. Collecting the
+chain and reversing it yields all borders in increasing order.
+
+\begin{ideabox}[Borders Nest Like Russian Dolls]
+Every border of $s$ is itself bordered by the next-shorter border. So the
+failure chain from $\pi[n-1]$ visits all of them in decreasing order --
+each obtained by looking up the prefix function at the previous border's
+last index.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute the prefix function $\pi$ of $s$.
+  \item Starting from $b=\pi[n-1]$, repeatedly record $b$ and set
+        $b=\pi[b-1]$ until $b=0$.
+  \item Reverse the collected lengths and output them (increasing order).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``abcababcab''.}
+
+\begin{itemize}
+  \item The whole string's longest border is ``abcab'' (length $5$):
+        $\pi[9]=5$.
+  \item $\pi[4]=2$ (border ``ab''); $\pi[1]=0$. Chain: $5,2$.
+  \item Increasing order: $2,5$ -- the border lengths.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> prefixFunction(const string& s) {
+    int n = s.size();
+    vector<int> pi(n, 0);
+    for (int i = 1; i < n; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && s[i] != s[j]) j = pi[j - 1];
+        if (s[i] == s[j]) j++;
+        pi[i] = j;
+    }
+    return pi;
+}
+
+int main() {
+    string s;
+    cin >> s;
+    int n = s.size();
+    vector<int> pi = prefixFunction(s);
+
+    vector<int> borders;
+    for (int b = pi[n - 1]; b > 0; b = pi[b - 1]) borders.push_back(b);
+    reverse(borders.begin(), borders.end());
+
+    for (int b : borders) cout << b << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ for the prefix function; the failure
+chain has $O(n)$ total length. \textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Borders are the prefix function's reason for existing. Walking the failure
+chain from $\pi[n-1]$ lists them all. This chain is also how KMP recovers
+after a mismatch and how periods (next section) are derived.
+\end{takeawaybox}

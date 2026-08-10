@@ -1,0 +1,87 @@
+\section{Playlist}
+\label{sec:cses-playlist}
+
+\problemstatement{Given a playlist of $n$ songs (each an integer id), find
+the length of the longest contiguous stretch of songs with \emph{no
+repeats} (all values distinct).}
+
+\begin{patternbox}
+``Longest window with all distinct'' is a \textbf{variable two-pointer
+window}: extend the right end, and whenever a duplicate appears, jump the
+left end past the duplicate's previous occurrence so the window is distinct
+again. Track the best width seen.
+\end{patternbox}
+
+\subsection*{Jump the left end past duplicates}
+
+Maintain a map from each value to its most recent index. Advance $r$; if
+$a[r]$ was seen at some index $\ge l$, move $l$ to one past that index --
+this discards exactly the earlier copy and everything before it, restoring
+distinctness in one jump rather than shrinking one step at a time. After
+each step the window $[l,r]$ is duplicate-free, so update the best length
+with $r-l+1$.
+
+\begin{ideabox}[Last-Seen Index Enables an O(1) Left Jump]
+Instead of shrinking the window element by element, remembering each value's
+last position lets the left pointer leap directly to the smallest valid
+start. Both pointers still only move forward, keeping the scan linear.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $l=0$, empty last-seen map, $\textit{best}=0$.
+  \item For $r=0\ldots n-1$: if $a[r]$'s last index $\ge l$, set
+        $l=\text{lastIndex}+1$; update $\text{last}[a[r]]=r$; update
+        $\textit{best}=\max(\textit{best},r-l+1)$.
+  \item Output $\textit{best}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[1,2,1,3,2]$.}
+
+\begin{itemize}
+  \item $r=2$ ($a=1$): previous $1$ at index $0\ge l=0$, jump $l=1$;
+        window $[2,1]$.
+  \item $r=4$ ($a=2$): previous $2$ at index $1<l$? $l$ is now $1$, so
+        $1\ge1$, jump $l=2$; window $[1,3,2]$, length $3$.
+  \item Best length $=3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    unordered_map<int,int> last;               // value -> last index seen
+    int l = 0, best = 0;
+    for (int r = 0; r < n; r++) {
+        auto it = last.find(a[r]);
+        if (it != last.end() && it->second >= l) l = it->second + 1;  // jump past dup
+        last[a[r]] = r;
+        best = max(best, r - l + 1);
+    }
+    cout << best << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ amortised. \textbf{Space Complexity.}
+$O(n)$ for the last-seen map.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Longest-distinct-window is a two-pointer scan where a last-seen map lets the
+left end jump directly past a repeat. The same ``remember last position,
+jump the left bound'' idiom solves longest-substring-without-repeat and many
+uniqueness-constrained window problems.
+\end{takeawaybox}

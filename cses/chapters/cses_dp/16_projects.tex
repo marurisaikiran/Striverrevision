@@ -1,0 +1,101 @@
+\section{Projects}
+\label{sec:cses-projects}
+
+\problemstatement{There are $n$ projects, each with a start day, an end
+day, and a reward. Attending a project occupies all days from its start to
+its end inclusive, so two attended projects may not overlap. Maximise the
+total reward.}
+
+\begin{patternbox}
+\emph{``Non-overlapping intervals, maximise total value''} is
+\textbf{weighted interval scheduling}. Sort projects by end day; for each,
+either skip it or take it and jump to the best solution that finishes
+before its start -- found by binary search.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+Sort the projects by end day. Let $\textit{dp}[i]$ be the maximum reward
+using only the first $i$ projects (in sorted order). For project $i$ with
+start $s_i$ and reward $p_i$, either skip it ($\textit{dp}[i-1]$) or take
+it: add $p_i$ to the best reward achievable among projects that end
+\emph{strictly before} $s_i$. Let $j$ be the number of projects whose end
+day $<s_i$ (found by binary search on the sorted end days):
+\[
+  \textit{dp}[i]=\max\big(\textit{dp}[i-1],\ p_i+\textit{dp}[j]\big).
+\]
+
+\begin{ideabox}[Sort by End, Binary-Search the Predecessor]
+Sorting by end day means that when we consider a project, every compatible
+earlier project has already been folded into some $\textit{dp}[j]$. Binary
+search finds the latest non-conflicting project in $O(\log n)$, turning an
+$O(n^2)$ scan into $O(n\log n)$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort projects by end day; let $\textit{ends}[]$ be their end
+        days.
+  \item $\textit{dp}[0]=0$. For $i=1\ldots n$: binary-search $j$ = number
+        of projects with end $<s_i$; set
+        $\textit{dp}[i]=\max(\textit{dp}[i-1], p_i+\textit{dp}[j])$.
+  \item Answer $\textit{dp}[n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Projects (start, end, reward): $(2,4,7),(1,2,4),(5,6,3)$.}
+
+\begin{itemize}
+  \item Sorted by end: $(1,2,4),(2,4,7),(5,6,3)$.
+  \item $\textit{dp}[1]=4$. Project $(2,4,7)$: projects ending $<2$ is
+        the first (end $2$? no, need $<2$, so $j=0$):
+        $\textit{dp}[2]=\max(4,7+0)=7$.
+  \item Project $(5,6,3)$: projects ending $<5$ are both, $j=2$:
+        $\textit{dp}[3]=\max(7,3+7)=10$. Answer $10$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<array<long long,3>> p(n);           // {end, start, reward}
+    for (int i = 0; i < n; i++) {
+        long long a, b, x;
+        cin >> a >> b >> x;
+        p[i] = {b, a, x};
+    }
+    sort(p.begin(), p.end());                  // by end day
+
+    vector<long long> ends(n);
+    for (int i = 0; i < n; i++) ends[i] = p[i][0];
+
+    vector<long long> dp(n + 1, 0);
+    for (int i = 1; i <= n; i++) {
+        long long start = p[i-1][1], reward = p[i-1][2];
+        // number of projects with end < start
+        int j = lower_bound(ends.begin(), ends.end(), start) - ends.begin();
+        dp[i] = max(dp[i-1], reward + dp[j]);
+    }
+    cout << dp[n] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ -- sorting plus a binary search per
+project. \textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Weighted interval scheduling = sort by end, then ``skip or take with a
+binary-searched predecessor.'' It generalises the unweighted greedy
+(which just maximises count) to rewards, where greed fails and DP is
+required.
+\end{takeawaybox}

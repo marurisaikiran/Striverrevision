@@ -1,0 +1,108 @@
+\section{Distinct Substrings}
+\label{sec:cses-distinct-substrings}
+
+\problemstatement{Given a string, count the number of \emph{distinct}
+non-empty substrings it contains.}
+
+\begin{patternbox}
+\emph{``How many distinct substrings''} is a one-line consequence of the
+\textbf{suffix automaton}: each state represents a contiguous range of
+substring lengths, so the total distinct count is
+$\sum_{v\ne\text{root}}\big(\textit{len}[v]-\textit{len}[\text{link}[v]]\big)$.
+\end{patternbox}
+
+\subsection*{Why the length differences count substrings}
+
+Every substring of the string corresponds to exactly one state of the
+suffix automaton and one length within that state's range. A state $v$
+represents all substrings whose lengths lie in
+$(\textit{len}[\text{link}[v]],\ \textit{len}[v]]$ -- that is
+$\textit{len}[v]-\textit{len}[\text{link}[v]]$ distinct substrings, each
+occurring at $v$'s endpos set. Summing this difference over all non-root
+states counts every distinct substring exactly once.
+
+\begin{ideabox}[Each State Owns a Length Interval]
+The suffix automaton partitions all distinct substrings among its states,
+and within a state the distinct substrings are precisely those of length
+strictly greater than the link's length up to the state's own length.
+Summing those interval sizes is the distinct-substring count -- no
+enumeration required.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the suffix automaton of the string.
+  \item Sum $\textit{len}[v]-\textit{len}[\text{link}[v]]$ over all states
+        $v$ except the root.
+  \item Output the sum.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aa''.}
+
+\begin{itemize}
+  \item Distinct substrings: ``a'', ``aa'' -- two of them.
+  \item The SAM has states for ``a'' (len $1$, link root len $0$
+        $\to1$) and ``aa'' (len $2$, link ``a'' len $1\to1$), summing to
+        $2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link; map<char,int> next; };
+    vector<State> st; int last;
+    SAM() { st.push_back({0, -1, {}}); last = 0; }
+    void extend(char c) {
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, {}});
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]);
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string s;
+    cin >> s;
+    SAM sam;
+    for (char c : s) sam.extend(c);
+
+    long long total = 0;
+    for (int v = 1; v < (int)sam.st.size(); v++)
+        total += sam.st[v].len - sam.st[sam.st[v].link].len;
+    cout << total << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log\Sigma)$ to build; the sum is linear in
+the number of states. \textbf{Space Complexity.} $O(n)$ states.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Distinct substrings $=\sum(\textit{len}[v]-\textit{len}[\text{link}[v]])$.
+This is the cleanest demonstration that a suffix automaton compresses all
+$O(n^2)$ substrings into $O(n)$ states, each owning a length interval. A
+suffix array with LCP gives the same count as
+$\tfrac{n(n+1)}{2}-\sum\text{LCP}$.
+\end{takeawaybox}

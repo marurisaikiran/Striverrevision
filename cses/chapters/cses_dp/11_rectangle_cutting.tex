@@ -1,0 +1,93 @@
+\section{Rectangle Cutting}
+\label{sec:cses-rectangle-cutting}
+
+\problemstatement{Given an $a\times b$ rectangle, repeatedly cut it with
+straight horizontal or vertical cuts (each cut splits a piece into two,
+along integer coordinates) until only squares remain. Find the minimum
+number of cuts needed.}
+
+\begin{patternbox}
+\emph{``Minimum cuts to reduce a rectangle to squares''} is an interval
+DP in two dimensions. Let $\textit{dp}[h][w]$ be the fewest cuts for an
+$h\times w$ rectangle; a first cut splits it into two smaller rectangles
+whose costs are already known.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+$\textit{dp}[h][w]$ = minimum cuts for an $h\times w$ piece. If $h=w$ it
+is already a square: $\textit{dp}[h][h]=0$. Otherwise the first cut is
+either horizontal (splitting height into $i$ and $h-i$) or vertical
+(splitting width into $j$ and $w-j$), each costing one plus the two
+sub-costs:
+\[
+  \textit{dp}[h][w]=1+\min\!\Big(
+  \min_{1\le i<h}\!\big(\textit{dp}[i][w]+\textit{dp}[h-i][w]\big),\
+  \min_{1\le j<w}\!\big(\textit{dp}[h][j]+\textit{dp}[h][w-j]\big)\Big).
+\]
+
+\begin{ideabox}[Try Every First Cut]
+As in all interval DP, we do not guess the optimal cut -- we try every
+possible first cut and take the minimum, trusting that sub-rectangles are
+solved optimally. Squares terminate the recursion at zero cost.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For all $s$, $\textit{dp}[s][s]=0$.
+  \item For increasing $h,w$ with $h\ne w$: take the best over all
+        horizontal splits $i$ and vertical splits $j$, add $1$.
+  \item Answer $\textit{dp}[a][b]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=3$, $b=5$.}
+
+\begin{itemize}
+  \item $\textit{dp}[3][3]=0$. $\textit{dp}[2][3]=1+\min$ over cuts
+        $=1+\textit{dp}[2][2]+\textit{dp}[2][1]$-type options $=2$ (cut
+        off a $2\times2$, then split the $2\times1$).
+  \item Working up, $\textit{dp}[3][5]=3$ -- e.g.\ cut a $3\times5$ into
+        $3\times3$ and $3\times2$, then the $3\times2$ into a $2\times2$
+        and pieces, totalling three cuts.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int a, b;
+    cin >> a >> b;
+    vector<vector<int>> dp(a + 1, vector<int>(b + 1, 0));
+
+    for (int h = 1; h <= a; h++)
+        for (int w = 1; w <= b; w++) {
+            if (h == w) { dp[h][w] = 0; continue; }
+            int best = INT_MAX;
+            for (int i = 1; i < h; i++)                 // horizontal cut
+                best = min(best, dp[i][w] + dp[h - i][w]);
+            for (int j = 1; j < w; j++)                 // vertical cut
+                best = min(best, dp[h][j] + dp[h][w - j]);
+            dp[h][w] = best + 1;
+        }
+    cout << dp[a][b] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(ab\,(a+b))$ -- each of the $ab$ states tries
+$O(a+b)$ cut positions. \textbf{Space Complexity.} $O(ab)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Interval DP in 2D: enumerate every first cut, recurse on the two pieces,
+take the minimum. The ``try all split points'' pattern recurs in Removal
+Game and any problem where a structure is optimally divided into
+independent parts.
+\end{takeawaybox}

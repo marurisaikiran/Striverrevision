@@ -1,0 +1,62 @@
+\chapter{Sliding Window Problems}
+\chapterepigraph{A sliding window turns a quadratic ``look at every
+subarray'' into a linear ``maintain an answer as the window moves.'' The
+whole craft is choosing a data structure that supports the three window
+operations cheaply: add the entering element, remove the leaving element,
+and report the current answer. Pick the right structure and each of these
+problems is the same loop with a different helper.}
+
+\section{The Add / Remove / Report Template}
+\label{sec:cses-sw-intro}
+
+Every fixed-size sliding-window problem here processes windows of width
+$k$ by advancing one step at a time: the right end gains an element, the
+left end loses one, and we output the window's answer. The only thing that
+varies is \emph{which structure} maintains that answer under those two
+mutations.
+
+\begin{ideabox}[Match the Answer to a Structure That Supports Removal]
+\begin{itemize}
+  \item \textbf{Sum / XOR} -- invertible: add the new, subtract/xor out
+        the old in $O(1)$.
+  \item \textbf{Min / Max} -- a \textbf{monotonic deque} gives $O(1)$
+        amortised.
+  \item \textbf{OR / bit aggregates} -- keep per-bit counts, since OR is
+        not invertible.
+  \item \textbf{Distinct count / mode / mex} -- a hash map of frequencies,
+        sometimes with ``count of counts'' buckets or a set of absent
+        values.
+  \item \textbf{Median / cost} -- two balanced multisets split at the
+        median, with running sums.
+  \item \textbf{Inversions} -- a Fenwick tree over value ranks,
+        updated incrementally as elements enter and leave.
+\end{itemize}
+\end{ideabox}
+
+\begin{patternbox}[Why Removal Is the Hard Part]
+Adding an element to a window is usually easy; \emph{removing} the element
+that falls off the left is what dictates the data structure. Sums and XORs
+are invertible so removal is trivial; min/max are not, which is why they
+need a monotonic deque; order statistics need a balanced multiset or a
+Fenwick tree. Reading a problem, ask first: ``how do I \emph{undo} the
+leftmost element?''
+\end{patternbox}
+
+The sections cover, in order: window sum, minimum, XOR, OR, distinct
+values, mode, mex, median, cost, inversions, and the advertisement
+(maximum) variant. Each states the structure, the three window operations,
+a dry run, complete C++, and complexity.
+
+\newpage
+
+\input{chapters/cses_sliding_window/01_window_sum.tex}
+\input{chapters/cses_sliding_window/02_window_minimum.tex}
+\input{chapters/cses_sliding_window/03_window_xor.tex}
+\input{chapters/cses_sliding_window/04_window_or.tex}
+\input{chapters/cses_sliding_window/05_window_distinct_values.tex}
+\input{chapters/cses_sliding_window/06_window_mode.tex}
+\input{chapters/cses_sliding_window/07_window_mex.tex}
+\input{chapters/cses_sliding_window/08_window_median.tex}
+\input{chapters/cses_sliding_window/09_window_cost.tex}
+\input{chapters/cses_sliding_window/10_window_inversions.tex}
+\input{chapters/cses_sliding_window/11_window_advertisement.tex}

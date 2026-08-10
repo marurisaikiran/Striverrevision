@@ -1,0 +1,88 @@
+\section{Removing Digits}
+\label{sec:cses-removing-digits}
+
+\problemstatement{Start from an integer $n$. On each step you may
+subtract any one of the digits currently appearing in the number. Find
+the minimum number of steps to reduce $n$ to $0$.}
+
+\begin{patternbox}
+\emph{``Minimum steps to reduce a number to zero''} is a shortest-path
+DP over values $0\ldots n$. Let $\textit{dp}[v]$ be the fewest steps from
+$v$ to $0$; from $v$ you may subtract any digit of $v$, so
+$\textit{dp}[v]=1+\min_{d\in\text{digits}(v)}\textit{dp}[v-d]$.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+$\textit{dp}[v]$ = minimum steps to bring $v$ down to $0$, with
+$\textit{dp}[0]=0$. The only moves from $v$ subtract one of $v$'s own
+decimal digits. Since a larger digit removes more in one step but the
+available digits depend on $v$ itself, we must try every digit of $v$ and
+take the minimum successor:
+\[
+  \textit{dp}[v]=1+\min_{d\,\in\,\text{digits}(v),\ d>0}\textit{dp}[v-d].
+\]
+
+\begin{ideabox}[Greedy ``Subtract the Largest Digit'' Also Works]
+Because subtracting a larger digit never overshoots ($v-d\ge0$ always,
+as $d\le9\le v$ for $v\ge10$, and single digits vanish in one step), a
+greedy that always removes the largest digit is optimal here. The DP is
+shown because it generalises and needs no proof of the greedy exchange
+argument.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0]=0$.
+  \item For $v=1\ldots n$: for each non-zero digit $d$ of $v$,
+        $\textit{dp}[v]=\min(\textit{dp}[v], \textit{dp}[v-d]+1)$.
+  \item Answer $\textit{dp}[n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=27$.}
+
+\begin{itemize}
+  \item From $27$ subtract $7\to20$; from $20$ subtract $2\to18$; then
+        $8\to10$; then $1\to9$; then $9\to0$.
+  \item The DP finds $\textit{dp}[27]=5$ via the value chain
+        $27\to20\to18\to10\to9\to0$ (each step removes one digit).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> dp(n + 1, 1e9);
+    dp[0] = 0;
+    for (int v = 1; v <= n; v++) {
+        int t = v;
+        while (t > 0) {
+            int d = t % 10;
+            if (d > 0) dp[v] = min(dp[v], dp[v - d] + 1);
+            t /= 10;
+        }
+    }
+    cout << dp[n] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log_{10} n)$ -- each value inspects its
+$O(\log n)$ digits. \textbf{Space Complexity.} $O(n)$ for the DP array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When moves from a state depend on the state's own structure (here, its
+digits), enumerate those moves inside the transition. This ``value as a
+node, allowed subtractions as edges'' framing turns a reduce-to-zero
+puzzle into a one-dimensional shortest-path DP.
+\end{takeawaybox}

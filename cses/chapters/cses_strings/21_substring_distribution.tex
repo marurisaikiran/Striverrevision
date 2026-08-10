@@ -1,0 +1,118 @@
+\section{Substring Distribution}
+\label{sec:cses-substring-distribution}
+
+\problemstatement{Given a string of length $n$, for every length
+$L=1,2,\ldots,n$ output the number of \emph{distinct} substrings of that
+length.}
+
+\begin{patternbox}
+\emph{``Distinct substrings of each length''} uses the same
+\textbf{suffix automaton} fact as distinct-substring counting, but resolved
+per length: each state contributes exactly one distinct substring to every
+length in its interval
+$(\textit{len}[\text{link}],\ \textit{len}]$, so a difference array over
+those intervals gives the per-length counts.
+\end{patternbox}
+
+\subsection*{Each state covers a contiguous length range}
+
+A suffix automaton state $v$ represents distinct substrings of every length
+from $\textit{len}[\text{link}[v]]+1$ up to $\textit{len}[v]$, one distinct
+substring per length (they are the longer substring's suffixes, all sharing
+$v$'s endpos class). Therefore the number of distinct substrings of length
+$L$ equals the number of states whose interval contains $L$. Add $+1$ over
+each state's interval with a difference array, then take a prefix sum to
+read off the count for every length.
+
+\begin{ideabox}[Difference Array Over State Intervals]
+Instead of iterating each length inside each state ($O(n^2)$), mark
+$\textit{diff}[\textit{len}[\text{link}]+1]\mathrel{+}{=}1$ and
+$\textit{diff}[\textit{len}+1]\mathrel{-}{=}1$ per state, then prefix-sum
+once. Every state's whole length interval is applied in $O(1)$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the suffix automaton.
+  \item For each non-root state $v$: $\textit{diff}[\textit{len}[
+        \text{link}[v]]+1]\mathrel{+}{=}1$;
+        $\textit{diff}[\textit{len}[v]+1]\mathrel{-}{=}1$.
+  \item Prefix-sum $\textit{diff}$; output entries for $L=1\ldots n$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aba''.}
+
+\begin{itemize}
+  \item Distinct substrings by length: length $1$: ``a'',``b'' $\to2$;
+        length $2$: ``ab'',``ba'' $\to2$; length $3$: ``aba'' $\to1$.
+  \item The interval contributions sum, via the difference array, to
+        $2,2,1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link; map<char,int> next; };
+    vector<State> st; int last;
+    SAM() { st.push_back({0, -1, {}}); last = 0; }
+    void extend(char c) {
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, {}});
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]);
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string s;
+    cin >> s;
+    int n = s.size();
+    SAM sam;
+    for (char c : s) sam.extend(c);
+
+    vector<long long> diff(n + 2, 0);
+    for (int v = 1; v < (int)sam.st.size(); v++) {
+        int lo = sam.st[sam.st[v].link].len + 1;    // shortest length in v
+        int hi = sam.st[v].len;                     // longest length in v
+        diff[lo] += 1;
+        diff[hi + 1] -= 1;
+    }
+    long long run = 0;
+    for (int L = 1; L <= n; L++) { run += diff[L]; cout << run << " "; }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log\Sigma)$ to build; $O(n)$ for the
+difference array and output. \textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Each suffix-automaton state owns a contiguous interval of substring
+lengths; a difference array turns ``count distinct substrings per length''
+into one linear sweep. This closes the chapter's suffix-automaton arc:
+presence, count, position, distinct count, ranking, and now the full
+length distribution -- all from one structure.
+\end{takeawaybox}

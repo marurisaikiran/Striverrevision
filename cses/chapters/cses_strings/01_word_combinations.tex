@@ -1,0 +1,115 @@
+\section{Word Combinations}
+\label{sec:cses-word-combinations}
+
+\problemstatement{Given a string $s$ of length $n$ and a dictionary of $k$
+words, count the number of ways to build $s$ as a concatenation of
+dictionary words (a word may be reused). Output the count modulo
+$10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count ways to segment a string into dictionary words''} is a
+one-dimensional DP over prefix lengths, made fast by a \textbf{trie}. Let
+$\textit{dp}[i]$ be the number of ways to form the first $i$ characters;
+each way ends in some dictionary word.
+\end{patternbox}
+
+\subsection*{State and how the trie speeds it}
+
+$\textit{dp}[i]$ = ways to form $s[0..i-1]$, with $\textit{dp}[0]=1$. From
+a position $i$ with $\textit{dp}[i]>0$, walk down a trie of the dictionary
+following $s[i],s[i+1],\ldots$; whenever the walk reaches a node marking
+the end of a word (say the word spans $s[i..j-1]$), that word can extend
+every way of forming the first $i$ characters, so
+$\textit{dp}[j]\mathrel{+}=\textit{dp}[i]$. The trie lets us discover all
+dictionary words starting at $i$ in time proportional to the longest such
+word, without testing each dictionary word separately.
+
+\begin{ideabox}[Push Contributions Forward Along the Trie]
+Rather than asking ``which words end at $j$?'' we push: from each $i$ we
+follow the single path $s[i..]$ in the trie and deposit $\textit{dp}[i]$
+into $\textit{dp}[j]$ at every word-ending node. Each character of $s$ is
+followed once per starting position, but the walk stops as soon as the
+trie path dies.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Insert all dictionary words into a trie, marking word ends.
+  \item $\textit{dp}[0]=1$. For $i=0\ldots n-1$ with $\textit{dp}[i]>0$:
+        walk the trie along $s[i..]$; at each word-end reached at column
+        $j$, add $\textit{dp}[i]$ to $\textit{dp}[j]$.
+  \item Answer $\textit{dp}[n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``ababc''; dictionary $\{$``ab'',``abab'',``c''$\}$.}
+
+\begin{itemize}
+  \item $\textit{dp}[0]=1$. From $0$: ``ab'' ends at $2\Rightarrow
+        \textit{dp}[2]{+}{=}1$; ``abab'' ends at $4\Rightarrow
+        \textit{dp}[4]{+}{=}1$.
+  \item From $2$ ($\textit{dp}=1$): ``ab'' ends at $4\Rightarrow
+        \textit{dp}[4]=2$.
+  \item From $4$ ($\textit{dp}=2$): ``c'' ends at $5\Rightarrow
+        \textit{dp}[5]=2$. Answer $2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+struct Trie {
+    struct Node { int nxt[26]; bool end; Node(){ memset(nxt,-1,sizeof nxt); end=false; } };
+    vector<Node> t{Node()};
+    void insert(const string& w) {
+        int cur = 0;
+        for (char c : w) {
+            int x = c - 'a';
+            if (t[cur].nxt[x] == -1) { t[cur].nxt[x] = t.size(); t.push_back(Node()); }
+            cur = t[cur].nxt[x];
+        }
+        t[cur].end = true;
+    }
+};
+
+int main() {
+    string s; int k;
+    cin >> s >> k;
+    Trie tr;
+    for (int i = 0; i < k; i++) { string w; cin >> w; tr.insert(w); }
+
+    int n = s.size();
+    vector<long long> dp(n + 1, 0);
+    dp[0] = 1;
+    for (int i = 0; i < n; i++) {
+        if (!dp[i]) continue;
+        int cur = 0;
+        for (int j = i; j < n; j++) {
+            int x = s[j] - 'a';
+            if (tr.t[cur].nxt[x] == -1) break;      // no word continues
+            cur = tr.t[cur].nxt[x];
+            if (tr.t[cur].end) dp[j + 1] = (dp[j + 1] + dp[i]) % MOD;
+        }
+    }
+    cout << dp[n] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\cdot L)$ where $L$ is the longest word
+(each start walks at most $L$ trie steps). \textbf{Space Complexity.}
+$O(\text{total dictionary length}\cdot26)$ for the trie plus $O(n)$ DP.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Segmentation counting is prefix DP; a trie turns ``which words start
+here?'' into a single character-by-character walk. The same push-forward
+structure solves word-break existence, minimum-word segmentation, and
+tokenisation.
+\end{takeawaybox}

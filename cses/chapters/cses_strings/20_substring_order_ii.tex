@@ -1,0 +1,140 @@
+\section{Substring Order II}
+\label{sec:cses-substring-order-ii}
+
+\problemstatement{Given a string and an index $k$, find the $k$-th
+substring in lexicographic order \emph{counting multiplicity}: a substring
+that occurs $t$ times is counted $t$ times, and equal occurrences are
+grouped together.}
+
+\begin{patternbox}
+This is Substring Order I weighted by occurrences. Each substring's weight
+is its \textbf{endpos-set size} (how many times it occurs), so the
+per-state continuation count becomes an occurrence-weighted sum, and the
+descent subtracts weighted totals.
+\end{patternbox}
+
+\subsection*{Weighting by occurrences}
+
+Let $\textit{cnt}[u]$ be the endpos-set size of state $u$ (its occurrence
+count, computed by propagating counts up the suffix-link tree). A path
+reaching $u$ spells a substring occurring $\textit{cnt}[u]$ times. Define
+the occurrence-weighted continuation total:
+\[
+  f[v]=\sum_{(c,u)\ \text{edge from }v}\big(\textit{cnt}[u]+f[u]\big),
+\]
+where $\textit{cnt}[u]$ counts the $\textit{cnt}[u]$ occurrences of the
+substring ending exactly at $u$, and $f[u]$ counts all longer
+continuations with their multiplicities. The descent mirrors Order~I: at an
+edge to $u$, if $k\le\textit{cnt}[u]$ the current prefix plus this
+character is the answer; else if $k\le\textit{cnt}[u]+f[u]$ move into $u$
+after subtracting $\textit{cnt}[u]$; otherwise subtract the whole
+$\textit{cnt}[u]+f[u]$ and continue.
+
+\begin{ideabox}[Occurrences Replace the Unit Count]
+Order~I used $1$ per distinct substring; Order~II uses $\textit{cnt}[u]$,
+the number of occurrences. The identical descent then ranks substrings with
+repetition. Computing $\textit{cnt}$ is the same suffix-link propagation
+from Counting Patterns (Section~\ref{sec:cses-counting-patterns}).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the SAM; compute $\textit{cnt}[u]$ (endpos sizes) via
+        link-tree propagation.
+  \item Compute $f[v]=\sum_{(c,u)}(\textit{cnt}[u]+f[u])$ in decreasing
+        $\textit{len}$ order.
+  \item Descend from the root: at edge to $u$, if $k\le\textit{cnt}[u]$
+        output and stop; else if $k\le\textit{cnt}[u]+f[u]$ append, move to
+        $u$, subtract $\textit{cnt}[u]$; else subtract $\textit{cnt}[u]+
+        f[u]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aa''; substrings with multiplicity, sorted:
+``a''(pos 1), ``a''(pos 2), ``aa''; find $k=2$.}
+
+\begin{itemize}
+  \item $\textit{cnt}$ of state ``a'' is $2$; of ``aa'' is $1$.
+  \item Edge ``a'' to state ``a'': $\textit{cnt}=2\ge k=2\Rightarrow$
+        answer ``a'' (its second occurrence).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link; map<char,int> next; };
+    vector<State> st; vector<long long> cnt; int last;
+    SAM() { st.push_back({0, -1, {}}); cnt.push_back(0); last = 0; }
+    void extend(char c) {
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, {}}); cnt.push_back(1);
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]); cnt.push_back(0);
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string s;
+    long long k;
+    cin >> s >> k;
+    SAM sam;
+    for (char c : s) sam.extend(c);
+
+    int m = sam.st.size();
+    vector<int> order(m);
+    iota(order.begin(), order.end(), 0);
+    sort(order.begin(), order.end(),
+         [&](int a, int b){ return sam.st[a].len > sam.st[b].len; });
+    for (int v : order)
+        if (sam.st[v].link >= 0) sam.cnt[sam.st[v].link] += sam.cnt[v];
+
+    vector<long long> f(m, 0);
+    for (int v : order)
+        for (auto& [c, u] : sam.st[v].next)
+            f[v] += sam.cnt[u] + f[u];               // occurrence-weighted
+
+    string res;
+    int v = 0;
+    while (k > 0) {
+        for (auto& [c, u] : sam.st[v].next) {
+            long long occ = sam.cnt[u];
+            if (k <= occ) { res += c; k = 0; break; }          // land here
+            if (k <= occ + f[u]) { res += c; k -= occ; v = u; break; }
+            k -= occ + f[u];
+        }
+    }
+    cout << res << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log\Sigma)$ build and counts; descent
+$O(|\text{answer}|\cdot\Sigma)$. \textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Order~II is Order~I with the unit count replaced by each state's occurrence
+count. The two problems together show how one weighting choice on the same
+count-and-descend framework toggles between distinct and multiplicity
+ranking.
+\end{takeawaybox}

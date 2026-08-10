@@ -1,0 +1,76 @@
+\chapter{String Algorithms}
+\chapterepigraph{String algorithms are a small set of powerful machines --
+the prefix and Z functions, Manacher's palindrome radii, polynomial
+hashing, the suffix array, and the suffix automaton -- reused across many
+problems. The CSES string section is really a tour of these five machines:
+learn what each computes and the problems become a matter of feeding the
+right string to the right machine.}
+
+\section{The Five Machines}
+\label{sec:cses-strings-intro}
+
+Almost every problem here is solved by one of a handful of linear or
+near-linear tools. Recognising which one a problem needs is the whole
+game.
+
+\begin{patternbox}[Which Machine Does the Problem Need?]
+\begin{itemize}
+  \item \textbf{Prefix function / Z-function} -- borders, periods, exact
+        pattern matching, ``string built from repeated blocks'': Finding
+        Borders, Finding Periods, String Matching, String Functions,
+        Required Substring.
+  \item \textbf{Manacher's algorithm} -- everything about palindromic
+        substrings in $O(n)$: Longest Palindrome, All Palindromes.
+  \item \textbf{Polynomial hashing} -- equality of substrings in $O(1)$
+        after $O(n)$ preprocessing: Palindrome Queries, Repeating
+        Substring, Finding Patterns.
+  \item \textbf{Suffix array + LCP} -- ordering and counting substrings,
+        reconstruction: Distinct Substrings, Inverse Suffix Array,
+        Repeating Substring.
+  \item \textbf{Suffix automaton} -- the Swiss-army knife for substring
+        counting and ranking: Counting Patterns, Pattern Positions,
+        Distinct Substrings, Substring Order I/II, Substring Distribution.
+  \item \textbf{Standalone constructions} -- Minimal Rotation (Booth's),
+        Word Combinations (trie + DP), Distinct Subsequences (DP), String
+        Transform (inverse Burrows--Wheeler).
+\end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Two Ideas Underlie Most of Them]
+\textbf{Borders.} A border is a proper prefix that is also a suffix; the
+prefix function stores the longest border of every prefix, and its
+``failure chain'' enumerates all borders -- the basis of matching, periods,
+and automaton building. \textbf{Endpos classes.} Two substrings are
+equivalent if they occur at exactly the same set of ending positions; the
+suffix automaton has one state per endpos class, which is why it counts
+and ranks substrings so cheaply.
+\end{ideabox}
+
+Each section names the machine, explains why it applies, gives complete
+compilable C++, a dry run, and complexity. Where a suffix automaton is
+used, the same compact construction reappears so every listing stands
+alone.
+
+\newpage
+
+\input{chapters/cses_strings/01_word_combinations.tex}
+\input{chapters/cses_strings/02_string_matching.tex}
+\input{chapters/cses_strings/03_finding_borders.tex}
+\input{chapters/cses_strings/04_finding_periods.tex}
+\input{chapters/cses_strings/05_minimal_rotation.tex}
+\input{chapters/cses_strings/06_longest_palindrome.tex}
+\input{chapters/cses_strings/07_all_palindromes.tex}
+\input{chapters/cses_strings/08_required_substring.tex}
+\input{chapters/cses_strings/09_palindrome_queries.tex}
+\input{chapters/cses_strings/10_finding_patterns.tex}
+\input{chapters/cses_strings/11_counting_patterns.tex}
+\input{chapters/cses_strings/12_pattern_positions.tex}
+\input{chapters/cses_strings/13_distinct_substrings.tex}
+\input{chapters/cses_strings/14_distinct_subsequences.tex}
+\input{chapters/cses_strings/15_repeating_substring.tex}
+\input{chapters/cses_strings/16_string_functions.tex}
+\input{chapters/cses_strings/17_inverse_suffix_array.tex}
+\input{chapters/cses_strings/18_string_transform.tex}
+\input{chapters/cses_strings/19_substring_order_i.tex}
+\input{chapters/cses_strings/20_substring_order_ii.tex}
+\input{chapters/cses_strings/21_substring_distribution.tex}

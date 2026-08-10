@@ -1,0 +1,84 @@
+\section{Subarray Sums I}
+\label{sec:cses-subarray-sums-i}
+
+\problemstatement{Given an array of $n$ \emph{positive} integers and a
+target $x$, count the number of contiguous subarrays whose sum equals $x$.}
+
+\begin{patternbox}
+With all values positive, the window sum is \textbf{monotonic}: extending
+the right end only increases it, and advancing the left end only decreases
+it. That monotonicity is exactly what lets a \textbf{two-pointer} sliding
+window count matches in one linear pass.
+\end{patternbox}
+
+\subsection*{Why two pointers work here}
+
+Keep a window $[l,r]$ and its sum. Advance $r$, adding $a[r]$. Whenever the
+sum exceeds $x$, advance $l$, subtracting $a[l]$ -- safe because positivity
+guarantees shrinking only lowers the sum. Whenever the sum equals $x$,
+record one subarray. Because the sum never decreases when $r$ moves right
+and never increases when $l$ moves right, each pointer only moves forward,
+giving $O(n)$.
+
+\begin{ideabox}[Positivity Makes the Window Monotone]
+Two pointers require that growing the window changes the tracked quantity
+in one direction only. Positive values guarantee that for sums -- which is
+why Subarray Sums~II (negatives allowed) must abandon two pointers for
+prefix sums.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $l=0$, $\textit{sum}=0$, $\textit{count}=0$.
+  \item For $r=0\ldots n-1$: add $a[r]$; while $\textit{sum}>x$ advance
+        $l$ subtracting $a[l]$; if $\textit{sum}=x$ increment
+        $\textit{count}$.
+  \item Output $\textit{count}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[2,4,1,2,7]$, $x=7$.}
+
+\begin{itemize}
+  \item $[2,4,1]$ sums to $7\Rightarrow$ count $1$.
+  \item Window shrinks/extends; $[4,1,2]=7\Rightarrow$ count $2$; later
+        $[7]=7\Rightarrow$ count $3$.
+  \item Answer $3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n; long long x;
+    cin >> n >> x;
+    vector<long long> a(n);
+    for (auto& v : a) cin >> v;
+
+    long long sum = 0, count = 0;
+    int l = 0;
+    for (int r = 0; r < n; r++) {
+        sum += a[r];
+        while (sum > x) sum -= a[l++];         // positivity: safe to shrink
+        if (sum == x) count++;
+    }
+    cout << count << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- both pointers only move forward.
+\textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Two pointers count target-sum subarrays in linear time precisely because
+positive values keep the window sum monotone. The moment negatives enter,
+monotonicity breaks and the prefix-sum-plus-hash-map method takes over.
+\end{takeawaybox}

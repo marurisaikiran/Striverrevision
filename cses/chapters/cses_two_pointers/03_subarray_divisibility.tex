@@ -1,0 +1,88 @@
+\section{Subarray Divisibility}
+\label{sec:cses-subarray-divisibility}
+
+\problemstatement{Given an array of $n$ integers, count the number of
+contiguous subarrays whose sum is divisible by $n$.}
+
+\begin{patternbox}
+``Sum divisible by $n$'' is prefix sums modulo $n$: a subarray sum is a
+multiple of $n$ iff its two bounding prefix sums have the \textbf{same
+residue} mod $n$. So count pairs of equal residues -- a hash map (or array)
+of residue frequencies does it in one pass.
+\end{patternbox}
+
+\subsection*{Equal residues bound divisible subarrays}
+
+$\textit{sum}(l+1,r)=\textit{pre}[r]-\textit{pre}[l]$ is divisible by $n$
+exactly when $\textit{pre}[r]\equiv\textit{pre}[l]\pmod n$. So for each
+residue class, any two prefixes in it form a valid subarray. Sweeping the
+prefixes and tallying how many share each residue, the number of divisible
+subarrays is $\sum_r\binom{c_r}{2}$ where $c_r$ counts prefixes with
+residue $r$ (including the empty prefix, residue $0$). Handle negative sums
+by normalising the residue into $[0,n)$.
+
+\begin{ideabox}[Residue Collisions Are Divisible Subarrays]
+Reducing prefix sums mod $n$ converts ``divisible difference'' into ``equal
+residue.'' Counting how many prefixes fall in each residue class, then
+choosing $2$ from each class, counts every divisible subarray without
+examining pairs directly.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Frequency array $\textit{cnt}[0\ldots n-1]$ with
+        $\textit{cnt}[0]=1$ (empty prefix).
+  \item Running prefix mod $n$ (normalised non-negative); for each element
+        add $\textit{cnt}[\textit{residue}]$ to the answer, then increment
+        that residue's count.
+  \item Output the accumulated count.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[1,2,3,4,5]$, $n=5$.}
+
+\begin{itemize}
+  \item Prefixes mod $5$: $0,1,3,1,0,0$.
+  \item Residue $0$ occurs at prefixes (empty),$4$,$5$ -- three of them;
+        residue $1$ twice.
+  \item Answer $\binom{3}{2}+\binom{2}{2}=3+... $ counted incrementally to
+        the correct total of divisible subarrays.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<long long> cnt(n, 0);
+    cnt[0] = 1;                                // empty prefix has residue 0
+
+    long long pre = 0, ans = 0;
+    for (int i = 0; i < n; i++) {
+        long long a; cin >> a;
+        pre = ((pre + a) % n + n) % n;         // normalise residue to [0,n)
+        ans += cnt[pre];                       // earlier prefixes with same residue
+        cnt[pre]++;
+    }
+    cout << ans << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(n)$ for the
+residue counts.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Divisibility of a subarray sum is equality of prefix residues; count
+residue collisions in one pass. This is Subarray Sums~II with the map key
+changed from a raw prefix value to its residue mod $n$ -- a small twist on
+the same prefix-and-count template.
+\end{takeawaybox}

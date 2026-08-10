@@ -1,0 +1,102 @@
+\section{Array Description}
+\label{sec:cses-array-description}
+
+\problemstatement{An array of $n$ integers, each between $1$ and $m$, is
+partially known: some positions hold a value, others are $0$ (unknown).
+Count the ways to fill the unknowns so that adjacent elements differ by at
+most $1$. Output modulo $10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count fillings where adjacent elements are constrained''} is a DP
+where the state carries the \emph{value at the current position}. Let
+$\textit{dp}[i][v]$ be the number of ways to fill the prefix ending with
+value $v$ at position $i$; the next position may hold $v-1,v,$ or $v+1$.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+$\textit{dp}[i][v]$ = ways to fill positions $1\ldots i$ such that
+position $i$ equals $v$ and all adjacency constraints hold. From a valid
+prefix ending in value $u$ at $i-1$, position $i$ may take
+$u-1,u,u+1$; equivalently a value $v$ at $i$ can follow $v-1,v,v+1$ at
+$i-1$:
+\[
+  \textit{dp}[i][v]=\textit{dp}[i-1][v-1]+\textit{dp}[i-1][v]+
+  \textit{dp}[i-1][v+1].
+\]
+If position $i$ is fixed to some $a_i\ne0$, only $v=a_i$ is allowed (all
+other $\textit{dp}[i][v]=0$); if it is $0$, every $v\in[1,m]$ is allowed.
+
+\begin{ideabox}[Carry the Last Value in the State]
+Adjacency constraints couple neighbours, so the DP state must remember the
+value just placed. With that, each transition is a local three-way sum --
+the $\pm1$ neighbourhood -- and fixed positions simply prune the allowed
+$v$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialise row $1$: if $a_1$ fixed, $\textit{dp}[1][a_1]=1$;
+        else $\textit{dp}[1][v]=1$ for all $v$.
+  \item For $i=2\ldots n$ and each allowed $v$ at $i$:
+        $\textit{dp}[i][v]=\textit{dp}[i-1][v-1]+\textit{dp}[i-1][v]+
+        \textit{dp}[i-1][v+1]$.
+  \item Answer $\sum_{v=1}^{m}\textit{dp}[n][v]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=3$, $m=5$, array $[2,0,2]$.}
+
+\begin{itemize}
+  \item Row $1$: only $\textit{dp}[1][2]=1$.
+  \item Row $2$ ($0$, free): $\textit{dp}[2][1]=\textit{dp}[1][2]=1$
+        (from $2$), $\textit{dp}[2][2]=1$, $\textit{dp}[2][3]=1$; others
+        $0$.
+  \item Row $3$ fixed to $2$: $\textit{dp}[3][2]=\textit{dp}[2][1]+
+        \textit{dp}[2][2]+\textit{dp}[2][3]=3$. Answer $3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<int> a(n + 1);
+    for (int i = 1; i <= n; i++) cin >> a[i];
+
+    vector<vector<long long>> dp(n + 1, vector<long long>(m + 2, 0));
+    for (int v = 1; v <= m; v++)
+        if (a[1] == 0 || a[1] == v) dp[1][v] = 1;
+
+    for (int i = 2; i <= n; i++)
+        for (int v = 1; v <= m; v++) {
+            if (a[i] != 0 && a[i] != v) continue;      // fixed position
+            dp[i][v] = (dp[i-1][v-1] + dp[i-1][v] + dp[i-1][v+1]) % MOD;
+        }
+
+    long long ans = 0;
+    for (int v = 1; v <= m; v++) ans = (ans + dp[n][v]) % MOD;
+    cout << ans << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nm)$ -- $n$ positions times $m$ possible
+values, each an $O(1)$ transition. \textbf{Space Complexity.} $O(nm)$,
+reducible to $O(m)$ with two rolling rows.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When adjacent elements constrain each other, promote the ``current value''
+into the DP state; the transition then only touches the local
+neighbourhood the constraint allows. Fixed inputs prune states rather than
+complicate the recurrence.
+\end{takeawaybox}

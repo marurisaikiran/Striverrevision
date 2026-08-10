@@ -1,0 +1,84 @@
+\section{Maximum Subarray Sum}
+\label{sec:cses-maximum-subarray-sum}
+
+\problemstatement{Given an array of $n$ integers (possibly negative), find
+the maximum sum of any non-empty contiguous subarray.}
+
+\begin{patternbox}
+The maximum-subarray problem is solved by \textbf{Kadane's algorithm}: a
+single scan maintaining the best subarray sum \emph{ending at the current
+position}, resetting whenever carrying the previous sum forward would only
+hurt.
+\end{patternbox}
+
+\subsection*{Best sum ending here}
+
+Let $\textit{cur}$ be the maximum sum of a subarray ending exactly at the
+current index. Extending to the next element, either continue the previous
+subarray ($\textit{cur}+a[i]$) or start fresh at $a[i]$ -- whichever is
+larger:
+\[
+  \textit{cur}=\max(a[i],\ \textit{cur}+a[i]).
+\]
+The overall answer is the maximum $\textit{cur}$ over all positions.
+Starting fresh happens exactly when the running sum has gone negative and
+would drag down any extension.
+
+\begin{ideabox}[Drop a Negative Prefix]
+A prefix with negative sum can never help a later subarray -- discarding it
+(resetting $\textit{cur}$ to $a[i]$) is always at least as good. This single
+greedy reset is what makes one linear pass optimal.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{cur}=\textit{best}=a[0]$.
+  \item For $i=1\ldots n-1$: $\textit{cur}=\max(a[i],\textit{cur}+a[i])$;
+        $\textit{best}=\max(\textit{best},\textit{cur})$.
+  \item Output $\textit{best}$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[-1,3,-2,5,-4]$.}
+
+\begin{itemize}
+  \item $\textit{cur}$: $-1\to3\to1\to6\to2$. Resets never beat carrying
+        here except at the start.
+  \item $\textit{best}=6$ (the subarray $[3,-2,5]$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<long long> a(n);
+    for (auto& x : a) cin >> x;
+
+    long long cur = a[0], best = a[0];
+    for (int i = 1; i < n; i++) {
+        cur = max(a[i], cur + a[i]);           // extend or restart
+        best = max(best, cur);
+    }
+    cout << best << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- a single pass. \textbf{Space
+Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Kadane's algorithm is the definitive maximum-subarray solution: keep the
+best sum ending here, restart whenever the running total turns negative. Its
+``discard a harmful prefix'' idea recurs in maximum-product subarray and
+several DP-on-a-line problems.
+\end{takeawaybox}

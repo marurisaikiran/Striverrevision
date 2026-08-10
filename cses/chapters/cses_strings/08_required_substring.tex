@@ -1,0 +1,116 @@
+\section{Required Substring}
+\label{sec:cses-required-substring}
+
+\problemstatement{Count the number of strings of length $n$ over the
+lowercase alphabet (26 letters) that contain a given pattern $p$ as a
+substring. Output the count modulo $10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count length-$n$ strings that \textbf{contain} a pattern''} is
+easier via the complement: count strings that \emph{avoid} $p$, then
+subtract from $26^n$. Avoidance is tracked by a DP running the
+\textbf{KMP automaton} -- the state is how much of $p$ is currently
+matched.
+\end{patternbox}
+
+\subsection*{DP over KMP automaton states}
+
+Let $m=|p|$. Build the KMP automaton: from a state $j$ (meaning the last
+$j$ characters matched a prefix of $p$) reading character $c$, the
+automaton moves to $\delta(j,c)$, the new longest matched prefix. Define
+$\textit{dp}[i][j]$ = number of length-$i$ strings whose automaton state is
+$j$ \emph{without ever reaching state $m$}. Transition over all 26
+characters:
+\[
+  \textit{dp}[i+1][\delta(j,c)]\mathrel{+}=\textit{dp}[i][j],\quad
+  \text{only when }\delta(j,c)<m.
+\]
+Reaching state $m$ means $p$ appeared, so those transitions are dropped
+from the ``avoid'' count. The answer is
+$26^n-\sum_{j<m}\textit{dp}[n][j]$.
+
+\begin{ideabox}[Match Progress Is the Only State That Matters]
+Whether a string avoids $p$ depends solely on how much of $p$ is currently
+matched -- the KMP state. Building the automaton once ($O(26m)$) lets the
+DP forget the actual characters and track just the $m$ possible progress
+levels.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute $p$'s prefix function and the transition $\delta(j,c)$
+        for $j=0\ldots m-1$, $c\in\{a..z\}$.
+  \item $\textit{dp}[0][0]=1$. For $i=0\ldots n-1$, push each state over
+        all 26 characters, discarding transitions into state $m$.
+  \item Answer $26^n-\sum_{j=0}^{m-1}\textit{dp}[n][j]$ modulo $10^9+7$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=2$, $p=$``aa''; alphabet size $2$ for illustration ($\{a,b\}$).}
+
+\begin{itemize}
+  \item Strings of length $2$: $aa,ab,ba,bb$. Only $aa$ contains ``aa''.
+  \item Avoidance DP counts $3$ ($ab,ba,bb$); total $2^2-3=1$. With the
+        real 26-letter alphabet the same logic gives the count.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1e9 + 7;
+
+int main() {
+    int n;
+    string p;
+    cin >> n >> p;
+    int m = p.size();
+
+    vector<int> pi(m, 0);
+    for (int i = 1; i < m; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && p[i] != p[j]) j = pi[j - 1];
+        if (p[i] == p[j]) j++;
+        pi[i] = j;
+    }
+    // automaton transitions delta[j][c], j in 0..m
+    vector<array<int,26>> delta(m + 1);
+    for (int j = 0; j <= m; j++)
+        for (int c = 0; c < 26; c++) {
+            if (j < m && c == p[j] - 'a') delta[j][c] = j + 1;
+            else delta[j][c] = (j == 0) ? 0 : delta[pi[j - 1]][c];
+        }
+
+    vector<vector<long long>> dp(n + 1, vector<long long>(m + 1, 0));
+    dp[0][0] = 1;
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++) if (dp[i][j])
+            for (int c = 0; c < 26; c++) {
+                int nj = delta[j][c];
+                if (nj < m) dp[i + 1][nj] = (dp[i + 1][nj] + dp[i][j]) % MOD;
+            }
+
+    long long total = 1;                           // 26^n
+    for (int i = 0; i < n; i++) total = total * 26 % MOD;
+    long long avoid = 0;
+    for (int j = 0; j < m; j++) avoid = (avoid + dp[n][j]) % MOD;
+    cout << ((total - avoid) % MOD + MOD) % MOD << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\cdot m\cdot26)$ for the DP, plus
+$O(m\cdot26)$ to build the automaton. \textbf{Space Complexity.}
+$O(n\cdot m)$ (reducible to $O(m)$ with rolling rows).
+\end{complexitybox}
+
+\begin{takeawaybox}
+``Contains a pattern'' is best counted as $26^n$ minus ``avoids the
+pattern,'' and avoidance is a DP over KMP-automaton states. Turning a
+pattern into an automaton and running a counting DP on its states is a
+recurring competitive-programming template.
+\end{takeawaybox}

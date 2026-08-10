@@ -1,0 +1,117 @@
+\section{Finding Patterns}
+\label{sec:cses-finding-patterns}
+
+\problemstatement{Given a text $t$ and $k$ patterns, determine for each
+pattern whether it appears as a substring of $t$. Output ``YES'' or
+``NO'' per pattern.}
+
+\begin{patternbox}
+\emph{``Do these many patterns occur in one fixed text?''} is the
+signature use of a \textbf{suffix automaton (SAM)} built on $t$. The SAM
+recognises exactly the substrings of $t$, so each pattern is a matter of
+walking its characters through the automaton.
+\end{patternbox}
+
+\subsection*{The suffix automaton recognises every substring}
+
+A suffix automaton of $t$ is the smallest automaton whose paths from the
+initial state spell precisely the substrings of $t$. Building it takes
+$O(|t|)$ (with a constant or $\log\Sigma$ factor for transitions). To test
+a pattern $p$, start at the initial state and follow the transition for
+each character of $p$; if at any point the needed transition is missing,
+$p$ is not a substring, otherwise it is. The total query cost is the sum
+of pattern lengths.
+
+\begin{ideabox}[Build Once, Query Many]
+The SAM front-loads all the work into a single linear construction over
+$t$; afterwards every pattern is answered in time proportional to its own
+length. This ``preprocess the text, stream the queries'' shape is why SAM
+dominates multi-pattern substring questions.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the suffix automaton of $t$ by extending it one character at
+        a time.
+  \item For each pattern, walk from the initial state following its
+        characters; report YES if the walk completes, else NO.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$t=$``aybabtu''; patterns ``bab'', ``ba'', ``xyz''.}
+
+\begin{itemize}
+  \item ``bab'': walk b$\to$a$\to$b succeeds -- YES.
+  \item ``ba'': succeeds -- YES.
+  \item ``xyz'': the transition on ``x'' is missing at the start -- NO.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link; map<char,int> next; };
+    vector<State> st;
+    int last;
+    SAM() { st.push_back({0, -1, {}}); last = 0; }
+    void extend(char c) {
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, {}});
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]);
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string t;
+    int k;
+    cin >> t >> k;
+    SAM sam;
+    for (char c : t) sam.extend(c);
+
+    while (k--) {
+        string p;
+        cin >> p;
+        int cur = 0;
+        bool ok = true;
+        for (char c : p) {
+            auto it = sam.st[cur].next.find(c);
+            if (it == sam.st[cur].next.end()) { ok = false; break; }
+            cur = it->second;
+        }
+        cout << (ok ? "YES" : "NO") << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(|t|\log\Sigma)$ to build, plus
+$O(\sum|p_i|\log\Sigma)$ for all queries. \textbf{Space Complexity.}
+$O(|t|)$ states.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A suffix automaton turns ``is this a substring?'' into a walk, so many
+patterns against a fixed text are answered by one construction plus cheap
+traversals. The same SAM, augmented with counts, answers the next two
+problems (Counting Patterns, Pattern Positions) with almost no extra code.
+\end{takeawaybox}

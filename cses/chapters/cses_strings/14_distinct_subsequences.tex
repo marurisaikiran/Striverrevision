@@ -1,0 +1,98 @@
+\section{Distinct Subsequences}
+\label{sec:cses-distinct-subsequences}
+
+\problemstatement{Given a string, count the number of distinct non-empty
+subsequences (characters chosen in order, not necessarily contiguous;
+duplicates counted once). Output modulo $10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count distinct subsequences''} is a linear DP over prefixes. Let
+$\textit{dp}[i]$ be the number of distinct subsequences (including the
+empty one) of the first $i$ characters; each new character doubles the
+count but we must subtract those double-counted by a previous identical
+character.
+\end{patternbox}
+
+\subsection*{Double, then remove duplicates}
+
+$\textit{dp}[i]$ = distinct subsequences of $s[0..i-1]$, with
+$\textit{dp}[0]=1$ (the empty subsequence). Adding character $s[i-1]$, each
+existing subsequence can either exclude or include the new character, so
+naively $\textit{dp}[i]=2\,\textit{dp}[i-1]$. But if $s[i-1]$ appeared
+before at position $j$ (its previous occurrence, 1-indexed), the
+subsequences formed by appending this character duplicate exactly those
+counted when it last appeared -- namely $\textit{dp}[j-1]$ of them -- so we
+subtract:
+\[
+  \textit{dp}[i]=2\,\textit{dp}[i-1]-\textit{dp}[\,\text{last}[s_i]-1\,].
+\]
+The final answer is $\textit{dp}[n]-1$ (dropping the empty subsequence).
+
+\begin{ideabox}[Subtract the Last Occurrence's Contribution]
+Doubling over-counts precisely the subsequences that already ended in this
+character the last time it appeared. Subtracting $\textit{dp}[j-1]$ (the
+state just before the previous occurrence) removes exactly those
+duplicates -- an inclusion--exclusion in one term.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0]=1$; track $\textit{last}[c]$ = previous index of
+        character $c$ (0 if none).
+  \item For $i=1\ldots n$: $\textit{dp}[i]=2\,\textit{dp}[i-1]$; if
+        $s[i-1]$ seen before at $j$, subtract $\textit{dp}[j-1]$; update
+        $\textit{last}[s_{i-1}]=i$.
+  \item Output $(\textit{dp}[n]-1)\bmod(10^9+7)$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aba''.}
+
+\begin{itemize}
+  \item $\textit{dp}[0]=1$; $\textit{dp}[1]=2$ (``'', ``a'').
+  \item $\textit{dp}[2]=2\cdot2=4$ (``'',``a'',``b'',``ab''); `b' is new.
+  \item $\textit{dp}[3]=2\cdot4-\textit{dp}[0]=8-1=7$ (subtract the
+        duplicate from the earlier `a'). Answer $7-1=6$ non-empty
+        subsequences.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1e9 + 7;
+
+int main() {
+    string s;
+    cin >> s;
+    int n = s.size();
+    vector<long long> dp(n + 1, 0);
+    dp[0] = 1;
+    vector<int> last(26, 0);                       // last[c] = 1-indexed prev pos
+
+    for (int i = 1; i <= n; i++) {
+        dp[i] = 2 * dp[i - 1] % MOD;
+        int c = s[i - 1] - 'a';
+        if (last[c] != 0) dp[i] = (dp[i] - dp[last[c] - 1] + MOD) % MOD;
+        last[c] = i;
+    }
+    cout << (dp[n] - 1 + MOD) % MOD << "\n";        // exclude empty
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass. \textbf{Space Complexity.}
+$O(n)$ for the DP array (reducible to $O(1)$ with rolling values plus the
+26 last-occurrence markers).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Counting distinct subsequences is ``double and subtract the last
+occurrence's prefix count.'' The subtraction is a clean inclusion--exclusion
+that removes exactly the repeats a duplicate character would create -- a
+technique that reappears in distinct-subarray and distinct-path counting.
+\end{takeawaybox}

@@ -1,0 +1,93 @@
+\section{Minimal Rotation}
+\label{sec:cses-minimal-rotation}
+
+\problemstatement{Given a string $s$, consider all $n$ rotations
+(cyclic shifts) of it. Output the lexicographically smallest rotation.}
+
+\begin{patternbox}
+\emph{``Lexicographically smallest cyclic rotation''} has a linear-time
+solution -- \textbf{Booth's algorithm} (or the equivalent least-rotation
+scan) -- that finds the starting index of the minimal rotation by
+comparing candidate starts and skipping ranges that cannot win.
+\end{patternbox}
+
+\subsection*{The least-rotation scan}
+
+Work on $s+s$ (so every rotation is a length-$n$ window). Maintain two
+candidate start positions $i$ and $j$ and an offset $k$: compare
+$s[i+k]$ with $s[j+k]$. If they are equal, extend $k$. If one is smaller,
+the losing candidate -- and, crucially, \emph{every start it skipped over}
+-- can be discarded by jumping it past $j+k$ (or $i+k$). Because each
+comparison either advances $k$ or eliminates a range of candidates, the
+total work is linear. The surviving candidate is the minimal rotation's
+start.
+
+\begin{ideabox}[Skip Doomed Starts in Bulk]
+When candidate $j$ beats candidate $i$ after matching $k$ characters,
+none of the starts strictly between $i$ and $i+k+1$ can be minimal either
+(they were dominated), so we jump $i$ past them all. This bulk elimination
+is what keeps the scan $O(n)$ despite comparing rotations.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Set $i=0$, $j=1$, $k=0$ over the doubled string $ss=s+s$.
+  \item While all three are in range, compare $ss[i+k]$ and $ss[j+k]$:
+        equal $\Rightarrow k{+}{+}$; otherwise advance the larger
+        candidate past $\max(i,j)+k+1$, reset $k=0$, and keep $i<j$.
+  \item The answer starts at $\min(i,j)$; output $ss[\text{start}\,..\,
+        \text{start}+n-1]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``acab''.}
+
+\begin{itemize}
+  \item Rotations: ``acab'',``caba'',``abac'',``baca''.
+  \item Lexicographically smallest is ``abac'', starting at index $2$.
+  \item The scan converges on start $=2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int leastRotation(const string& s) {
+    string ss = s + s;
+    int n = ss.size();
+    int i = 0, j = 1, k = 0;
+    while (i < (int)s.size() && j < (int)s.size() && k < (int)s.size()) {
+        char a = ss[i + k], b = ss[j + k];
+        if (a == b) { k++; }
+        else if (a > b) { i = max(i + k + 1, j + 1); k = 0; }
+        else            { j = max(j + k + 1, i + 1); k = 0; }
+    }
+    return min(i, j);                             // start of minimal rotation
+}
+
+int main() {
+    string s;
+    cin >> s;
+    int start = leastRotation(s);
+    string ss = s + s;
+    cout << ss.substr(start, s.size()) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each comparison advances $k$ or a
+candidate pointer, and both are bounded by $O(n)$ total. \textbf{Space
+Complexity.} $O(n)$ for the doubled string.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The least-rotation scan finds the minimal cyclic shift in linear time by
+eliminating dominated starts in bulk. It is the canonical tool for
+canonicalising cyclic strings -- useful for necklace counting and
+comparing circular sequences up to rotation.
+\end{takeawaybox}

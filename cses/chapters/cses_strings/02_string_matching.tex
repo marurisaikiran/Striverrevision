@@ -1,0 +1,93 @@
+\section{String Matching}
+\label{sec:cses-string-matching}
+
+\problemstatement{Given a text $t$ and a pattern $p$, count how many times
+$p$ occurs in $t$ (occurrences may overlap).}
+
+\begin{patternbox}
+\emph{``Count exact occurrences of a pattern''} is solved in linear time
+by the \textbf{Z-function} (or KMP). Concatenate $p+\#+t$ with a separator
+$\#$ not in either string; a position in the $t$-part whose Z-value equals
+$|p|$ is an occurrence.
+\end{patternbox}
+
+\subsection*{The Z-function}
+
+The Z-function of a string $w$ gives, for each index $i$, the length of the
+longest substring starting at $i$ that matches a prefix of $w$. Build
+$w=p+\#+t$. Wherever $Z[i]=|p|$ and $i$ lies in the $t$ portion, the text
+matches the pattern's full length at that spot -- an occurrence. The
+separator $\#$ guarantees a match cannot span the boundary. The Z-array
+itself is computed in $O(|w|)$ using a maintained ``Z-box'' -- the
+rightmost match interval seen so far.
+
+\begin{ideabox}[Reuse Previous Matches via the Z-box]
+When computing $Z[i]$, if $i$ falls inside a previously found match
+interval $[l,r]$, the value $Z[i-l]$ is already known and can seed
+$Z[i]$, so each character is compared a constant number of times
+amortised. This is what makes Z (and KMP) linear rather than quadratic.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Form $w=p+\#+t$ and compute its Z-array.
+  \item Count indices $i$ (in the $t$ region) with $Z[i]=|p|$.
+  \item Output the count.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$t=$``saippua'', $p=$``pp''; $w=$``pp\#saippua''.}
+
+\begin{itemize}
+  \item $|p|=2$. Scanning $w$, the substring ``pp'' inside $t$ starts at
+        one position; there $Z=2$.
+  \item Exactly one index has $Z=2$, so the pattern occurs once.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> zFunction(const string& w) {
+    int n = w.size();
+    vector<int> z(n, 0);
+    z[0] = n;
+    int l = 0, r = 0;
+    for (int i = 1; i < n; i++) {
+        if (i < r) z[i] = min(r - i, z[i - l]);
+        while (i + z[i] < n && w[z[i]] == w[i + z[i]]) z[i]++;
+        if (i + z[i] > r) { l = i; r = i + z[i]; }
+    }
+    return z;
+}
+
+int main() {
+    string t, p;
+    cin >> t >> p;
+    string w = p + "#" + t;
+    vector<int> z = zFunction(w);
+
+    int count = 0, m = p.size();
+    for (int i = m + 1; i < (int)w.size(); i++)   // t region
+        if (z[i] == m) count++;
+    cout << count << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(|p|+|t|)$ -- one linear Z-array pass.
+\textbf{Space Complexity.} $O(|p|+|t|)$ for the combined string and its
+Z-array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Exact pattern counting reduces to ``where does a prefix of $p+\#+t$
+reappear at full pattern length,'' which the Z-function answers in linear
+time. KMP's prefix function gives an equivalent solution; keep both in
+your toolkit as interchangeable linear matchers.
+\end{takeawaybox}

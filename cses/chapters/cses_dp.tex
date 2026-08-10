@@ -1,0 +1,83 @@
+\chapter{Dynamic Programming}
+\chapterepigraph{Dynamic programming is brute force made efficient by
+never solving the same subproblem twice. Every problem in the CSES DP
+section is the same three questions: what is the smallest piece of state
+that describes a subproblem, how does a subproblem's answer combine its
+smaller subproblems, and in what order must they be filled so each
+dependency is ready. Answer those three and the code is mechanical.}
+
+\section{The Three Questions Behind Every DP}
+\label{sec:cses-dp-intro}
+
+A dynamic program is a recurrence plus memory. The art is entirely in
+choosing the \emph{state}; once the state and its transition are right,
+the implementation is a loop.
+
+\begin{ideabox}[State, Transition, Order]
+For every problem ask:
+\begin{enumerate}
+  \item \textbf{State.} What parameters uniquely identify a subproblem?
+        (a prefix length, a remaining sum, a cell $(i,j)$, a bitmask of
+        used items.) The number of states times the cost per state is
+        the complexity.
+  \item \textbf{Transition.} How is $\textit{dp}[\text{state}]$ built
+        from smaller states? This is the recurrence -- usually ``try
+        every last choice.''
+  \item \textbf{Base case \& order.} Which states are known outright,
+        and in what order must states be computed so every dependency is
+        already done? (Iterative bottom-up, or memoised top-down.)
+\end{enumerate}
+\end{ideabox}
+
+\subsection*{How to Recognise the DP Type}
+
+\begin{patternbox}[CSES DP Families]
+\begin{itemize}
+  \item \textbf{``Count the number of ways'' / ``minimum coins''} --
+        one-dimensional DP over a target value: Dice Combinations,
+        Minimizing Coins, Coin Combinations I/II, Removing Digits,
+        Money Sums. The key subtlety is \emph{ordered vs unordered}
+        counting (permutations vs combinations), which is decided by
+        loop order.
+  \item \textbf{Grid / two-sequence DP} -- state is a cell $(i,j)$:
+        Grid Paths, Edit Distance, Counting Tilings.
+  \item \textbf{Knapsack-style} -- items with weights/values, state is
+        (prefix, capacity): Book Shop, Money Sums, Two Sets II.
+  \item \textbf{Interval / game DP} -- state is a subarray $[l,r]$:
+        Removal Game, Rectangle Cutting.
+  \item \textbf{Bitmask DP} -- state includes a subset: Elevator Rides,
+        Counting Tilings (profile), Two Sets.
+  \item \textbf{Digit DP} -- count numbers with a property up to $N$
+        digit by digit: Counting Numbers.
+  \item \textbf{Classic sequence DP} -- Increasing Subsequence (patience
+        sorting), Array Description, Projects (weighted interval
+        scheduling), Counting Towers.
+\end{itemize}
+\end{patternbox}
+
+Each section states the problem, identifies the state and transition,
+gives the recurrence and its order, a hand-traced dry run, complete
+compilable C++ (using \texttt{long long} and the CSES modulus
+$10^9+7$ where the problem counts things), and a complexity analysis.
+
+\newpage
+
+\input{chapters/cses_dp/01_dice_combinations.tex}
+\input{chapters/cses_dp/02_minimizing_coins.tex}
+\input{chapters/cses_dp/03_coin_combinations_i.tex}
+\input{chapters/cses_dp/04_coin_combinations_ii.tex}
+\input{chapters/cses_dp/05_removing_digits.tex}
+\input{chapters/cses_dp/06_grid_paths.tex}
+\input{chapters/cses_dp/07_book_shop.tex}
+\input{chapters/cses_dp/08_array_description.tex}
+\input{chapters/cses_dp/09_counting_towers.tex}
+\input{chapters/cses_dp/10_edit_distance.tex}
+\input{chapters/cses_dp/11_rectangle_cutting.tex}
+\input{chapters/cses_dp/12_money_sums.tex}
+\input{chapters/cses_dp/13_removal_game.tex}
+\input{chapters/cses_dp/14_two_sets_ii.tex}
+\input{chapters/cses_dp/15_increasing_subsequence.tex}
+\input{chapters/cses_dp/16_projects.tex}
+\input{chapters/cses_dp/17_elevator_rides.tex}
+\input{chapters/cses_dp/18_counting_tilings.tex}
+\input{chapters/cses_dp/19_counting_numbers.tex}

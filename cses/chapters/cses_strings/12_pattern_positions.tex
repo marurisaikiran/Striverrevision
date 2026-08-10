@@ -1,0 +1,113 @@
+\section{Pattern Positions}
+\label{sec:cses-pattern-positions}
+
+\problemstatement{Given a text $t$ and $k$ patterns, output for each
+pattern the starting position of its \emph{first} occurrence in $t$
+(1-indexed), or $-1$ if it does not occur.}
+
+\begin{patternbox}
+Same suffix automaton, one more annotation: store, for each state, the
+ending position of the \textbf{first} occurrence of its substrings
+(\textit{firstpos}). A pattern's first-occurrence start is then
+$\textit{firstpos}-\lvert p\rvert+1$.
+\end{patternbox}
+
+\subsection*{Tracking the first endpos}
+
+When the automaton is extended with the character at index $i$ (1-indexed),
+the newly created state's longest substring first \emph{ends} at position
+$i$, so set its $\textit{firstpos}=i$. A cloned state inherits the
+$\textit{firstpos}$ of the state it was split from, because the clone
+represents shorter substrings that first appear no later. After building,
+a pattern $p$ that walks to state $v$ has its earliest occurrence ending at
+$\textit{firstpos}[v]$, hence starting at
+$\textit{firstpos}[v]-\lvert p\rvert+1$.
+
+\begin{ideabox}[The First Endpoint Locates the First Occurrence]
+Every substring in a state first occurs at the same earliest ending
+position (that is what an endpos class guarantees for its shortest common
+context). Recording that position at creation time -- and copying it to
+clones -- gives $O(1)$ first-occurrence lookups after the walk.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the SAM; when creating the state at step $i$, set
+        $\textit{firstpos}=i$; for a clone, copy the original's
+        $\textit{firstpos}$.
+  \item For each pattern, walk to its state $v$; if the walk fails, output
+        $-1$; else output $\textit{firstpos}[v]-\lvert p\rvert+1$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$t=$``aybabtu''; pattern ``ab''.}
+
+\begin{itemize}
+  \item ``ab'' first occurs ending at position $4$ (characters $3$--$4$).
+  \item Start $=4-2+1=3$, the 1-indexed first position of ``ab''.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SAM {
+    struct State { int len, link, firstpos; map<char,int> next; };
+    vector<State> st; int last;
+    SAM() { st.push_back({0, -1, 0, {}}); last = 0; }
+    void extend(char c, int pos) {               // pos = 1-indexed end position
+        int cur = st.size();
+        st.push_back({st[last].len + 1, -1, pos, {}});
+        int p = last;
+        while (p != -1 && !st[p].next.count(c)) { st[p].next[c] = cur; p = st[p].link; }
+        if (p == -1) st[cur].link = 0;
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) st[cur].link = q;
+            else {
+                int clone = st.size();
+                st.push_back(st[q]);             // inherits firstpos of q
+                st[clone].len = st[p].len + 1;
+                while (p != -1 && st[p].next[c] == q) { st[p].next[c] = clone; p = st[p].link; }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+};
+
+int main() {
+    string t; int k;
+    cin >> t >> k;
+    SAM sam;
+    for (int i = 0; i < (int)t.size(); i++) sam.extend(t[i], i + 1);
+
+    while (k--) {
+        string p; cin >> p;
+        int cur = 0; bool ok = true;
+        for (char c : p) {
+            auto it = sam.st[cur].next.find(c);
+            if (it == sam.st[cur].next.end()) { ok = false; break; }
+            cur = it->second;
+        }
+        cout << (ok ? sam.st[cur].firstpos - (int)p.size() + 1 : -1) << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(|t|\log\Sigma)$ build, $O(\sum|p_i|
+\log\Sigma)$ queries. \textbf{Space Complexity.} $O(|t|)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Recording each state's first ending position turns the SAM into a
+first-occurrence locator. Combined with endpos counts (previous section),
+one automaton answers presence, frequency, and position -- the full
+substring query trio.
+\end{takeawaybox}

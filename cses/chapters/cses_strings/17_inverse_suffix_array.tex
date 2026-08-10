@@ -1,0 +1,104 @@
+\section{Inverse Suffix Array}
+\label{sec:cses-inverse-suffix-array}
+
+\problemstatement{Given a suffix array (a permutation $\textit{SA}$ of
+$0\ldots n-1$ listing the starting indices of the string's suffixes in
+sorted order), reconstruct the \emph{lexicographically smallest} string
+over the alphabet whose suffix array is exactly $\textit{SA}$.}
+
+\begin{patternbox}
+\emph{``Recover a string from its suffix array''} is a greedy assignment:
+walk the suffixes in sorted order and give each position the smallest
+character consistent with the ordering, incrementing the character only
+when two adjacent sorted suffixes force a strict increase.
+\end{patternbox}
+
+\subsection*{When must the character increase?}
+
+Let $\textit{rank}[i]$ be the position of suffix $i$ in $\textit{SA}$.
+Process consecutive suffixes $a=\textit{SA}[i-1]$ and $b=\textit{SA}[i]$.
+Suffix $a$ must be lexicographically smaller than suffix $b$. Their first
+characters satisfy $\text{ch}[a]\le\text{ch}[b]$. We may keep them
+\emph{equal} only if the order is already settled by the following
+suffixes, i.e.\ $\textit{rank}[a+1]<\textit{rank}[b+1]$ (treating an
+out-of-range suffix as the smallest). Otherwise the first characters must
+differ, so we increment the current character. Assigning the smallest
+letter at $\textit{SA}[0]$ and applying this rule yields the minimal
+string.
+
+\begin{ideabox}[Increment Only When Forced]
+Keeping characters equal whenever the suffixes after them already
+enforce the order gives the smallest possible alphabet usage -- hence the
+lexicographically smallest string. The next-suffix rank comparison is the
+exact test for ``is a strict increase required here?''
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build $\textit{rank}$ from $\textit{SA}$; define
+        $\textit{rankNext}(x)=\textit{rank}[x]$ if $x<n$, else $-1$.
+  \item Assign character $0$ to $\textit{SA}[0]$. For $i=1\ldots n-1$
+        with $a=\textit{SA}[i-1],b=\textit{SA}[i]$: if
+        $\textit{rankNext}(a+1)<\textit{rankNext}(b+1)$ keep the current
+        character, else increment it; assign it to $b$.
+  \item Output the characters (as \texttt{'a'} $+$ value).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=4$, $\textit{SA}=[3,1,0,2]$ (suffixes sorted).}
+
+\begin{itemize}
+  \item Assign $\text{ch}[3]=a$ (smallest, the sorted-first suffix).
+  \item Pair $(3,1)$: $\textit{rankNext}(4)=-1<\textit{rankNext}(2)$, keep
+        $\Rightarrow\text{ch}[1]=a$. Pair $(1,0)$: compare
+        $\textit{rankNext}(2)$ vs $\textit{rankNext}(1)$; if forced,
+        increment.
+  \item The construction yields the minimal string consistent with
+        $\textit{SA}$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> sa(n);
+    for (int& x : sa) cin >> x;              // 0-indexed suffix starts
+
+    vector<int> rankArr(n);
+    for (int i = 0; i < n; i++) rankArr[sa[i]] = i;
+    auto rankNext = [&](int x) { return x < n ? rankArr[x] : -1; };
+
+    vector<int> ch(n, 0);
+    int cur = 0;
+    ch[sa[0]] = 0;
+    for (int i = 1; i < n; i++) {
+        int a = sa[i - 1], b = sa[i];
+        if (!(rankNext(a + 1) < rankNext(b + 1))) cur++;   // strict increase forced
+        ch[b] = cur;
+    }
+
+    string res;
+    for (int i = 0; i < n; i++) res += char('a' + ch[i]);
+    cout << res << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass building ranks and one pass
+assigning characters. \textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Reconstructing the minimal string from a suffix array is a greedy that
+increments a character only when the following suffixes fail to already
+order two adjacent entries. This ``smallest label consistent with a given
+order'' pattern recurs whenever inverting an ordering into concrete values.
+\end{takeawaybox}

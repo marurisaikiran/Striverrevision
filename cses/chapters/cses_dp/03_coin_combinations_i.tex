@@ -1,0 +1,91 @@
+\section{Coin Combinations I}
+\label{sec:cses-coin-combinations-i}
+
+\problemstatement{Given $n$ coins and a target $x$, count the number of
+\emph{ordered} ways to make $x$ (a coin may be used many times, and
+sequences differing only in order are counted separately). Output modulo
+$10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count ways, order matters''} with reusable coins is Dice
+Combinations generalised to an arbitrary coin set. Let $\textit{dp}[s]$
+count ordered sequences summing to $s$; the last coin is any $c$, so
+$\textit{dp}[s]=\sum_c \textit{dp}[s-c]$.
+\end{patternbox}
+
+\subsection*{State, transition, and loop order}
+
+$\textit{dp}[s]$ counts ordered sequences summing to $s$,
+$\textit{dp}[0]=1$. The last coin used has some value $c$; the prefix
+before it sums to $s-c$:
+\[
+  \textit{dp}[s]=\sum_{c:\,c\le s}\textit{dp}[s-c].
+\]
+The crucial detail is the \textbf{loop order}: the \emph{sum} $s$ runs on
+the outside and coins on the inside. This way every coin is considered as
+a possible \emph{last} move for each sum, so $(2\text{ then }3)$ and
+$(3\text{ then }2)$ are both counted -- exactly what ``order matters''
+requires.
+
+\begin{ideabox}[Sum-Outer Loop Counts Permutations]
+Putting the sum on the outer loop lets each sum choose \emph{any} coin as
+its last step, generating all orderings. Reversing the loops (coins
+outer) would count each multiset once -- the distinction between this
+problem and Coin Combinations II (Section~\ref{sec:cses-coin-combinations-ii}).
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0]=1$.
+  \item For $s=1\ldots x$ (outer): for each coin $c\le s$ (inner),
+        $\textit{dp}[s]\mathrel{+}=\textit{dp}[s-c]$, modulo $10^9+7$.
+  \item Answer $\textit{dp}[x]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Coins $\{2,3,5\}$, $x=9$; partial values.}
+
+\begin{itemize}
+  \item $\textit{dp}[0]=1$, $\textit{dp}[2]=1$, $\textit{dp}[3]=1$,
+        $\textit{dp}[5]=\textit{dp}[3]+\textit{dp}[2]+\textit{dp}[0]=3$
+        ($2{+}3$, $3{+}2$, $5$).
+  \item Building up, $\textit{dp}[9]=8$ -- all ordered sequences of
+        $\{2,3,5\}$ summing to $9$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+int main() {
+    int n, x;
+    cin >> n >> x;
+    vector<int> coins(n);
+    for (int& c : coins) cin >> c;
+
+    vector<long long> dp(x + 1, 0);
+    dp[0] = 1;
+    for (int s = 1; s <= x; s++)          // sum outer -> permutations
+        for (int c : coins)
+            if (c <= s) dp[s] = (dp[s] + dp[s - c]) % MOD;
+
+    cout << dp[x] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nx)$. \textbf{Space Complexity.} $O(x)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Ordered coin counting = sum-outer, coin-inner loops. Memorise this loop
+order as the switch that toggles between counting permutations (here) and
+combinations (next section). Getting it backward is the single most common
+DP counting bug.
+\end{takeawaybox}

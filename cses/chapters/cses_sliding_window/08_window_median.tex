@@ -1,0 +1,110 @@
+\section{Sliding Window Median}
+\label{sec:cses-sw-median}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$,
+output the median of every contiguous window (for even $k$, the lower of
+the two middle values).}
+
+\begin{patternbox}
+The median needs the middle element under both insertion and deletion. Two
+balanced \textbf{multisets} -- a \emph{low} half and a \emph{high} half --
+split at the median do exactly this: keep the low half's size equal to (or
+one more than) the high half, and the median is the low half's maximum.
+\end{patternbox}
+
+\subsection*{Two balanced halves}
+
+Maintain \textit{low} (a multiset of the smaller elements) and \textit{high}
+(the larger elements) with the invariant $|\textit{low}|=\lceil m/2\rceil$
+for a window of size $m$. Insertion routes the new value to the correct half
+and then rebalances by moving one element across if sizes drift. Deletion
+(when the left element leaves) erases it from whichever half holds it -- a
+multiset supports erase-by-value in $O(\log k)$ -- and rebalances. The
+median is always $\ast\textit{low}.\text{rbegin}()$ (its largest element).
+
+\begin{ideabox}[Balanced Multisets Give Erasable Heaps]
+Ordinary heaps cannot delete an arbitrary element, which sliding windows
+require. Two multisets behave like two heaps that \emph{also} support
+$O(\log k)$ removal of a specific value, keeping the median at the boundary
+between the halves.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Insert into \textit{low} or \textit{high} by comparing with the
+        current median; rebalance so $|\textit{low}|-|\textit{high}|
+        \in\{0,1\}$.
+  \item On slide, erase the departing value from its half and rebalance.
+  \item Output $\ast\textit{low}.\text{rbegin}()$ per window.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[2,4,1,3]$, $k=3$.}
+
+\begin{itemize}
+  \item $[2,4,1]$ sorted $1,2,4$: low $=\{1,2\}$, high $=\{4\}$; median
+        $2$.
+  \item Slide to $[4,1,3]$ sorted $1,3,4$: erase $2$, insert $3$; low
+        $=\{1,3\}$, high $=\{4\}$; median $3$.
+  \item Output $2,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    multiset<int> low, high;                  // low: smaller half
+    auto rebalance = [&]() {
+        while (low.size() > high.size() + 1) {
+            high.insert(*low.rbegin());
+            low.erase(prev(low.end()));
+        }
+        while (low.size() < high.size()) {
+            low.insert(*high.begin());
+            high.erase(high.begin());
+        }
+    };
+    auto insert = [&](int x) {
+        if (low.empty() || x <= *low.rbegin()) low.insert(x);
+        else high.insert(x);
+        rebalance();
+    };
+    auto erase = [&](int x) {
+        auto it = low.find(x);
+        if (it != low.end()) low.erase(it);
+        else high.erase(high.find(x));
+        rebalance();
+    };
+
+    for (int i = 0; i < k; i++) insert(a[i]);
+    cout << *low.rbegin() << " ";
+    for (int i = k; i < n; i++) {
+        insert(a[i]); erase(a[i - k]);
+        cout << *low.rbegin() << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log k)$ -- each insert/erase/rebalance is
+$O(\log k)$. \textbf{Space Complexity.} $O(k)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The two-balanced-multisets structure keeps the median at the split point
+under both insertion and deletion -- the erasable-heap the sliding window
+needs. It directly powers the next problem, sliding window cost, by adding
+running sums to each half.
+\end{takeawaybox}

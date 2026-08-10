@@ -1,0 +1,117 @@
+\section{Sliding Window Cost}
+\label{sec:cses-sw-cost}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$, for
+every window output the minimum total cost of making all its elements
+equal, where the cost of changing a value by $d$ is $\lvert d\rvert$. The
+optimal target is the window's median.}
+
+\begin{patternbox}
+Minimising $\sum\lvert a_i-x\rvert$ is achieved at $x=\text{median}$, so
+this is the median structure of the previous section \emph{plus running
+sums}. With the two halves' sizes and sums maintained, the cost is a
+closed-form expression evaluated in $O(1)$ per window.
+\end{patternbox}
+
+\subsection*{Cost from the two halves}
+
+Reuse the low/high multisets that keep the median at the boundary, and also
+maintain $\textit{lowSum}$ and $\textit{highSum}$. With median $x$, the
+elements in \textit{low} are all $\le x$ and cost
+$x\cdot|\textit{low}|-\textit{lowSum}$ to raise; those in \textit{high} are
+$\ge x$ and cost $\textit{highSum}-x\cdot|\textit{high}|$ to lower. The
+total is
+\[
+  \text{cost}=\big(x\,|\textit{low}|-\textit{lowSum}\big)+
+  \big(\textit{highSum}-x\,|\textit{high}|\big).
+\]
+Every insert/erase updates the corresponding sum alongside the multiset.
+
+\begin{ideabox}[The Median Minimises Absolute Deviation]
+For $\sum\lvert a_i-x\rvert$, moving $x$ toward the median always reduces
+the total until $x$ reaches it -- a standard exchange argument. So the only
+statistic needed is the median plus the sums of the two halves, all of
+which the balanced multisets already track.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain low/high multisets (median at the split) and their sums.
+  \item On insert/erase, update sizes and sums.
+  \item Per window, compute the closed-form cost with $x=\ast\textit{low}.
+        \text{rbegin}()$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Window $[1,4,3]$, median $3$.}
+
+\begin{itemize}
+  \item low $=\{1,3\}$ (sum $4$), high $=\{4\}$ (sum $4$), $x=3$.
+  \item cost $=(3\cdot2-4)+(4-3\cdot1)=2+1=3$ -- raise $1\to3$ (cost $2$),
+        lower $4\to3$ (cost $1$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<long long> a(n);
+    for (auto& x : a) cin >> x;
+
+    multiset<long long> low, high;
+    long long lowSum = 0, highSum = 0;
+    auto rebalance = [&]() {
+        while (low.size() > high.size() + 1) {
+            long long v = *low.rbegin(); low.erase(prev(low.end()));
+            lowSum -= v; high.insert(v); highSum += v;
+        }
+        while (low.size() < high.size()) {
+            long long v = *high.begin(); high.erase(high.begin());
+            highSum -= v; low.insert(v); lowSum += v;
+        }
+    };
+    auto insert = [&](long long x) {
+        if (low.empty() || x <= *low.rbegin()) { low.insert(x); lowSum += x; }
+        else { high.insert(x); highSum += x; }
+        rebalance();
+    };
+    auto erase = [&](long long x) {
+        auto it = low.find(x);
+        if (it != low.end()) { low.erase(it); lowSum -= x; }
+        else { high.erase(high.find(x)); highSum -= x; }
+        rebalance();
+    };
+    auto cost = [&]() {
+        long long x = *low.rbegin();
+        return (x * (long long)low.size() - lowSum) +
+               (highSum - x * (long long)high.size());
+    };
+
+    for (int i = 0; i < k; i++) insert(a[i]);
+    cout << cost() << " ";
+    for (int i = k; i < n; i++) {
+        insert(a[i]); erase(a[i - k]);
+        cout << cost() << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log k)$ -- median maintenance dominates.
+\textbf{Space Complexity.} $O(k)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Minimising absolute deviation is a median problem; carrying the two halves'
+sums alongside the median turns the cost into a one-line formula. Augmenting
+an order-statistic structure with aggregate sums is a broadly useful move.
+\end{takeawaybox}

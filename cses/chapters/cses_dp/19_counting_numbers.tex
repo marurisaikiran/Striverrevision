@@ -1,0 +1,116 @@
+\section{Counting Numbers}
+\label{sec:cses-counting-numbers}
+
+\problemstatement{Count the integers in the range $[a,b]$ that do not
+contain two adjacent equal digits (e.g.\ $33$ and $121\underline{22}$ are
+excluded). Here $0\le a\le b\le10^{18}$.}
+
+\begin{patternbox}
+\emph{``Count numbers up to $N$ with a digit property''} is
+\textbf{digit DP}. Reduce $[a,b]$ to $f(b)-f(a-1)$ where $f(x)$ counts
+valid numbers in $[0,x]$, then build $x$'s digits left to right, tracking
+just enough state to enforce ``no two adjacent equal digits.''
+\end{patternbox}
+
+\subsection*{State for digit DP}
+
+Write $x$ as a digit string and fill positions left to right. The state
+is:
+\begin{itemize}
+  \item \textbf{position} in the digit string,
+  \item \textbf{previous digit} placed (to forbid an equal neighbour),
+  \item \textbf{tight}: whether the prefix so far equals $x$'s prefix (if
+        so, the next digit is capped by $x$'s digit),
+  \item \textbf{started}: whether we have placed a nonzero digit yet (to
+        handle leading zeros, which must not count as ``adjacent equal'').
+\end{itemize}
+At each position we try every allowed next digit $d$ (up to the cap if
+tight), skipping $d$ equal to the previous digit once the number has
+started. Memoise over (position, previous, started) for the non-tight
+states.
+
+\begin{ideabox}[Tight and Started Are the Two Universal Digit-DP Flags]
+\textbf{Tight} keeps the enumeration within $[0,x]$; it is true only along
+the single prefix that hugs $x$. \textbf{Started} distinguishes real
+leading digits from padding zeros, so a leading zero does not falsely
+collide with the next digit. Almost every digit-DP carries these two.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Define $f(x)$ = count of valid numbers in $[0,x]$ by digit DP
+        over $x$'s digits with state (pos, prev, tight, started).
+  \item At each position try digits $0\ldots(\text{cap})$; skip $d=$
+        prev when started; recurse with updated flags.
+  \item Answer $f(b)-f(a-1)$ (with $f(-1)=0$ when $a=0$).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Count valid numbers in $[0,23]$.}
+
+\begin{itemize}
+  \item Invalid two-digit numbers $\le23$ with equal adjacent digits:
+        $11,22$.
+  \item All $24$ numbers $0\ldots23$ minus the $2$ invalid ones $=22$
+        valid numbers.
+  \item The digit DP arrives at the same $22$ by never placing a digit
+        equal to its left neighbour.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string s;
+long long memo[20][11][2];      // [pos][prev+1][started], for tight=false
+
+long long solve(int pos, int prev, bool tight, bool started) {
+    if (pos == (int)s.size()) return 1;          // one valid number formed
+    if (!tight && memo[pos][prev + 1][started] != -1)
+        return memo[pos][prev + 1][started];
+
+    int cap = tight ? (s[pos] - '0') : 9;
+    long long total = 0;
+    for (int d = 0; d <= cap; d++) {
+        if (started && d == prev) continue;      // no equal adjacent digits
+        bool nstarted = started || (d > 0);
+        int nprev = nstarted ? d : -1;           // leading zeros carry prev=-1
+        total += solve(pos + 1, nprev, tight && (d == cap), nstarted);
+    }
+    if (!tight) memo[pos][prev + 1][started] = total;
+    return total;
+}
+
+long long f(long long x) {
+    if (x < 0) return 0;
+    s = to_string(x);
+    memset(memo, -1, sizeof(memo));
+    return solve(0, -1, true, false);
+}
+
+int main() {
+    long long a, b;
+    cin >> a >> b;
+    cout << f(b) - f(a - 1) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\text{digits}\times10\times10)$ per call --
+about $20\cdot10\cdot10$ states, each trying $10$ digits: constant for
+64-bit inputs. \textbf{Space Complexity.} $O(\text{digits}\times10\times
+2)$ for the memo.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Digit DP counts numbers with a property by building them digit by digit
+under the two universal flags \emph{tight} and \emph{started}, memoising
+the free (non-tight) states. Range queries become $f(b)-f(a-1)$. This
+template adapts to any per-digit constraint by changing the ``skip this
+digit'' rule.
+\end{takeawaybox}

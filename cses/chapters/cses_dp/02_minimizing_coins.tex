@@ -1,0 +1,91 @@
+\section{Minimizing Coins}
+\label{sec:cses-minimizing-coins}
+
+\problemstatement{Given $n$ coin values and a target sum $x$, find the
+\emph{minimum} number of coins needed to make exactly $x$ (each coin may
+be used any number of times), or report $-1$ if it is impossible.}
+
+\begin{patternbox}
+\emph{``Minimum coins to make a sum,'' unlimited supply}, is the
+\textbf{unbounded knapsack} minimisation. Let $\textit{dp}[s]$ be the
+fewest coins summing to $s$; the last coin used is some value $c$, so
+$\textit{dp}[s]=1+\min_c \textit{dp}[s-c]$.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+$\textit{dp}[s]$ = minimum coins to make sum $s$, with
+$\textit{dp}[0]=0$ and all others initialised to ``infinity''
+(unreachable). For each $s$, try every coin $c\le s$ as the last coin:
+if $s-c$ is reachable, $s$ can be reached with one more coin. Take the
+best:
+\[
+  \textit{dp}[s]=\min_{c:\,c\le s}\big(\textit{dp}[s-c]+1\big).
+\]
+
+\begin{ideabox}[Minimisation Instead of Counting]
+This is Dice Combinations with $\min+1$ replacing summation: instead of
+counting all ways to make the last move, we keep only the cheapest.
+Coins may repeat, so every coin is available at every sum -- that is what
+makes it \emph{unbounded}.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0]=0$; $\textit{dp}[s]=\infty$ for $s\ge1$.
+  \item For $s=1\ldots x$ and each coin $c\le s$: if $\textit{dp}[s-c]$
+        is finite, $\textit{dp}[s]=\min(\textit{dp}[s],
+        \textit{dp}[s-c]+1)$.
+  \item Answer is $\textit{dp}[x]$, or $-1$ if it is still $\infty$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Coins $\{1,5,7\}$, $x=11$.}
+
+\begin{itemize}
+  \item $\textit{dp}[5]=1$ (one 5), $\textit{dp}[7]=1$,
+        $\textit{dp}[10]=2$ ($5+5$).
+  \item $\textit{dp}[11]$: via coin $1$ from $\textit{dp}[10]=2\to3$;
+        via coin $5$ from $\textit{dp}[6]$ ($=2$, as $5{+}1$)$\to3$; via
+        coin $7$ from $\textit{dp}[4]$ ($=4$)$\to5$. Minimum $=3$.
+  \item Answer $3$ (e.g.\ $5+5+1$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, x;
+    cin >> n >> x;
+    vector<int> coins(n);
+    for (int& c : coins) cin >> c;
+
+    const int INF = 1e9;
+    vector<int> dp(x + 1, INF);
+    dp[0] = 0;
+    for (int s = 1; s <= x; s++)
+        for (int c : coins)
+            if (c <= s && dp[s - c] != INF)
+                dp[s] = min(dp[s], dp[s - c] + 1);
+
+    cout << (dp[x] == INF ? -1 : dp[x]) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nx)$ -- each of $x$ sums tries all $n$
+coins. \textbf{Space Complexity.} $O(x)$ for the DP array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Swap ``sum of ways'' for ``$\min$ of ways $+1$'' and a counting DP becomes
+an optimisation DP. The unbounded (coins reusable) structure is why every
+coin is tried at every sum, distinguishing this from the $0/1$ knapsack of
+Book Shop (Section~\ref{sec:cses-book-shop}).
+\end{takeawaybox}

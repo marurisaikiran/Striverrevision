@@ -1,0 +1,98 @@
+\section{Sliding Window Mex}
+\label{sec:cses-sw-mex}
+
+\problemstatement{Given an array of $n$ non-negative integers and a window
+size $k$, output the mex of every contiguous window -- the smallest
+non-negative integer \emph{not} present in the window.}
+
+\begin{patternbox}
+The mex of a size-$k$ window is at most $k$ (with $k$ elements, some value
+in $0\ldots k$ must be missing). So track only values in $[0,k]$ with a
+frequency map and keep an ordered \textbf{set of absent values}; the mex is
+its smallest element.
+\end{patternbox}
+
+\subsection*{A set of the missing small values}
+
+Values larger than $k$ can never be the mex, so ignore them. Initialise a
+set $\textit{absent}=\{0,1,\ldots,k\}$ and a frequency map. When a value
+$v\le k$ enters and its frequency goes $0\to1$, erase $v$ from
+$\textit{absent}$ (now present). When it leaves and its frequency returns
+to $0$, insert $v$ back into $\textit{absent}$. The mex is the smallest
+element of $\textit{absent}$ -- read in $O(\log k)$ from its begin.
+
+\begin{ideabox}[Bound the Universe, Then Track Absence]
+Because the mex cannot exceed the window size, the relevant universe is
+just $[0,k]$. Maintaining which of those are absent -- rather than which are
+present -- puts the answer (the smallest absent value) at the front of an
+ordered set.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{absent}=\{0,\ldots,k\}$; empty frequency map.
+  \item Add the first $k$ elements (erasing from $\textit{absent}$ on
+        $0\to1$).
+  \item Each slide: add $a[i]$, remove $a[i-k]$ (inserting into
+        $\textit{absent}$ on $1\to0$); output $\ast\textit{absent}.
+        \text{begin}()$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[0,1,3,0]$, $k=3$.}
+
+\begin{itemize}
+  \item $\textit{absent}=\{0,1,2,3\}$. Window $[0,1,3]$: erase $0,1,3$;
+        absent $=\{2\}$; mex $2$.
+  \item Slide to $[1,3,0]$: remove first $0$ (freq $0$, reinsert $0$),
+        add $0$ (erase $0$ again); absent $=\{2\}$; mex $2$.
+  \item Output $2,2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    set<int> absent;
+    for (int v = 0; v <= k; v++) absent.insert(v);
+    unordered_map<int,int> freq;
+
+    auto add = [&](int v) {
+        if (v <= k && freq[v]++ == 0) absent.erase(v);
+    };
+    auto remove = [&](int v) {
+        if (v <= k && --freq[v] == 0) absent.insert(v);
+    };
+
+    for (int i = 0; i < k; i++) add(a[i]);
+    cout << *absent.begin() << " ";
+    for (int i = k; i < n; i++) {
+        add(a[i]); remove(a[i - k]);
+        cout << *absent.begin() << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log k)$ -- ordered-set operations bounded by
+the $[0,k]$ universe. \textbf{Space Complexity.} $O(k)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Mex problems shrink to a bounded universe (here $[0,k]$) and then track
+\emph{absence} in an ordered set so the answer is the set's minimum. Bounding
+the universe before choosing a structure is the recurring first move for
+mex.
+\end{takeawaybox}

@@ -1,0 +1,88 @@
+\section{Dice Combinations}
+\label{sec:cses-dice-combinations}
+
+\problemstatement{Count the number of ways to construct the sum $n$ by
+throwing a die one or more times, where each throw yields $1$ to $6$ and
+different \emph{orders} count as different ways. Output the count modulo
+$10^9+7$.}
+
+\begin{patternbox}
+\emph{``Number of ways'' + ``order matters''} is a one-dimensional
+counting DP over the target sum. Let $\textit{dp}[x]$ be the number of
+ordered sequences summing to $x$; the last throw was some value
+$1\ldots6$, so $\textit{dp}[x]$ sums the ways to have reached
+$x-1,\ldots,x-6$ before that final throw.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+Define $\textit{dp}[x]$ as the number of ways to obtain sum $x$. The
+final die throw contributes a value $k\in\{1,\ldots,6\}$, and everything
+before it must sum to $x-k$. Since every different final value (and every
+different earlier sequence) is a distinct ordered way, we simply add:
+\[
+  \textit{dp}[x]=\sum_{k=1}^{6}\textit{dp}[x-k],\qquad \textit{dp}[0]=1.
+\]
+The base $\textit{dp}[0]=1$ counts the single empty sequence.
+
+\begin{ideabox}[Ordered Counting: Sum Over the Last Move]
+Because order matters, we classify sequences by their \emph{last} throw.
+Summing over all six possible last throws counts every ordered sequence
+exactly once, with no double counting -- each sequence has a unique final
+element.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0]=1$.
+  \item For $x=1\ldots n$: $\textit{dp}[x]=\sum_{k=1}^{6}
+        \textit{dp}[x-k]$ (skipping $x-k<0$), taken modulo $10^9+7$.
+  \item Answer is $\textit{dp}[n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=3$.}
+
+\begin{itemize}
+  \item $\textit{dp}[0]=1$.
+  \item $\textit{dp}[1]=\textit{dp}[0]=1$ (just ``1'').
+  \item $\textit{dp}[2]=\textit{dp}[1]+\textit{dp}[0]=2$ (``1+1'',
+        ``2'').
+  \item $\textit{dp}[3]=\textit{dp}[2]+\textit{dp}[1]+\textit{dp}[0]
+        =2+1+1=4$ (``1+1+1'',``1+2'',``2+1'',``3'').
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<long long> dp(n + 1, 0);
+    dp[0] = 1;
+    for (int x = 1; x <= n; x++)
+        for (int k = 1; k <= 6; k++)
+            if (x - k >= 0) dp[x] = (dp[x] + dp[x - k]) % MOD;
+    cout << dp[n] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(6n)=O(n)$ -- each of $n$ states sums six
+predecessors. \textbf{Space Complexity.} $O(n)$ for the DP array (reducible
+to $O(1)$ by keeping only the last six values).
+\end{complexitybox}
+
+\begin{takeawaybox}
+The archetypal ordered-counting DP: \emph{sum over the last move}. Every
+``count sequences where order matters'' problem in this chapter is a
+variation on this single recurrence -- the only thing that changes is the
+set of allowed last moves.
+\end{takeawaybox}

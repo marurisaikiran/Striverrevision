@@ -1,0 +1,97 @@
+\section{Sliding Window OR}
+\label{sec:cses-sw-or}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$,
+output the bitwise OR of every contiguous window of size $k$.}
+
+\begin{patternbox}
+OR is \textbf{not invertible}: removing an element cannot simply undo its
+bits, because another element in the window may still set them. The fix is
+to track, for each bit position, \emph{how many} window elements set that
+bit -- then the OR has a bit set exactly when its count is positive.
+\end{patternbox}
+
+\subsection*{Per-bit counts}
+
+Maintain an array $\textit{cnt}[b]$ = number of elements in the current
+window whose bit $b$ is set. Adding an element increments $\textit{cnt}[b]$
+for each of its set bits; removing an element decrements them. The OR of
+the window has bit $b$ set iff $\textit{cnt}[b]>0$. Reconstruct the OR by
+summing $2^b$ over all bits with positive count. This restores $O(1)$
+amortised updates (constant number of bits) despite OR's lack of an
+inverse.
+
+\begin{ideabox}[Count Contributors per Bit]
+When an aggregate is not invertible, replace ``does any element set this
+bit?'' with ``how many do?'' A count is invertible (increment/decrement),
+and the OR is recovered by testing each count against zero. The same idea
+handles AND (count zeros) and other non-invertible bitwise folds.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For the first window, increment $\textit{cnt}[b]$ for every set
+        bit of each element.
+  \item To slide: add the new element's bits, remove the old element's
+        bits.
+  \item Output $\sum_{b:\,\textit{cnt}[b]>0}2^b$ for each window.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[1,2,3]$ (bits: $1{=}001$, $2{=}010$, $3{=}011$), $k=2$.}
+
+\begin{itemize}
+  \item Window $[1,2]$: bit$0$ count $1$, bit$1$ count $1$ $\Rightarrow$
+        OR $=3$.
+  \item Slide to $[2,3]$: remove $1$ (bit$0\to0$), add $3$ (bit$0\to1$,
+        bit$1\to2$) $\Rightarrow$ bits $0,1$ set, OR $=3$.
+  \item Output $3,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    const int BITS = 31;
+    vector<int> cnt(BITS, 0);
+    auto add = [&](int x, int delta) {
+        for (int b = 0; b < BITS; b++) if (x & (1 << b)) cnt[b] += delta;
+    };
+    auto currentOR = [&]() {
+        int res = 0;
+        for (int b = 0; b < BITS; b++) if (cnt[b] > 0) res |= (1 << b);
+        return res;
+    };
+
+    for (int i = 0; i < k; i++) add(a[i], +1);
+    cout << currentOR() << " ";
+    for (int i = k; i < n; i++) {
+        add(a[i], +1); add(a[i - k], -1);         // add new, remove old
+        cout << currentOR() << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\cdot\text{BITS})$ -- constant $31$ bits per
+element. \textbf{Space Complexity.} $O(\text{BITS})$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Non-invertible aggregates like OR are made sliding-friendly by counting
+contributors per bit, so removal becomes a decrement. This
+``count-then-threshold'' conversion is the general recipe whenever an
+operation lacks an inverse.
+\end{takeawaybox}

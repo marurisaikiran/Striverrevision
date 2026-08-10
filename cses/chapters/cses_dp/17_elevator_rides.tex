@@ -1,0 +1,107 @@
+\section{Elevator Rides}
+\label{sec:cses-elevator-rides}
+
+\problemstatement{There are $n$ people with given weights, and an elevator
+with maximum weight $x$. Find the minimum number of elevator rides needed
+to carry everyone (people may be grouped arbitrarily, but each ride's
+total weight must not exceed $x$).}
+
+\begin{patternbox}
+With $n\le20$, ``partition people into fewest groups under a capacity''
+screams \textbf{bitmask DP}: the state is the \emph{subset} of people
+already transported. The clever part is what to store -- not just the ride
+count, but how full the last ride is.
+\end{patternbox}
+
+\subsection*{A two-part state per subset}
+
+For each subset \textit{mask} of people, store a pair
+$\textit{dp}[\textit{mask}]=(\textit{rides},\textit{lastWeight})$: the
+minimum number of rides to carry exactly that subset, and among solutions
+with that few rides, the smallest weight currently loaded in the last
+(still-open) ride. Compare pairs lexicographically -- fewer rides first,
+then a lighter last ride (which leaves the most room). Transition by adding
+one new person $p$ to $\textit{mask}$:
+\begin{itemize}
+  \item If $p$ fits in the current last ride
+        ($\textit{lastWeight}+w_p\le x$): same ride count, last weight
+        grows by $w_p$.
+  \item Otherwise start a new ride: rides $+1$, last weight $=w_p$.
+\end{itemize}
+
+\begin{ideabox}[Store Rides \emph{and} the Last Ride's Load]
+Minimising rides alone is not enough, because two subsets with equal ride
+counts differ in how much room remains -- and that room affects future
+additions. Pairing the ride count with the least-loaded last ride makes
+the greedy-within-DP choice optimal.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0]=(1,0)$ -- one empty ride, zero load.
+  \item For each mask and each person $p\notin\textit{mask}$: compute
+        the candidate pair for $\textit{mask}\cup\{p\}$ using the rule
+        above; keep the lexicographically smaller.
+  \item Answer is the ride count of $\textit{dp}[\text{full mask}]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Weights $[2,3,3]$, capacity $x=5$.}
+
+\begin{itemize}
+  \item $\textit{dp}[\{0\}]=(1,2)$, $\textit{dp}[\{1\}]=(1,3)$.
+  \item Add person $2$ ($w=3$) to $\{0\}$ (last $2$): $2+3=5\le5$, same
+        ride: $(1,5)$. To $\{1\}$ (last $3$): $3+3=6>5$, new ride:
+        $(2,3)$.
+  \item $\textit{dp}[\{0,2\}]=(1,5)$, then adding person $1$
+        ($3$): $5+3>5$, new ride $(2,3)$. Full-set answer: $2$ rides
+        (e.g.\ $\{2,3\}$ and $\{3\}$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, x;
+    cin >> n >> x;
+    vector<int> w(n);
+    for (int& v : w) cin >> v;
+
+    int full = 1 << n;
+    // dp[mask] = {rides, weight in last ride}
+    vector<pair<int,int>> dp(full, {n + 1, 0});
+    dp[0] = {1, 0};
+
+    for (int mask = 1; mask < full; mask++) {
+        for (int p = 0; p < n; p++) {
+            if (!(mask & (1 << p))) continue;
+            auto prev = dp[mask ^ (1 << p)];       // state without p
+            if (prev.second + w[p] <= x)           // fits in last ride
+                prev.second += w[p];
+            else                                   // needs a new ride
+                prev = {prev.first + 1, w[p]};
+            dp[mask] = min(dp[mask], prev);        // lexicographic
+        }
+    }
+    cout << dp[full - 1].first << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n\cdot n)$ -- each of $2^n$ subsets tries
+adding each of $n$ people. \textbf{Space Complexity.} $O(2^n)$ for the DP
+table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Bitmask DP fits partition problems with $n\le20$. The lesson beyond the
+mask is the \emph{compound state}: pairing ``rides so far'' with ``room
+left in the current ride'' captures exactly the extra information a greedy
+packing needs -- a recurring trick when a count alone loses too much.
+\end{takeawaybox}

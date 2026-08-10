@@ -1,0 +1,97 @@
+\section{Longest Palindrome}
+\label{sec:cses-longest-palindrome}
+
+\problemstatement{Given a string, find its longest substring that is a
+palindrome (reads the same forwards and backwards). Output that
+substring.}
+
+\begin{patternbox}
+\emph{``Longest palindromic substring''} is exactly what \textbf{Manacher's
+algorithm} computes in $O(n)$: for every possible centre it finds the
+radius of the longest palindrome centred there, reusing already-known
+radii via a maintained ``current rightmost palindrome.''
+\end{patternbox}
+
+\subsection*{Manacher in one idea}
+
+For each centre, a palindrome extends symmetrically until the characters
+disagree. The naive approach re-expands every centre from scratch
+($O(n^2)$). Manacher keeps the palindrome with the farthest right edge
+seen so far, centred at $c$ with right boundary $r$. For a new centre $i<r$,
+its mirror $2c-i$ already has a known radius, which can seed $i$'s radius
+(bounded by $r-i$) before any character comparison -- so each character is
+matched only a constant number of times amortised. Handling even-length
+palindromes is done either with a second pass or by inserting separators.
+
+\begin{ideabox}[Mirror Symmetry Seeds Each New Centre]
+Inside the current rightmost palindrome, position $i$ mirrors $2c-i$, so
+its radius starts at least as large as the mirror's (capped by the
+boundary). Only growth beyond the boundary requires real comparisons,
+which advance $r$ -- giving linear total work.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Transform $s$ to $t$ by inserting a sentinel (e.g.\ \texttt{\#})
+        between every character and at the ends, so all palindromes become
+        odd-length.
+  \item Compute radii $P[i]$ over $t$ using the mirror-seed rule and a
+        maintained $(c,r)$.
+  \item The maximum $P[i]$ locates the longest palindrome; map back to
+        indices in $s$ and output the substring.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``aybabtu''.}
+
+\begin{itemize}
+  \item Centred at ``bab'', the palindrome extends to radius covering
+        ``bab''.
+  \item No longer palindrome exists, so the answer is ``bab'' (length
+        $3$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    string s;
+    cin >> s;
+    // transform: ^ # a # b # ... $   (sentinels avoid bounds checks)
+    string t = "^";
+    for (char c : s) { t += '#'; t += c; }
+    t += "#$";
+
+    int n = t.size();
+    vector<int> P(n, 0);
+    int c = 0, r = 0, bestLen = 0, bestCenter = 0;
+    for (int i = 1; i < n - 1; i++) {
+        if (i < r) P[i] = min(r - i, P[2 * c - i]);   // mirror seed
+        while (t[i + P[i] + 1] == t[i - P[i] - 1]) P[i]++;
+        if (i + P[i] > r) { c = i; r = i + P[i]; }
+        if (P[i] > bestLen) { bestLen = P[i]; bestCenter = i; }
+    }
+    int start = (bestCenter - bestLen) / 2;         // map back to s
+    cout << s.substr(start, bestLen) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each character is matched a constant
+number of times amortised. \textbf{Space Complexity.} $O(n)$ for the
+transformed string and radius array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Manacher computes every palindromic radius in linear time by seeding new
+centres from their mirrors within the current rightmost palindrome. The
+sentinel transform unifies odd and even cases. It is the definitive tool
+for palindrome-substring problems, reused in the next section to count
+them all.
+\end{takeawaybox}

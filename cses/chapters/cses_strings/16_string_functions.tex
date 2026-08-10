@@ -1,0 +1,104 @@
+\section{String Functions}
+\label{sec:cses-string-functions}
+
+\problemstatement{Given a string, compute two classic string functions:
+the \textbf{prefix function} (the border/failure array) and the
+\textbf{Z-function}. Output both arrays.}
+
+\begin{patternbox}
+This problem is a direct exercise in the two linear-time fundamentals.
+The \textbf{prefix function} $\pi[i]$ is the longest proper border of the
+prefix ending at $i$; the \textbf{Z-function} $z[i]$ is the longest
+substring starting at $i$ that matches a prefix of the whole string.
+\end{patternbox}
+
+\subsection*{Two views of the same self-similarity}
+
+Both functions measure how a string matches itself. The prefix function
+scans left to right, extending or falling back along the failure chain so
+each character is charged $O(1)$ amortised. The Z-function maintains the
+rightmost matched interval (the ``Z-box'') and seeds each new index from
+its mirror inside that box. They are convertible into each other, but
+computing each directly with its own linear routine is simplest.
+
+\begin{ideabox}[Prefix Function: Extend or Fall Back]
+At index $i$, try to extend the previous border: if $s[i]$ equals
+$s[j]$ (where $j=\pi[i-1]$) increment, else follow $j\gets\pi[j-1]$ until a
+match or $j=0$. The Z-function mirror-seeds instead. Both amortise to
+$O(n)$ because the fallback/expansion total is bounded by $n$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute $\pi$: for each $i$, fall back via $\pi$ until $s[i]$
+        matches or the border is empty, then set $\pi[i]$.
+  \item Compute $z$: maintain $(l,r)$; seed $z[i]$ from $z[i-l]$ if inside
+        the box, then extend by direct comparison.
+  \item Output both arrays.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$``abacaba''.}
+
+\begin{itemize}
+  \item Prefix function: $[0,0,1,0,1,2,3]$ -- e.g.\ $\pi[6]=3$ because
+        ``aba'' is the longest border.
+  \item Z-function: $[7,0,1,0,3,0,1]$ -- $z[4]=3$ since ``aba'' at index
+        $4$ matches the prefix ``aba''.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> prefixFunction(const string& s) {
+    int n = s.size();
+    vector<int> pi(n, 0);
+    for (int i = 1; i < n; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && s[i] != s[j]) j = pi[j - 1];
+        if (s[i] == s[j]) j++;
+        pi[i] = j;
+    }
+    return pi;
+}
+
+vector<int> zFunction(const string& s) {
+    int n = s.size();
+    vector<int> z(n, 0);
+    z[0] = n;
+    int l = 0, r = 0;
+    for (int i = 1; i < n; i++) {
+        if (i < r) z[i] = min(r - i, z[i - l]);
+        while (i + z[i] < n && s[z[i]] == s[i + z[i]]) z[i]++;
+        if (i + z[i] > r) { l = i; r = i + z[i]; }
+    }
+    return z;
+}
+
+int main() {
+    string s;
+    cin >> s;
+    for (int x : prefixFunction(s)) cout << x << " ";
+    cout << "\n";
+    for (int x : zFunction(s)) cout << x << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ for each function. \textbf{Space
+Complexity.} $O(n)$ per array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The prefix function and Z-function are the two workhorses of string
+matching; both run in linear time by never re-comparing a character more
+than a constant number of times amortised. Every earlier
+border/period/matching section is an application of one of them.
+\end{takeawaybox}

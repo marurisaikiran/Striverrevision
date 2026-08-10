@@ -1,0 +1,87 @@
+\section{Coin Combinations II}
+\label{sec:cses-coin-combinations-ii}
+
+\problemstatement{Given $n$ coins and a target $x$, count the number of
+\emph{distinct} ways to make $x$ where the \emph{order does not matter}
+(each multiset of coins is counted once). Output modulo $10^9+7$.}
+
+\begin{patternbox}
+\emph{``Count ways, order does not matter''} is the combination count.
+The trick that removes duplicate orderings is to fix a global order on
+the coins and only ever extend a combination with coins ``at or after''
+the current one -- realised by putting the \textbf{coin loop on the
+outside}.
+\end{patternbox}
+
+\subsection*{Why coin-outer counts each multiset once}
+
+Process coins one at a time. After incorporating the first $i$ coins,
+$\textit{dp}[s]$ counts the combinations of \emph{those coins only} that
+sum to $s$. Adding coin $c_i$ updates
+$\textit{dp}[s]\mathrel{+}=\textit{dp}[s-c_i]$ for increasing $s$, which
+appends copies of $c_i$ to combinations already built from coins
+$\le i$. Because a combination is built in a fixed coin order, each
+multiset is generated exactly once -- never as a reordering.
+
+\begin{ideabox}[Coin-Outer Loop Counts Combinations]
+Freezing the coin order and only extending forward eliminates permutations
+of the same multiset. This is the exact mirror of Coin Combinations~I:
+same array update, loops swapped. Coin-outer $\Rightarrow$ combinations;
+sum-outer $\Rightarrow$ permutations.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[0]=1$.
+  \item For each coin $c$ (outer): for $s=c\ldots x$ (inner),
+        $\textit{dp}[s]\mathrel{+}=\textit{dp}[s-c]$ modulo $10^9+7$.
+  \item Answer $\textit{dp}[x]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Coins $\{2,3,5\}$, $x=9$.}
+
+\begin{itemize}
+  \item After coin $2$: $\textit{dp}[\text{even}]=1$ for $0,2,4,6,8$.
+  \item After coin $3$: combinations of $\{2,3\}$; e.g.\
+        $\textit{dp}[5]=1$ ($2{+}3$), $\textit{dp}[9]$ grows.
+  \item After coin $5$: final $\textit{dp}[9]=3$ -- the multisets
+        $\{2,2,5\}$, $\{2,2,2,3\}$, $\{3,3,3\}$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int MOD = 1e9 + 7;
+
+int main() {
+    int n, x;
+    cin >> n >> x;
+    vector<int> coins(n);
+    for (int& c : coins) cin >> c;
+
+    vector<long long> dp(x + 1, 0);
+    dp[0] = 1;
+    for (int c : coins)                   // coin outer -> combinations
+        for (int s = c; s <= x; s++)
+            dp[s] = (dp[s] + dp[s - c]) % MOD;
+
+    cout << dp[x] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nx)$. \textbf{Space Complexity.} $O(x)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Combinations vs permutations in coin DP is decided by \emph{which loop is
+outer}, nothing else. Keep the pair Coin Combinations I and II side by
+side in memory as the canonical illustration -- the same one-line update,
+opposite loop nesting, opposite meaning.
+\end{takeawaybox}

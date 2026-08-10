@@ -1,0 +1,91 @@
+\section{Increasing Subsequence}
+\label{sec:cses-increasing-subsequence}
+
+\problemstatement{Given an array of $n$ integers, find the length of the
+longest strictly increasing subsequence (LIS): the longest sequence of
+indices $i_1<i_2<\cdots$ with strictly increasing values.}
+
+\begin{patternbox}
+\emph{``Longest increasing subsequence''} has an elegant
+$O(n\log n)$ solution built on \textbf{patience sorting}: maintain the
+smallest possible tail value for an increasing subsequence of each
+length, and binary-search where each new element fits.
+\end{patternbox}
+
+\subsection*{The tails array}
+
+Keep an array \textit{tails}, where $\textit{tails}[k]$ is the smallest
+value that can end an increasing subsequence of length $k+1$ seen so far.
+This array is always sorted. For each new value $x$, find the first tail
+$\ge x$ (a \texttt{lower\_bound}) and overwrite it with $x$: this either
+extends the longest subsequence (if $x$ is larger than every tail,
+append) or improves a length-$k$ subsequence's ending to a smaller value,
+leaving room for future growth. The LIS length is the final size of
+\textit{tails}.
+
+\begin{ideabox}[Keep the Smallest Tail per Length]
+Replacing the first tail $\ge x$ with $x$ never shortens any achievable
+length and keeps every tail as small as possible, maximising the chance of
+future extension. The binary search is what turns the naive $O(n^2)$ DP
+into $O(n\log n)$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Start with an empty \textit{tails}.
+  \item For each $x$: binary-search the first index with
+        $\textit{tails}[i]\ge x$. If none, append $x$ (LIS grew); else
+        set $\textit{tails}[i]=x$.
+  \item Answer is the size of \textit{tails}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[7,3,5,3,6,2,9,8]$.}
+
+\begin{itemize}
+  \item $7\to[7]$; $3$ replaces $7\to[3]$; $5$ appends $\to[3,5]$; $3$
+        replaces $5$? No -- lower\_bound of $3$ is index $0$ ($3\ge3$),
+        replace $\to[3,5]$ (unchanged in effect).
+  \item $6$ appends $\to[3,5,6]$; $2$ replaces $3\to[2,5,6]$; $9$
+        appends $\to[2,5,6,9]$; $8$ replaces $9\to[2,5,6,8]$.
+  \item LIS length $=4$ (e.g.\ $3,5,6,9$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    vector<int> tails;
+    for (int x : a) {
+        auto it = lower_bound(tails.begin(), tails.end(), x);  // first >= x
+        if (it == tails.end()) tails.push_back(x);   // extend LIS
+        else *it = x;                                // shrink a tail
+    }
+    cout << tails.size() << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ -- one binary search per element.
+\textbf{Space Complexity.} $O(n)$ for the tails array. (A simpler
+$O(n^2)$ DP with $\textit{dp}[i]=1+\max_{j<i,a_j<a_i}\textit{dp}[j]$ also
+solves it for small $n$.)
+\end{complexitybox}
+
+\begin{takeawaybox}
+LIS in $O(n\log n)$ is the patience-sorting tails trick: keep the minimal
+ending value for each length, binary-search each insertion. For strictly
+increasing use \texttt{lower\_bound}; for non-decreasing use
+\texttt{upper\_bound} -- a one-word change that trips up many.
+\end{takeawaybox}

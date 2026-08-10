@@ -1,0 +1,99 @@
+\section{Two Sets II}
+\label{sec:cses-two-sets-ii}
+
+\problemstatement{Count the number of ways to partition the numbers
+$\{1,2,\ldots,n\}$ into two subsets with \emph{equal} sums. Two partitions
+that are reflections of each other count as the same. Output modulo
+$10^9+7$.}
+
+\begin{patternbox}
+\emph{``Split $\{1..n\}$ into two equal-sum halves, count the ways''} is a
+\textbf{counting subset-sum}. The total is
+$T=\frac{n(n+1)}{2}$; if $T$ is odd the answer is $0$, else we count
+subsets summing to $T/2$, then divide by $2$ to remove the mirror
+duplication.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+Let the target be $t=T/2$. Define $\textit{dp}[s]$ = number of subsets of
+$\{1,\ldots,n\}$ (processed one number at a time) that sum to $s$, with
+$\textit{dp}[0]=1$. Each number $k$ is either in the subset or not -- a
+$0/1$ choice -- so with the downward inner loop:
+\[
+  \textit{dp}[s]\mathrel{+}=\textit{dp}[s-k]\quad\text{for } s=t\ \text{down to}\ k.
+\]
+Each valid partition is counted twice (subset $A$ and its complement
+$B$), so the final answer is $\textit{dp}[t]/2$ modulo $10^9+7$ (using the
+modular inverse of $2$).
+
+\begin{ideabox}[Count Subsets, Then Halve for the Mirror]
+Counting subsets that reach exactly half the total counts every partition
+from both sides. Dividing by $2$ (via the modular inverse, since we are
+mod a prime) removes that symmetry. The odd-total shortcut avoids
+pointless work when no equal split exists.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute $T=n(n+1)/2$; if $T$ is odd, output $0$.
+  \item Set $t=T/2$, $\textit{dp}[0]=1$. For $k=1\ldots n-1$ (one number
+        may be fixed to a side to pre-halve, or process all and divide):
+        update $\textit{dp}[s]\mathrel{+}=\textit{dp}[s-k]$ downward.
+  \item Output $\textit{dp}[t]$, halved via the modular inverse of $2$.
+\end{enumerate}
+
+(Alternatively, process $k=1\ldots n-1$ only -- fixing $n$ to one side --
+which directly avoids the double count without a division.)
+
+\subsection*{Dry run}
+
+\dryrun{$n=7$, $T=28$, target $t=14$.}
+
+\begin{itemize}
+  \item Subsets of $\{1..7\}$ summing to $14$ include $\{7,6,1\},
+        \{7,5,2\},\{7,4,3\},\{7,4,2,1\},\ldots$
+  \item The counting DP gives $\textit{dp}[14]=8$; halving yields the
+        answer $4$ distinct partitions.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1e9 + 7;
+
+int main() {
+    int n;
+    cin >> n;
+    long long total = (long long)n * (n + 1) / 2;
+    if (total % 2 != 0) { cout << 0 << "\n"; return 0; }
+
+    int t = total / 2;
+    vector<long long> dp(t + 1, 0);
+    dp[0] = 1;
+    // fix element n on one side: process 1..n-1, no division needed
+    for (int k = 1; k <= n - 1; k++)
+        for (int s = t; s >= k; s--)
+            dp[s] = (dp[s] + dp[s - k]) % MOD;
+
+    cout << dp[t] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\cdot T)=O(n^3)$ in the worst sense, but
+$T=O(n^2)$ so it is $O(n\cdot n^2)$; practically $O(n\cdot t)$ with
+$t\approx n^2/4$. \textbf{Space Complexity.} $O(t)=O(n^2)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Two Sets II is counting subset-sum with a symmetry fix. The clean way to
+avoid the double count is to fix one fixed element (here $n$) to a single
+side and only distribute the rest -- turning ``divide by two'' into ``count
+directly.'' Recognise equal-partition problems as subset-sum to half the
+total.
+\end{takeawaybox}

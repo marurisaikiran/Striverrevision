@@ -1,0 +1,104 @@
+\section{Sliding Window Mode}
+\label{sec:cses-sw-mode}
+
+\problemstatement{Given an array of $n$ integers and a window size $k$,
+output the mode of every contiguous window of size $k$ -- the value
+occurring most often (if several tie, the smallest such value).}
+
+\begin{patternbox}
+The mode must survive both additions and \emph{removals}, so a single
+``max frequency'' is not enough. Keep frequency buckets: for each frequency
+$f$, an ordered set of the values that currently occur $f$ times. The mode
+is the smallest value in the highest non-empty bucket.
+\end{patternbox}
+
+\subsection*{Frequency buckets of values}
+
+Maintain $\textit{freq}[v]$ and $\textit{bucket}[f]$ = an ordered set of
+values whose current frequency is exactly $f$, plus $\textit{maxFreq}$.
+Adding a value $v$ moves it from $\textit{bucket}[\textit{freq}[v]]$ to
+$\textit{bucket}[\textit{freq}[v]+1]$ and may raise $\textit{maxFreq}$.
+Removing $v$ moves it down a bucket; if that empties the top bucket,
+$\textit{maxFreq}$ decreases. The mode is the smallest value in
+$\textit{bucket}[\textit{maxFreq}]$, read in $O(\log)$ from the ordered
+set's begin.
+
+\begin{ideabox}[Buckets Make the Mode Removal-Safe]
+The trouble with modes under removal is that the top frequency can drop.
+Grouping values by their exact frequency in ordered buckets lets a removal
+adjust $\textit{maxFreq}$ in $O(1)$ and still expose the smallest tied
+value instantly -- something a lone counter cannot do.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Maintain $\textit{freq}$, $\textit{bucket}[f]$ (ordered set of
+        values), and $\textit{maxFreq}$.
+  \item On add/remove of $v$: erase $v$ from its old bucket, change its
+        frequency, insert into the new bucket, and update
+        $\textit{maxFreq}$.
+  \item The mode is $\ast\textit{bucket}[\textit{maxFreq}].\text{begin}()$;
+        output it per window.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$a=[1,2,2,1,1]$, $k=3$.}
+
+\begin{itemize}
+  \item $[1,2,2]$: freqs $1{:}1,2{:}2$; maxFreq $2$, bucket$[2]=\{2\}$;
+        mode $2$.
+  \item Slide to $[2,2,1]$: still $2{:}2,1{:}1$; mode $2$.
+  \item Slide to $[2,1,1]$: $1{:}2,2{:}1$; bucket$[2]=\{1\}$; mode $1$.
+        Output $2,2,1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vector<int> a(n);
+    for (int& x : a) cin >> x;
+
+    unordered_map<int,int> freq;
+    map<int, set<int>> bucket;                // frequency -> values
+    int maxFreq = 0;
+
+    auto change = [&](int v, int delta) {
+        int f = freq[v];
+        if (f > 0) bucket[f].erase(v);
+        if (f > 0 && bucket[f].empty()) bucket.erase(f);
+        f += delta;
+        freq[v] = f;
+        if (f > 0) bucket[f].insert(v);
+        maxFreq = bucket.empty() ? 0 : bucket.rbegin()->first;
+    };
+
+    for (int i = 0; i < k; i++) change(a[i], +1);
+    cout << *bucket[maxFreq].begin() << " ";
+    for (int i = k; i < n; i++) {
+        change(a[i], +1); change(a[i - k], -1);
+        cout << *bucket[maxFreq].begin() << " ";
+    }
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log k)$ -- each add/remove touches ordered
+sets. \textbf{Space Complexity.} $O(k)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Tracking the mode under removals needs frequency-to-values buckets so the
+top frequency and its smallest value are both maintainable. The ``count of
+counts'' idea -- indexing by frequency, not by value -- is the general trick
+for order statistics on frequencies.
+\end{takeawaybox}

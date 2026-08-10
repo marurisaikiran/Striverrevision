@@ -1,0 +1,93 @@
+\section{Money Sums}
+\label{sec:cses-money-sums}
+
+\problemstatement{You have $n$ coins with given values. Determine all the
+distinct sums you can form using \emph{some subset} of the coins (each
+coin used at most once). Output how many distinct sums are possible and
+list them.}
+
+\begin{patternbox}
+\emph{``Which totals are achievable from a subset''} is the boolean
+\textbf{subset-sum} DP. Let $\textit{dp}[s]$ be true if some subset sums
+to exactly $s$; each coin either joins a subset or not, a $0/1$ choice.
+\end{patternbox}
+
+\subsection*{State and transition}
+
+$\textit{dp}[s]$ = whether sum $s$ is reachable using a subset of the
+coins seen so far, with $\textit{dp}[0]=$ true (the empty subset). Adding
+a coin of value $c$ makes any previously reachable $s$ also reach $s+c$.
+Using a 1D array we iterate $s$ \textbf{downward} (0/1 knapsack rule) so a
+coin is not reused:
+\[
+  \textit{dp}[s]\gets \textit{dp}[s]\ \lor\ \textit{dp}[s-c].
+\]
+
+\begin{ideabox}[Reachability, Not Counting]
+Money Sums only asks \emph{whether} a sum is attainable, so the DP stores
+booleans and combines with OR. The total possible sum is
+$\sum c_i\le10^5$, so a single boolean array over $[0,\text{total}]$
+suffices, and the answer is every index set to true.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Let $S=\sum c_i$. Set $\textit{dp}[0]=$ true.
+  \item For each coin $c$: for $s=S$ down to $c$,
+        $\textit{dp}[s]\mathrel{|}=\textit{dp}[s-c]$.
+  \item Collect all $s\ge1$ with $\textit{dp}[s]$ true; their count and
+        list are the answer.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Coins $\{4,2,2\}$; total $S=8$.}
+
+\begin{itemize}
+  \item Start $\textit{dp}[0]=$T. After coin $4$: $\{0,4\}$.
+  \item After a $2$: $\{0,2,4,6\}$. After the second $2$:
+        $\{0,2,4,6,8\}$.
+  \item Non-zero reachable sums: $2,4,6,8$ -- four distinct sums.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> coins(n);
+    int total = 0;
+    for (int& c : coins) { cin >> c; total += c; }
+
+    vector<char> dp(total + 1, 0);
+    dp[0] = 1;
+    for (int c : coins)
+        for (int s = total; s >= c; s--)           // downward: 0/1
+            if (dp[s - c]) dp[s] = 1;
+
+    vector<int> sums;
+    for (int s = 1; s <= total; s++) if (dp[s]) sums.push_back(s);
+
+    cout << sums.size() << "\n";
+    for (int s : sums) cout << s << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\cdot S)$ where $S=\sum c_i$.
+\textbf{Space Complexity.} $O(S)$ for the boolean array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Subset-sum reachability is 0/1 knapsack with booleans and OR. The downward
+loop again enforces ``each coin once.'' This reachability array is the
+engine behind Two Sets II (next), where we \emph{count} the subsets rather
+than merely test existence.
+\end{takeawaybox}
