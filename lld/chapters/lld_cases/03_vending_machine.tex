@@ -1,0 +1,99 @@
+\section{Design a Vending Machine}
+\label{sec:case-vending}
+
+\problemstatement{Design a vending machine that holds products in slots,
+accepts coins/notes, dispenses a selected product, returns change, and
+handles out-of-stock and insufficient-funds cases.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: What payment types (cash, card)? Should it make exact change, and
+what if it cannot? Can a selection be cancelled mid-transaction? For this
+design assume: cash only, refunds allowed, and a clear lifecycle from idle
+to dispensing. The lifecycle is the heart of the problem.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+\texttt{VendingMachine} (the context/state machine), \texttt{Product},
+\texttt{Slot}/\texttt{Inventory} (stock levels), \texttt{Coin}/payment
+handling, and a set of \texttt{State} classes -- \texttt{IdleState},
+\texttt{HasMoneyState}, \texttt{DispensingState}. The machine's behaviour
+for the same action (``insert coin,'' ``select'') differs entirely by
+state, which is the signal for the State pattern.
+
+\begin{ideabox}[State Pattern Is the Backbone]
+Model the machine as a \textbf{State} machine: each state handles
+\texttt{insertCoin}, \texttt{selectProduct}, and \texttt{dispense}
+appropriately and transitions the machine forward. This replaces a giant
+\texttt{switch(currentState)} in every method and makes illegal
+transitions (dispensing before paying) structurally impossible.
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class VendingMachine;
+struct State {
+    virtual void insertCoin(VendingMachine&, int amount) = 0;
+    virtual void selectProduct(VendingMachine&, const string& code) = 0;
+    virtual ~State() = default;
+};
+
+class VendingMachine {
+    unique_ptr<State> state;
+public:
+    int balance = 0;
+    unordered_map<string,int> stock;            // code -> quantity
+    unordered_map<string,int> price;            // code -> price
+
+    VendingMachine();                           // starts in IdleState
+    void setState(unique_ptr<State> s) { state = move(s); }
+    void insertCoin(int a) { state->insertCoin(*this, a); }
+    void selectProduct(const string& c) { state->selectProduct(*this, c); }
+};
+
+struct IdleState : State {
+    void insertCoin(VendingMachine& m, int a) override;
+    void selectProduct(VendingMachine&, const string&) override {
+        cout << "Insert money first\n";
+    }
+};
+struct HasMoneyState : State {
+    void insertCoin(VendingMachine& m, int a) override { m.balance += a; }
+    void selectProduct(VendingMachine& m, const string& code) override {
+        if (m.stock[code] == 0) { cout << "Out of stock\n"; return; }
+        if (m.balance < m.price[code]) { cout << "Insufficient funds\n"; return; }
+        m.stock[code]--;
+        int change = m.balance - m.price[code];
+        m.balance = 0;
+        cout << "Dispensed " << code << ", change " << change << "\n";
+        m.setState(make_unique<IdleState>());   // back to idle
+    }
+};
+
+void IdleState::insertCoin(VendingMachine& m, int a) {
+    m.balance += a;
+    m.setState(make_unique<HasMoneyState>());   // transition
+}
+VendingMachine::VendingMachine() : state(make_unique<IdleState>()) {}
+
+int main() {
+    VendingMachine m;
+    m.stock["A1"] = 2; m.price["A1"] = 30;
+    m.selectProduct("A1");                      // "Insert money first"
+    m.insertCoin(20); m.insertCoin(20);
+    m.selectProduct("A1");                      // dispenses, change 10
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+The vending machine is the textbook \textbf{State} pattern problem:
+recognise that the same operations behave differently per mode and give
+each mode a class that acts and transitions. Follow-ups: card payments
+(Strategy), exact-change detection, and cancel/refund as another
+transition.
+\end{takeawaybox}

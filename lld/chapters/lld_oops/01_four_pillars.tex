@@ -1,0 +1,107 @@
+\section{The Four Pillars of Object Orientation}
+\label{sec:lld-four-pillars}
+
+\problemstatement{Explain encapsulation, abstraction, inheritance, and
+polymorphism -- what each means, why it exists, and how it looks in C++ --
+since every later pattern is built from them.}
+
+\begin{patternbox}[What Each Pillar Is Really For]
+\begin{itemize}
+  \item \textbf{Encapsulation} -- bundle data with the methods that guard
+        it, and hide the data behind those methods, so invariants cannot
+        be broken from outside.
+  \item \textbf{Abstraction} -- expose \emph{what} an object does, hide
+        \emph{how}, so callers depend on a stable interface, not
+        internals.
+  \item \textbf{Inheritance} -- reuse and specialise a base type,
+        modelling an ``is-a'' relationship.
+  \item \textbf{Polymorphism} -- let one interface stand for many
+        concrete behaviours chosen at run time, so calling code needn't
+        know the exact subtype.
+\end{itemize}
+\end{patternbox}
+
+\subsection*{Encapsulation and abstraction: two sides of the same wall}
+
+Encapsulation is about \emph{protection}: making fields \texttt{private}
+and offering controlled access so no caller can leave an object in an
+invalid state (a bank balance that only \texttt{deposit}/\texttt{withdraw}
+can change, never a raw assignment). Abstraction is about
+\emph{simplification}: the caller sees \texttt{account.withdraw(100)} and
+neither knows nor cares how overdraft rules are enforced. Encapsulation
+hides data; abstraction hides implementation. In practice the same
+\texttt{private} fields plus a small public interface deliver both.
+
+\begin{ideabox}[Program to an Interface, Not an Implementation]
+The single most valuable habit the four pillars enable: callers should
+depend on an \emph{abstract type} (a base class or interface), so the
+concrete class behind it can be swapped without touching the caller. This
+one idea is the seed of polymorphism, the Strategy pattern, dependency
+injection, and testability.
+\end{ideabox}
+
+\subsection*{Inheritance and polymorphism: one call, many behaviours}
+
+Inheritance lets a \texttt{Dog} reuse and extend an \texttt{Animal}.
+Polymorphism lets a function that accepts an \texttt{Animal*} call
+\texttt{speak()} and get barking or meowing depending on the real object,
+resolved at run time through a \texttt{virtual} function. This run-time
+dispatch is what allows open-ended designs: new animal types slot in
+without changing the function that iterates over animals.
+
+\subsection*{C++ illustration}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+// Encapsulation + abstraction: data hidden, invariant enforced.
+class Account {
+    double balance = 0;                 // private: cannot be corrupted
+public:
+    void deposit(double amt) { if (amt > 0) balance += amt; }
+    bool withdraw(double amt) {
+        if (amt > 0 && amt <= balance) { balance -= amt; return true; }
+        return false;                   // overdraft rule hidden inside
+    }
+    double getBalance() const { return balance; }
+};
+
+// Inheritance + polymorphism: one interface, many behaviours.
+class Animal {
+public:
+    virtual string speak() const = 0;   // pure virtual: abstraction
+    virtual ~Animal() = default;
+};
+class Dog : public Animal {
+public:
+    string speak() const override { return "Woof"; }
+};
+class Cat : public Animal {
+public:
+    string speak() const override { return "Meow"; }
+};
+
+int main() {
+    Account a;
+    a.deposit(100);
+    cout << "Withdrew 40? " << a.withdraw(40) << ", balance "
+         << a.getBalance() << "\n";
+
+    vector<unique_ptr<Animal>> zoo;
+    zoo.push_back(make_unique<Dog>());
+    zoo.push_back(make_unique<Cat>());
+    for (auto& animal : zoo)            // caller knows only "Animal"
+        cout << animal->speak() << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+Encapsulation guards invariants, abstraction hides implementation,
+inheritance reuses, and polymorphism defers the choice of behaviour to run
+time. The recurring pay-off is the same: \emph{callers depend on a stable
+abstraction, so concrete details can change without a ripple}. Every
+pattern in the next chapter is a specific, named way of exploiting that.
+\end{takeawaybox}

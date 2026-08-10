@@ -1,0 +1,89 @@
+\section{Design a Notification System}
+\label{sec:case-notification}
+
+\problemstatement{Design a system that sends notifications to users across
+multiple channels (email, SMS, push), lets users set channel preferences,
+supports templated messages, and can add new channels without disturbing
+existing code.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: Which channels, and can more be added later? Are messages templated?
+Do users choose channels per notification type? Synchronous or queued? For
+this design assume: pluggable channels, per-user preferences, templated
+content, and asynchronous-friendly dispatch.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+A \texttt{NotificationChannel} interface (\texttt{Email}, \texttt{SMS},
+\texttt{Push}), a \texttt{ChannelFactory} to create them, a
+\texttt{NotificationService} that orchestrates sending, \texttt{User}
+preferences, and optionally \texttt{Observer} so subscribers of an event
+are notified. Message building can use a \textbf{Builder} or template
+engine.
+
+\begin{ideabox}[Channels Are Strategies Behind a Factory; Events Fan Out via Observer]
+Each channel implements a common \texttt{send} interface (a
+\textbf{Strategy}/plug-in); a \textbf{Factory} maps a channel name to its
+implementation, so a new channel is one new class plus a registry entry.
+For ``notify everyone interested in event X,'' layer \textbf{Observer} on
+top: subscribers register, the event publishes, each is sent via their
+preferred channel.
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct NotificationChannel {                    // Strategy per channel
+    virtual void send(const string& to, const string& msg) = 0;
+    virtual ~NotificationChannel() = default;
+};
+struct EmailChannel : NotificationChannel {
+    void send(const string& to, const string& msg) override {
+        cout << "Email to " << to << ": " << msg << "\n";
+    }
+};
+struct SmsChannel : NotificationChannel {
+    void send(const string& to, const string& msg) override {
+        cout << "SMS to " << to << ": " << msg << "\n";
+    }
+};
+
+struct ChannelFactory {                         // Factory: name -> channel
+    static unique_ptr<NotificationChannel> create(const string& type) {
+        if (type == "email") return make_unique<EmailChannel>();
+        if (type == "sms")   return make_unique<SmsChannel>();
+        return nullptr;
+    }
+};
+
+struct User { string id; vector<string> preferredChannels; string contact; };
+
+class NotificationService {
+public:
+    void notify(const User& user, const string& message) {
+        for (const auto& ch : user.preferredChannels) {
+            auto channel = ChannelFactory::create(ch);
+            if (channel) channel->send(user.contact, message);   // fan out
+        }
+    }
+};
+
+int main() {
+    NotificationService service;
+    User u{"u1", {"email", "sms"}, "alice@x.com"};
+    service.notify(u, "Your order shipped");    // sent on both channels
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+A notification system is a clean \textbf{Strategy + Factory} design:
+channels behind one interface, created by name, so new channels never
+touch dispatch. Add \textbf{Observer} for event-driven fan-out and
+\textbf{Decorator} for cross-cutting concerns (retry, rate-limit,
+encryption) around a channel. Discuss queuing for reliability at scale.
+\end{takeawaybox}

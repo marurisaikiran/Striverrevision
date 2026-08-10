@@ -1,0 +1,93 @@
+\section{Composite}
+\label{sec:pat-composite}
+
+\problemstatement{Compose objects into tree structures to represent
+part-whole hierarchies, and let clients treat individual objects and
+compositions of objects uniformly through the same interface.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``a tree of objects where leaves and containers
+should be handled the same way''} -- files and folders, a GUI of widgets
+containing widgets, an org chart. When client code should not care whether
+it holds one item or a group, use Composite.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Define one \emph{component} interface implemented by both \emph{leaves}
+(no children) and \emph{composites} (hold children, also components). A
+composite's operation typically recurses over its children. Because both
+share the interface, client code calls, say, \texttt{getSize()} on
+anything and the recursion through the tree happens transparently.
+
+\begin{ideabox}[Leaf and Container Share One Interface]
+Make the container a component too, holding a list of components. An
+operation on a container delegates to its children and aggregates. This
+uniformity is the whole point: no \texttt{if (isFolder)} branching in
+client code.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct FileSystemNode {                        // component
+    virtual int size() const = 0;
+    virtual void print(string indent = "") const = 0;
+    virtual ~FileSystemNode() = default;
+};
+
+struct File : FileSystemNode {                 // leaf
+    string name; int bytes;
+    File(string n, int b) : name(move(n)), bytes(b) {}
+    int size() const override { return bytes; }
+    void print(string indent) const override {
+        cout << indent << name << " (" << bytes << ")\n";
+    }
+};
+
+struct Folder : FileSystemNode {               // composite
+    string name;
+    vector<unique_ptr<FileSystemNode>> children;
+    Folder(string n) : name(move(n)) {}
+    void add(unique_ptr<FileSystemNode> c) { children.push_back(move(c)); }
+    int size() const override {
+        int total = 0;
+        for (auto& c : children) total += c->size();   // recurse
+        return total;
+    }
+    void print(string indent) const override {
+        cout << indent << name << "/\n";
+        for (auto& c : children) c->print(indent + "  ");
+    }
+};
+
+int main() {
+    auto root = make_unique<Folder>("root");
+    root->add(make_unique<File>("a.txt", 100));
+    auto sub = make_unique<Folder>("sub");
+    sub->add(make_unique<File>("b.txt", 250));
+    root->add(move(sub));
+
+    root->print();
+    cout << "Total size: " << root->size() << "\n";   // treated uniformly
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Uniform treatment of leaves and groups; new node types slot
+in easily; recursion over the tree is natural. \textbf{Cons.} The shared
+interface can become overly general (leaf-only or container-only methods
+awkwardly appear on both); type safety of ``only folders have children''
+is relaxed.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Composite models part-whole trees behind a single component interface so
+clients treat one and many identically, with container operations
+recursing over children. Recognise it wherever a hierarchy of ``things and
+groups of things'' must be processed uniformly.
+\end{takeawaybox}

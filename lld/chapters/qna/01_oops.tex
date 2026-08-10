@@ -1,0 +1,97 @@
+\section{Object-Oriented Programming}
+\label{sec:qna-oops}
+
+\subsection*{Core concepts}
+
+\question{What are the four pillars of OOP?}
+\answer{Encapsulation (bundle data with methods and hide the data),
+abstraction (expose \emph{what}, hide \emph{how}), inheritance (reuse and
+specialise via an ``is-a'' relationship), and polymorphism (one interface,
+many run-time behaviours). See Section~\ref{sec:lld-four-pillars}.}
+
+\question{Difference between abstraction and encapsulation?}
+\answer{Abstraction hides \emph{complexity/implementation} -- you see a
+simple interface. Encapsulation hides \emph{data} -- fields are private and
+guarded by methods. Abstraction is a design-level idea; encapsulation is
+its language-level enforcement. They usually appear together but answer
+different questions: ``what do I expose?'' vs.\ ``how do I protect it?''}
+
+\question{Difference between overloading and overriding?}
+\answer{Overloading is \emph{compile-time} polymorphism: same method name,
+different parameter lists, resolved by the compiler. Overriding is
+\emph{run-time} polymorphism: a subclass redefines a base class's
+\texttt{virtual} method with the same signature, resolved by the object's
+actual type via the vtable.}
+
+\question{What is a virtual function and how is run-time polymorphism
+implemented?}
+\answer{A \texttt{virtual} function can be overridden and is dispatched on
+the object's dynamic type. In C++ this uses a per-class \emph{vtable} (a
+table of function pointers) and a per-object \emph{vptr} pointing to it;
+calling a virtual function follows the vptr to the correct override at run
+time.}
+
+\question{What is a pure virtual function / abstract class?}
+\answer{A pure virtual function (\texttt{= 0}) has no body and must be
+overridden. A class with at least one is \emph{abstract} -- it cannot be
+instantiated and serves as an interface. It is how C++ expresses ``this is
+a contract, not a concrete type.''}
+
+\subsection*{Inheritance and relationships}
+
+\question{Compile-time vs run-time polymorphism -- which is faster and
+why?}
+\answer{Compile-time (overloading, templates) is faster: the call is
+resolved and can be inlined at compile time, with no indirection.
+Run-time (virtual calls) costs one pointer indirection through the vtable
+and blocks inlining, but buys flexibility. Prefer static dispatch when the
+type is known.}
+
+\question{Why favour composition over inheritance?}
+\answer{Inheritance is rigid -- it fixes behaviour at compile time, exposes
+the base class's internals to subclasses, and can violate encapsulation.
+Composition (has-a) lets you change behaviour at run time by swapping a
+member and keeps classes loosely coupled. Use inheritance only for a true,
+stable ``is-a.''}
+
+\question{What is the diamond problem?}
+\answer{In multiple inheritance, if class D inherits from B and C which
+both inherit from A, D can get two copies of A's members, causing
+ambiguity. C++ solves it with \emph{virtual inheritance}, which ensures a
+single shared A subobject. Many languages avoid it by disallowing multiple
+class inheritance.}
+
+\question{Difference between an abstract class and an interface?}
+\answer{An abstract class can hold state and concrete methods alongside
+abstract ones and models an ``is-a'' with shared implementation. An
+interface (in C++, a class of only pure virtual functions) is a pure
+contract with no state. A class typically extends one abstract class but
+implements many interfaces.}
+
+\subsection*{Applied}
+
+\question{What are the SOLID principles?}
+\answer{Single Responsibility (one reason to change), Open/Closed (extend
+without modifying), Liskov Substitution (subtypes substitutable for their
+base), Interface Segregation (small focused interfaces), Dependency
+Inversion (depend on abstractions). Detailed in
+Section~\ref{sec:lld-solid}.}
+
+\question{What is dependency injection and why is it useful?}
+\answer{Instead of a class constructing its own dependencies, they are
+passed in (via constructor or setter). This inverts control, decouples the
+class from concrete implementations, and makes it testable -- you can
+inject a mock. It is the practical face of the Dependency Inversion
+Principle.}
+
+\question{Shallow copy vs deep copy?}
+\answer{A shallow copy duplicates the object's fields as-is, so pointer
+members still point to the \emph{same} underlying data -- two objects share
+it. A deep copy also duplicates what the pointers reference, giving fully
+independent objects. Deep copy matters whenever an object owns heap memory
+or other resources.}
+
+\question{What is the difference between a class and an object?}
+\answer{A class is a blueprint -- it defines fields and methods. An object
+is a concrete instance of that blueprint, occupying memory with its own
+field values. One class, many objects.}

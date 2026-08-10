@@ -1,0 +1,128 @@
+\section{The SOLID Principles}
+\label{sec:lld-solid}
+
+\problemstatement{State each of the five SOLID principles, the design
+smell it cures, and a concrete before/after in C++. These principles are
+the vocabulary interviewers use to critique a design, so each is presented
+as a problem it solves.}
+
+\begin{patternbox}[SOLID in One Line Each]
+\textbf{S}ingle Responsibility -- one reason to change per class.
+\textbf{O}pen/Closed -- open to extension, closed to modification.
+\textbf{L}iskov Substitution -- a subtype must be usable anywhere its base
+is. \textbf{I}nterface Segregation -- many small interfaces beat one fat
+one. \textbf{D}ependency Inversion -- depend on abstractions, not
+concretions.
+\end{patternbox}
+
+\subsection*{S -- Single Responsibility Principle}
+
+A class should have exactly one reason to change. An \texttt{Invoice} that
+computes totals \emph{and} formats itself as PDF \emph{and} emails itself
+has three reasons to change (tax rules, layout, mail server) and three
+teams stepping on each other. Split it: \texttt{Invoice} (data + totals),
+\texttt{InvoicePrinter} (formatting), \texttt{InvoiceMailer} (sending).
+
+\subsection*{O -- Open/Closed Principle}
+
+Software entities should be open for extension but closed for
+modification. The smell is a growing \texttt{switch} on a type tag:
+
+\begin{lstlisting}
+// BAD: every new shape edits this function (closed to extension).
+double area(const Shape& s) {
+    if (s.type == CIRCLE)    return 3.14159 * s.r * s.r;
+    if (s.type == RECTANGLE) return s.w * s.h;
+    // ... adding Triangle means editing here again
+}
+\end{lstlisting}
+
+Replace the tag with polymorphism so new shapes are \emph{added}, not
+\emph{edited} in:
+
+\begin{lstlisting}
+struct Shape { virtual double area() const = 0; virtual ~Shape() = default; };
+struct Circle : Shape {
+    double r; Circle(double r_) : r(r_) {}
+    double area() const override { return 3.14159 * r * r; }
+};
+struct Rectangle : Shape {
+    double w, h; Rectangle(double w_, double h_) : w(w_), h(h_) {}
+    double area() const override { return w * h; }
+};
+// A new Triangle class needs zero changes to existing code.
+\end{lstlisting}
+
+\subsection*{L -- Liskov Substitution Principle}
+
+A subclass must honour every promise of its base, so code using the base
+never breaks when handed the subclass. The classic violation: a
+\texttt{Square} that inherits \texttt{Rectangle} and overrides
+\texttt{setWidth} to also change the height silently breaks any code that
+sets width and height independently and expects them to stay independent.
+The fix is usually to \emph{not} force the inheritance -- model
+\texttt{Square} and \texttt{Rectangle} as siblings under a common
+\texttt{Shape}, or use composition.
+
+\begin{ideabox}[LSP Is About Behaviour, Not Just Signatures]
+Compiling is not enough. A subtype substitutes correctly only if it keeps
+the base's \emph{behavioural contract}: it must not strengthen
+preconditions, weaken postconditions, or throw ``unsupported'' for methods
+the base guarantees. If an override has to disable a base method, the
+inheritance is wrong.
+\end{ideabox}
+
+\subsection*{I -- Interface Segregation Principle}
+
+No client should be forced to depend on methods it does not use. A fat
+\texttt{Machine} interface with \texttt{print()}, \texttt{scan()},
+\texttt{fax()} forces a simple printer to stub out \texttt{scan} and
+\texttt{fax}. Split into \texttt{Printer}, \texttt{Scanner},
+\texttt{Fax}; a multifunction device implements all three, a basic printer
+implements only one.
+
+\subsection*{D -- Dependency Inversion Principle}
+
+High-level modules should depend on abstractions, not on concrete
+low-level modules -- and the abstraction is injected, not constructed
+inside:
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct MessageSender {                 // abstraction
+    virtual void send(const string& msg) = 0;
+    virtual ~MessageSender() = default;
+};
+struct EmailSender : MessageSender {
+    void send(const string& msg) override { cout << "Email: " << msg << "\n"; }
+};
+struct SmsSender : MessageSender {
+    void send(const string& msg) override { cout << "SMS: " << msg << "\n"; }
+};
+
+class NotificationService {            // high-level policy
+    MessageSender& sender;             // depends on the abstraction
+public:
+    NotificationService(MessageSender& s) : sender(s) {}   // injected
+    void notify(const string& msg) { sender.send(msg); }
+};
+
+int main() {
+    EmailSender email; SmsSender sms;
+    NotificationService viaEmail(email), viaSms(sms);
+    viaEmail.notify("Order shipped");
+    viaSms.notify("OTP 4321");         // swap implementation, no edits
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+SOLID is one theme in five costumes: \emph{isolate what changes}. SRP
+isolates responsibilities, OCP isolates new behaviour behind polymorphism,
+LSP keeps subtypes safe to substitute, ISP isolates clients from
+irrelevant methods, and DIP isolates high-level policy from low-level
+detail via an injected abstraction. Every pattern in the next chapter is a
+reusable structure that upholds one or more of these.
+\end{takeawaybox}

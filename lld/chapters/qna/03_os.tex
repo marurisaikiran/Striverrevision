@@ -1,0 +1,100 @@
+\section{Operating Systems}
+\label{sec:qna-os}
+
+\subsection*{Processes and threads}
+
+\question{Difference between a process and a thread?}
+\answer{A process is an independent program in execution with its own
+address space, memory, and resources. A thread is a lightweight unit of
+execution \emph{within} a process; threads of one process share its address
+space and resources but have their own stack and registers. Threads are
+cheaper to create and switch, but a bug in one can corrupt the shared
+space.}
+
+\question{What is a context switch and why is it expensive?}
+\answer{Saving the state (registers, program counter) of the currently
+running process/thread and loading another's, so the CPU can switch
+execution. It is costly because of the save/restore work plus cache and
+TLB pollution -- the new task starts with cold caches.}
+
+\question{What are the states in a process life cycle?}
+\answer{New, Ready (waiting for CPU), Running (on CPU), Waiting/Blocked
+(waiting for I/O or an event), and Terminated. The scheduler moves
+processes between Ready and Running; I/O moves them to and from Waiting.}
+
+\question{User mode vs kernel mode?}
+\answer{Kernel mode has unrestricted access to hardware and all
+instructions; user mode is restricted and cannot directly touch hardware.
+Applications run in user mode and request privileged operations via
+\emph{system calls}, which trap into the kernel. This protects the system
+from buggy or malicious programs.}
+
+\subsection*{Scheduling}
+
+\question{Compare common CPU scheduling algorithms.}
+\answer{\textbf{FCFS} -- simple, but long jobs delay others (convoy
+effect). \textbf{SJF} -- optimal average waiting time but needs burst
+prediction and can starve long jobs. \textbf{Round Robin} -- fair, good for
+time-sharing, performance hinges on the time quantum. \textbf{Priority} --
+important jobs first, risks starvation (fixed by aging).}
+
+\question{What is starvation and how is it prevented?}
+\answer{Starvation is a process waiting indefinitely because others are
+continually preferred (e.g.\ low priority under priority scheduling).
+\emph{Aging} prevents it by gradually raising a waiting process's priority
+until it runs.}
+
+\subsection*{Concurrency}
+
+\question{What is a race condition?}
+\answer{When two or more threads access shared data concurrently and the
+outcome depends on the timing/interleaving of their operations, producing
+incorrect results. Fixed by synchronising access to the \emph{critical
+section} so only one thread modifies the shared data at a time.}
+
+\question{Difference between a mutex and a semaphore?}
+\answer{A mutex is a locking mechanism for mutual exclusion -- owned by one
+thread, which must be the one to unlock it (binary). A semaphore is a
+signalling counter allowing up to $N$ concurrent accesses; any thread may
+signal. Use a mutex for exclusive access, a counting semaphore to limit a
+resource pool.}
+
+\question{What are the conditions for deadlock and how is it handled?}
+\answer{Four must hold together: mutual exclusion, hold-and-wait, no
+preemption, and circular wait. Handle by \emph{prevention} (break a
+condition, e.g.\ lock ordering), \emph{avoidance} (Banker's algorithm),
+\emph{detection and recovery}, or \emph{ignoring} it (the ``ostrich''
+approach) if rare.}
+
+\question{Difference between deadlock and livelock?}
+\answer{In deadlock, processes are blocked and make no progress. In
+livelock, they are active and keep changing state in response to each other
+but still make no useful progress (like two people stepping aside in the
+same direction repeatedly).}
+
+\subsection*{Memory}
+
+\question{What is virtual memory?}
+\answer{An abstraction giving each process its own large, contiguous
+address space independent of physical RAM, using paging and a disk-backed
+swap area. It enables running programs larger than RAM, isolation between
+processes, and simpler memory allocation.}
+
+\question{What is paging, and what is a page fault?}
+\answer{Paging divides memory into fixed-size pages (virtual) and frames
+(physical), mapped by a page table, eliminating external fragmentation. A
+\emph{page fault} occurs when a referenced page is not in RAM; the OS traps,
+loads the page from disk (possibly evicting another), and resumes.}
+
+\question{Difference between paging and segmentation?}
+\answer{Paging splits memory into fixed-size pages (transparent to the
+program, no external fragmentation but some internal). Segmentation splits
+it into variable-size logical units (code, stack, heap) meaningful to the
+program (external fragmentation possible). Modern systems often combine
+both.}
+
+\question{What is thrashing?}
+\answer{When a system spends more time swapping pages in and out than
+executing, because processes collectively need more memory than is
+available. Detected via high paging activity; mitigated by reducing the
+degree of multiprogramming or adding RAM (working-set model).}

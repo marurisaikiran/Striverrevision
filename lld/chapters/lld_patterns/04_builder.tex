@@ -1,0 +1,85 @@
+\section{Builder}
+\label{sec:pat-builder}
+
+\problemstatement{Separate the construction of a complex object from its
+representation, so the same step-by-step process can build different
+configurations -- especially useful when an object has many optional
+parameters.}
+
+\begin{patternbox}[When You Reach for It]
+The triggers are \emph{``an object with many optional fields''} (the
+telescoping-constructor smell: \texttt{Pizza(true,false,true,...)}) and
+\emph{``build a complex object in steps.''} When a constructor has a long
+list of parameters, half of them optional, a Builder makes construction
+readable and safe.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Instead of one giant constructor, a Builder exposes chainable setter
+methods (\texttt{addCheese()}, \texttt{addOlives()}) that accumulate
+configuration, then a \texttt{build()} that produces the finished,
+immutable product. Each setter returns the builder itself so calls read
+like a sentence. The product's own constructor can stay private, taking
+only the builder, guaranteeing objects are never half-initialised.
+
+\begin{ideabox}[Chainable Steps, One Final Build]
+Name each optional step explicitly and let the terminal \texttt{build()}
+assemble the product. This turns an unreadable positional-argument call
+into self-documenting, order-independent construction, and lets you
+validate the whole configuration in one place before creating the object.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Pizza {
+public:
+    string size;
+    bool cheese = false, olives = false, mushrooms = false;
+    void describe() const {
+        cout << size << " pizza"
+             << (cheese ? " +cheese" : "")
+             << (olives ? " +olives" : "")
+             << (mushrooms ? " +mushrooms" : "") << "\n";
+    }
+};
+
+class PizzaBuilder {
+    Pizza p;
+public:
+    PizzaBuilder& setSize(const string& s) { p.size = s; return *this; }
+    PizzaBuilder& addCheese()    { p.cheese = true;    return *this; }
+    PizzaBuilder& addOlives()    { p.olives = true;    return *this; }
+    PizzaBuilder& addMushrooms() { p.mushrooms = true; return *this; }
+    Pizza build() { return p; }               // finished product
+};
+
+int main() {
+    Pizza pizza = PizzaBuilder()
+                    .setSize("Large")
+                    .addCheese()
+                    .addMushrooms()
+                    .build();                 // reads like a sentence
+    pizza.describe();
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Readable, order-independent construction; no telescoping
+constructors; can enforce validation and immutability at \texttt{build}
+time. \textbf{Cons.} More code than a plain constructor; overkill for
+objects with a couple of fields. Worth it precisely when the parameter
+list is long and largely optional.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Builder trades a long, error-prone constructor for a fluent chain of named
+steps ending in \texttt{build()}. Recognise it by the smell of many
+optional parameters or boolean flags at a call site. It is one of the most
+frequently \emph{used} patterns in real code, not just interviews.
+\end{takeawaybox}

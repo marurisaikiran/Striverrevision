@@ -1,0 +1,118 @@
+\section{Design a Parking Lot}
+\label{sec:case-parking-lot}
+
+\problemstatement{Design a parking lot with multiple levels, multiple spot
+sizes (motorcycle, compact, large), vehicle entry/exit, ticketing, and fee
+calculation. It should assign the smallest spot a vehicle fits in and
+compute the fee on exit.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: How many levels and spot types? Can a large vehicle occupy multiple
+spots? Is pricing flat, hourly, or tiered? Multiple entry/exit gates?
+Payment methods? For this design assume: several levels, three spot sizes,
+one spot per vehicle, hourly pricing that may vary by vehicle type, and
+multiple gates.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+The nouns give the classes: \texttt{ParkingLot} (owns levels),
+\texttt{Level} (owns spots), \texttt{ParkingSpot} (has a size and
+occupancy), \texttt{Vehicle} (abstract; \texttt{Motorcycle},
+\texttt{Car}, \texttt{Truck}), \texttt{Ticket} (issued at entry),
+and a \texttt{FeeStrategy} for pricing. The verbs -- park, unpark, pay --
+become methods.
+
+\begin{ideabox}[Patterns That Keep It Flexible]
+\textbf{Strategy} for \texttt{FeeStrategy} so pricing rules change without
+touching parking logic. \textbf{Factory} to create the right
+\texttt{Vehicle}/spot type. A \textbf{Singleton} (or injected single
+instance) \texttt{ParkingLot} as the entry point. Spot assignment is a
+policy method, easy to swap (nearest, smallest-fit).
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+enum class SpotSize { Motorcycle, Compact, Large };
+
+class Vehicle {
+public:
+    string plate;
+    SpotSize required;
+    Vehicle(string p, SpotSize s) : plate(move(p)), required(s) {}
+    virtual ~Vehicle() = default;
+};
+struct Car : Vehicle { Car(string p) : Vehicle(move(p), SpotSize::Compact) {} };
+struct Bike : Vehicle { Bike(string p) : Vehicle(move(p), SpotSize::Motorcycle) {} };
+
+struct FeeStrategy {                            // Strategy: pricing varies
+    virtual double fee(int hours) const = 0;
+    virtual ~FeeStrategy() = default;
+};
+struct FlatHourly : FeeStrategy {
+    double rate; FlatHourly(double r) : rate(r) {}
+    double fee(int hours) const override { return rate * hours; }
+};
+
+class ParkingSpot {
+public:
+    int id; SpotSize size; Vehicle* occupant = nullptr;
+    ParkingSpot(int i, SpotSize s) : id(i), size(s) {}
+    bool canFit(const Vehicle& v) const {
+        return occupant == nullptr && size >= v.required;   // smallest-fit rule
+    }
+};
+
+struct Ticket { int spotId; string plate; time_t entry; };
+
+class Level {
+    vector<ParkingSpot> spots;
+public:
+    Level(int n) { for (int i = 0; i < n; i++) spots.emplace_back(i, SpotSize::Compact); }
+    ParkingSpot* findSpot(const Vehicle& v) {
+        for (auto& s : spots) if (s.canFit(v)) return &s;   // assignment policy
+        return nullptr;
+    }
+};
+
+class ParkingLot {
+    vector<Level> levels;
+    unique_ptr<FeeStrategy> pricing;
+public:
+    ParkingLot(unique_ptr<FeeStrategy> p) : pricing(move(p)) {}
+    void addLevel(int spots) { levels.emplace_back(spots); }
+
+    Ticket* park(Vehicle& v) {
+        for (auto& level : levels) {
+            if (auto* spot = level.findSpot(v)) {
+                spot->occupant = &v;
+                return new Ticket{ spot->id, v.plate, time(nullptr) };
+            }
+        }
+        return nullptr;                         // lot full
+    }
+    double unpark(Ticket* t, int hours) { return pricing->fee(hours); }
+};
+
+int main() {
+    ParkingLot lot(make_unique<FlatHourly>(20.0));
+    lot.addLevel(2);
+    Car car("KA-01-1234");
+    Ticket* t = lot.park(car);
+    cout << (t ? "Parked, fee for 3h = " : "Full ") ;
+    if (t) cout << lot.unpark(t, 3) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+Parking lot is the canonical LLD warm-up. Score points by: clarifying
+scope first, giving each class one job (SRP), isolating pricing behind a
+\textbf{Strategy}, and making spot-assignment a swappable policy. Likely
+follow-ups: multiple gates (concurrency, locking a spot atomically),
+payment methods (another Strategy), and reservations.
+\end{takeawaybox}

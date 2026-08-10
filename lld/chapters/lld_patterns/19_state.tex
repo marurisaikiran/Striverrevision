@@ -1,0 +1,86 @@
+\section{State}
+\label{sec:pat-state}
+
+\problemstatement{Allow an object to alter its behaviour when its internal
+state changes, so it appears to change its class -- replacing sprawling
+conditionals on a state variable with a set of state objects.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``behaviour depends on a mode/state, and the same
+method does different things in each''} -- a vending machine, a media
+player (playing/paused/stopped), a TCP connection, an order lifecycle.
+When methods are riddled with \texttt{if (state == ...)}, extract states
+into classes.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Each state becomes a class implementing a common \texttt{State} interface;
+the context holds a pointer to the current state and delegates behaviour to
+it. A state's methods perform the state-specific action and can transition
+the context to another state. Adding a new state is a new class, not
+another branch in every method -- Open/Closed for state machines.
+
+\begin{ideabox}[One Class per State, Delegate and Transition]
+Turn each mode into an object that knows how to behave \emph{and} which
+state comes next. The context just forwards calls to its current state
+object. The scattered \texttt{switch(state)} logic collapses into
+localised, self-contained state classes.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Fan;
+struct State {
+    virtual void pull(Fan& fan) = 0;            // the chain-pull action
+    virtual string name() const = 0;
+    virtual ~State() = default;
+};
+
+class Fan {
+    unique_ptr<State> state;
+public:
+    Fan(unique_ptr<State> s) : state(move(s)) {}
+    void setState(unique_ptr<State> s) { state = move(s); }
+    void pull() { state->pull(*this); }
+    string status() const { return state->name(); }
+};
+
+struct Off; struct Low;
+struct Low : State {
+    void pull(Fan& fan) override;
+    string name() const override { return "Low"; }
+};
+struct Off : State {
+    void pull(Fan& fan) override { fan.setState(make_unique<Low>()); }
+    string name() const override { return "Off"; }
+};
+void Low::pull(Fan& fan) { fan.setState(make_unique<Off>()); }
+
+int main() {
+    Fan fan(make_unique<Off>());
+    cout << fan.status() << "\n";               // Off
+    fan.pull(); cout << fan.status() << "\n";   // Low
+    fan.pull(); cout << fan.status() << "\n";   // Off
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Eliminates large state conditionals; each state is
+isolated and testable; transitions are explicit; new states are added
+without editing others. \textbf{Cons.} More classes; transition logic is
+spread across state classes, so the overall state machine can be harder to
+see at a glance (a transition table can complement it).
+\end{complexitybox}
+
+\begin{takeawaybox}
+State replaces ``behaviour depends on a mode'' conditionals with one class
+per state that both acts and decides the next state. Structurally it is
+Strategy, but the intent differs: State objects \emph{swap themselves} as
+the machine transitions, whereas a Strategy is chosen by the client.
+\end{takeawaybox}

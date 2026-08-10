@@ -1,0 +1,31 @@
+\documentclass[11pt]{book}
+\input{preamble.tex}
+
+% ---- book-specific running header (overrides the shared default) ----
+\fancyhead[R]{\footnotesize Low-Level Design \& CS Fundamentals}
+
+% ---- Q&A macros for the interview-questions chapter ----
+\newcommand{\question}[1]{\medskip\noindent\textbf{Q.\ #1}\par\nobreak\vspace{2pt}}
+\newcommand{\answer}[1]{\noindent\textbf{A.}\ #1\par}
+
+\title{\Huge Low-Level Design \& CS Fundamentals\\[6pt]\Large A
+Placement \& Interview Companion: OOP, SOLID, Design Patterns, LLD Case
+Studies, and Core-Subject Q\&A}
+\author{Maruri Saikiran}
+\date{\today}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\tableofcontents
+
+\mainmatter
+
+\input{chapters/lld_oops.tex}
+\input{chapters/lld_patterns.tex}
+\input{chapters/lld_cases.tex}
+\input{chapters/qna_fundamentals.tex}
+
+\end{document}

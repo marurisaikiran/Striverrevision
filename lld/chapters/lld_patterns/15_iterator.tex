@@ -1,0 +1,85 @@
+\section{Iterator}
+\label{sec:pat-iterator}
+
+\problemstatement{Provide a way to access the elements of an aggregate
+object sequentially without exposing its underlying representation, so
+clients traverse a collection the same way regardless of how it is stored.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``traverse a collection without revealing whether
+it's an array, list, or tree.''} When you want uniform iteration and the
+freedom to change the container's internals, expose an iterator instead of
+raw structure.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Define an iterator interface with \texttt{hasNext()} and \texttt{next()}.
+The collection produces an iterator that knows how to walk \emph{its}
+particular structure. Client loops depend only on the iterator interface,
+so swapping a vector for a linked list -- or offering multiple traversal
+orders -- does not touch client code. This is the pattern the C++ STL and
+range-based \texttt{for} are built on.
+
+\begin{ideabox}[Externalise Traversal State]
+Move the ``where am I in the collection'' cursor out of the client and
+into a dedicated iterator object. Multiple independent iterators can then
+traverse the same collection at once, and the collection's storage stays
+hidden.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+template <typename T>
+struct Iterator {
+    virtual bool hasNext() const = 0;
+    virtual T next() = 0;
+    virtual ~Iterator() = default;
+};
+
+class IntCollection {                           // hides its storage
+    vector<int> data;
+public:
+    void add(int x) { data.push_back(x); }
+
+    class Iter : public Iterator<int> {
+        const vector<int>& ref; size_t pos = 0;
+    public:
+        Iter(const vector<int>& r) : ref(r) {}
+        bool hasNext() const override { return pos < ref.size(); }
+        int next() override { return ref[pos++]; }
+    };
+
+    unique_ptr<Iterator<int>> iterator() const {
+        return make_unique<Iter>(data);
+    }
+};
+
+int main() {
+    IntCollection c;
+    c.add(10); c.add(20); c.add(30);
+    auto it = c.iterator();
+    while (it->hasNext()) cout << it->next() << " ";   // storage hidden
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Uniform traversal; hides representation; supports multiple
+simultaneous and multiple-order traversals; simplifies the collection's
+own interface. \textbf{Cons.} Extra objects for simple cases; an iterator
+can be invalidated if the collection is modified during traversal.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Iterator externalises traversal into an object with
+\texttt{hasNext}/\texttt{next}, decoupling clients from a collection's
+internal structure. It is so fundamental that most languages bake it in
+(STL iterators, \texttt{for-each}). Mention iterator invalidation as the
+classic pitfall.
+\end{takeawaybox}

@@ -1,0 +1,81 @@
+\section{Prototype}
+\label{sec:pat-prototype}
+
+\problemstatement{Create new objects by cloning an existing prototype
+rather than constructing from scratch, useful when object creation is
+expensive or when the exact concrete type to copy is known only at run
+time.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``make a copy of an existing configured object,''} or
+\emph{``creating one from scratch is costly.''} When you have a
+fully-configured instance and want more just like it -- without knowing or
+naming its concrete class -- a polymorphic \texttt{clone()} is the answer.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Each class implements a virtual \texttt{clone()} that returns a copy of
+itself as the base type. Client code holds a base pointer and calls
+\texttt{clone()}; it gets back a new object of the correct concrete type
+without a \texttt{switch} on types or a call to a specific constructor.
+This is invaluable when the set of concrete classes is registered at run
+time (a palette of prototype shapes the user can duplicate).
+
+\begin{ideabox}[Let the Object Copy Itself]
+Because only the object knows its own concrete type, delegate copying to a
+virtual \texttt{clone()}. This sidesteps ``which constructor do I call?''
+and preserves all the run-time state of the prototype, including fields a
+factory would not know to set.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Shape {
+    int x = 0, y = 0;
+    virtual unique_ptr<Shape> clone() const = 0;   // polymorphic copy
+    virtual void draw() const = 0;
+    virtual ~Shape() = default;
+};
+
+struct Circle : Shape {
+    int r = 1;
+    unique_ptr<Shape> clone() const override {
+        return make_unique<Circle>(*this);          // copy all state
+    }
+    void draw() const override {
+        cout << "Circle r=" << r << " at (" << x << "," << y << ")\n";
+    }
+};
+
+int main() {
+    Circle base; base.r = 5; base.x = 2; base.y = 3;
+
+    unique_ptr<Shape> proto = make_unique<Circle>(base);
+    auto copy1 = proto->clone();                    // no concrete type named
+    auto copy2 = proto->clone();
+    copy1->draw();
+    copy2->draw();
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Copies run-time state exactly; avoids costly
+re-construction; adds objects without naming concrete classes.
+\textbf{Cons.} Deep vs.\ shallow copy must be handled carefully
+(pointers, cycles); every class must implement \texttt{clone()}
+correctly. Watch out for objects owning raw pointers.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Prototype creates by copying a live object through a virtual
+\texttt{clone()}, sidestepping constructors and type switches. Reach for
+it when you already have a configured instance and want duplicates, or
+when construction is expensive. The one hazard is getting deep-copy
+semantics right.
+\end{takeawaybox}

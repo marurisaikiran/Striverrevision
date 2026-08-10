@@ -1,0 +1,85 @@
+\section{Design a Logging Framework}
+\label{sec:case-logger}
+
+\problemstatement{Design a logging framework supporting severity levels
+(DEBUG, INFO, WARN, ERROR), multiple output sinks (console, file,
+network), a configurable minimum level, and the ability to add sinks or
+formats without changing call sites.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: What levels and can they be filtered globally or per sink? Multiple
+simultaneous sinks? Thread-safe? Should a message be passed along a chain
+of level handlers or broadcast to all sinks? For this design assume:
+standard levels, multiple sinks, a global threshold, and thread safety as
+a discussion point.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+A \texttt{Logger} (front door, often a \textbf{Singleton}), a
+\texttt{LogLevel} enum, \texttt{LogSink}/\texttt{Appender} implementations
+(\texttt{ConsoleSink}, \texttt{FileSink}), and a \texttt{Formatter}. Two
+classic pattern framings apply: broadcast to all sinks (\textbf{Observer})
+or pass up a \textbf{Chain of Responsibility} of level handlers.
+
+\begin{ideabox}[Level Filtering + Pluggable Sinks]
+Keep a single global threshold so sub-threshold messages are dropped
+cheaply. Model each output as a \texttt{LogSink} plug-in the logger writes
+to -- adding a sink never touches call sites. A \textbf{Chain of
+Responsibility} variant instead routes a message through DEBUG$\to$INFO
+$\to$WARN$\to$ERROR handlers, each deciding whether to act; both are valid,
+name the trade-off.
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+enum class Level { Debug, Info, Warn, Error };
+
+struct LogSink {                                // pluggable output
+    virtual void write(Level lvl, const string& msg) = 0;
+    virtual ~LogSink() = default;
+};
+struct ConsoleSink : LogSink {
+    void write(Level, const string& msg) override { cout << "[console] " << msg << "\n"; }
+};
+struct FileSink : LogSink {
+    void write(Level, const string& msg) override { cout << "[file] " << msg << "\n"; }
+};
+
+class Logger {                                  // Singleton front door
+    Level threshold = Level::Info;
+    vector<unique_ptr<LogSink>> sinks;
+    Logger() = default;
+public:
+    static Logger& instance() { static Logger l; return l; }
+    void setThreshold(Level l) { threshold = l; }
+    void addSink(unique_ptr<LogSink> s) { sinks.push_back(move(s)); }
+
+    void log(Level lvl, const string& msg) {
+        if (lvl < threshold) return;            // cheap filter
+        for (auto& s : sinks) s->write(lvl, msg);   // broadcast to sinks
+    }
+};
+
+int main() {
+    Logger& log = Logger::instance();
+    log.addSink(make_unique<ConsoleSink>());
+    log.addSink(make_unique<FileSink>());
+    log.setThreshold(Level::Info);
+    log.log(Level::Debug, "verbose");           // filtered out
+    log.log(Level::Error, "something broke");   // goes to both sinks
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+A logger design lets you name several patterns naturally: \textbf{Singleton}
+for the global logger, pluggable \textbf{Sinks} (Strategy/Observer) for
+outputs, and optionally a \textbf{Chain of Responsibility} over levels.
+The must-mention non-functional concern is \emph{thread safety} -- a lock
+or a lock-free queue around the sink writes at scale.
+\end{takeawaybox}

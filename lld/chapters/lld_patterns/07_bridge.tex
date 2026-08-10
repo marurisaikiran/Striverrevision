@@ -1,0 +1,87 @@
+\section{Bridge}
+\label{sec:pat-bridge}
+
+\problemstatement{Decouple an abstraction from its implementation so the
+two can vary independently, avoiding a combinatorial explosion of
+subclasses when a type varies along two separate dimensions.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``two independent dimensions of variation''} that,
+combined by inheritance, would create $m\times n$ subclasses. Shapes
+(circle, square) times rendering APIs (OpenGL, DirectX) would need
+\texttt{OpenGLCircle}, \texttt{DirectXCircle}, \texttt{OpenGLSquare}\ldots
+Bridge turns that product into a sum.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Split the two dimensions into two class hierarchies and connect them with
+a reference (the ``bridge''). The \emph{abstraction} hierarchy (shapes)
+holds a pointer to an \emph{implementor} hierarchy (renderers) and
+delegates the primitive operations. Now you add shapes and renderers
+independently: $m+n$ classes instead of $m\times n$.
+
+\begin{ideabox}[Prefer Composition Across the Two Axes]
+When a class varies along two axes, do not multiply them with inheritance.
+Give one axis (the abstraction) a member pointing at the other (the
+implementation). This is ``favour composition over inheritance'' applied
+to prevent a subclass explosion.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+// Implementor axis: how to render.
+struct Renderer {
+    virtual void renderCircle(float r) = 0;
+    virtual ~Renderer() = default;
+};
+struct OpenGLRenderer : Renderer {
+    void renderCircle(float r) override { cout << "OpenGL circle r=" << r << "\n"; }
+};
+struct DirectXRenderer : Renderer {
+    void renderCircle(float r) override { cout << "DirectX circle r=" << r << "\n"; }
+};
+
+// Abstraction axis: what to draw. Holds a bridge to the implementor.
+class Shape {
+protected:
+    Renderer& renderer;                        // the bridge
+public:
+    Shape(Renderer& r) : renderer(r) {}
+    virtual void draw() = 0;
+    virtual ~Shape() = default;
+};
+class Circle : public Shape {
+    float radius;
+public:
+    Circle(Renderer& r, float rad) : Shape(r), radius(rad) {}
+    void draw() override { renderer.renderCircle(radius); }
+};
+
+int main() {
+    OpenGLRenderer gl; DirectXRenderer dx;
+    Circle c1(gl, 5), c2(dx, 8);               // mix axes freely
+    c1.draw();
+    c2.draw();
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Abstraction and implementation evolve independently; avoids
+class explosion; swappable implementations at run time. \textbf{Cons.}
+More indirection and up-front structure; only pays off when \emph{both}
+dimensions genuinely vary. For a single axis it is over-engineering.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Bridge separates ``what'' from ``how'' into two hierarchies joined by a
+reference, turning an $m\times n$ subclass explosion into $m+n$. The
+signal is two orthogonal dimensions of change. It looks structurally like
+Strategy but its intent is structural decoupling, not swapping an
+algorithm.
+\end{takeawaybox}

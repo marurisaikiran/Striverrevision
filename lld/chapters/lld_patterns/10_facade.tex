@@ -1,0 +1,75 @@
+\section{Facade}
+\label{sec:pat-facade}
+
+\problemstatement{Provide a single, simplified interface to a complex
+subsystem of many classes, so common tasks become easy while the full
+subsystem remains available for advanced use.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``clients must call five classes in the right order
+just to do one common thing.''} When using a subsystem requires knowing
+too much of its internals, a Facade offers a clean front door for the
+typical case.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+The Facade is a class that knows the subsystem's classes and orchestrates
+them. It exposes a few high-level methods (\texttt{watchMovie()}) that
+internally coordinate the amplifier, projector, lights and player. Clients
+talk to the Facade; they are shielded from the subsystem's structure and
+call order. Crucially the subsystem is not hidden -- power users can still
+reach the underlying classes directly.
+
+\begin{ideabox}[A Simple Front Door, Not a Wall]
+A Facade reduces coupling between clients and a subsystem by centralising
+the common orchestration in one place. It does not add behaviour or
+restrict access; it simply makes the easy things easy while leaving the
+hard things possible.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Amplifier { void on() { cout << "Amp on\n"; } void setVolume(int v) { cout << "Volume " << v << "\n"; } };
+struct Projector { void on() { cout << "Projector on\n"; } void wide() { cout << "Widescreen\n"; } };
+struct Lights    { void dim(int p) { cout << "Lights " << p << "%\n"; } };
+struct Player    { void play(const string& m) { cout << "Playing " << m << "\n"; } };
+
+class HomeTheaterFacade {                       // the simple front door
+    Amplifier amp; Projector projector; Lights lights; Player player;
+public:
+    void watchMovie(const string& movie) {      // one call orchestrates all
+        lights.dim(10);
+        projector.on();
+        projector.wide();
+        amp.on();
+        amp.setVolume(7);
+        player.play(movie);
+    }
+};
+
+int main() {
+    HomeTheaterFacade theater;
+    theater.watchMovie("Inception");            // client does one thing
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Simplifies client code; decouples clients from subsystem
+internals; a natural place to enforce a correct call sequence.
+\textbf{Cons.} Can become a ``god object'' if it accumulates too much;
+does not prevent misuse of the subsystem directly. Keep it thin -- a
+coordinator, not a kitchen sink.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Facade wraps a complicated subsystem behind a small, task-oriented
+interface, lowering the knowledge a client needs. Distinguish from
+Adapter (converts one interface to another expected one) -- Facade invents
+a \emph{new, simpler} interface over \emph{many} classes.
+\end{takeawaybox}

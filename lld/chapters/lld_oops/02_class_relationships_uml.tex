@@ -1,0 +1,107 @@
+\section{Class Relationships and UML Notation}
+\label{sec:lld-relationships}
+
+\problemstatement{Distinguish the ways two classes can relate --
+association, aggregation, composition, dependency, and inheritance -- and
+know the UML class-diagram notation, since interviewers expect you to
+sketch a design and name these relationships correctly.}
+
+\begin{patternbox}[Which Relationship Is It?]
+\begin{itemize}
+  \item \textbf{``is-a''} -- \textbf{inheritance} (a Car is-a Vehicle).
+        UML: hollow triangle arrow to the parent.
+  \item \textbf{``has-a,'' parts can live independently} --
+        \textbf{aggregation} (a Team has Players; players outlive the
+        team). UML: hollow diamond.
+  \item \textbf{``has-a,'' parts die with the whole} --
+        \textbf{composition} (a House has Rooms; destroy the house and
+        the rooms go with it). UML: filled diamond.
+  \item \textbf{``uses-a'' transiently} -- \textbf{dependency} (an
+        \texttt{Order} uses a \texttt{PaymentGateway} passed to one
+        method). UML: dashed arrow.
+  \item \textbf{A general structural link} -- \textbf{association}
+        (a plain solid line); aggregation and composition are its
+        stronger, ownership-bearing forms.
+\end{itemize}
+\end{patternbox}
+
+\subsection*{The key axis: ownership and lifetime}
+
+The distinction interviewers probe is \textbf{aggregation vs.\
+composition}, and it is entirely about \emph{lifetime}. In composition the
+whole \emph{owns} its parts and controls their creation and destruction --
+model it by storing parts \emph{by value} or via an owning
+\texttt{unique\_ptr}. In aggregation the whole merely \emph{references}
+parts that exist independently -- model it by storing a non-owning pointer
+or reference handed in from outside.
+
+\begin{ideabox}[Favour Composition Over Inheritance]
+A foundational LLD maxim. Inheritance is rigid: it fixes behaviour at
+compile time and leaks the base class's details into every subclass. Composing
+an object out of smaller collaborators (holding a \texttt{Strategy}, an
+\texttt{Engine}, a \texttt{Logger}) lets you change behaviour by swapping a
+part at run time. When tempted to subclass, first ask whether ``has-a''
+models the problem better than ``is-a.''
+\end{ideabox}
+
+\subsection*{C++ illustration of each relationship}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Engine {                 // an independent part
+public:
+    void start() { cout << "Engine started\n"; }
+};
+
+class Logger {                 // dependency: used transiently
+public:
+    void log(const string& m) { cout << "[log] " << m << "\n"; }
+};
+
+// Composition: Car owns its Engine (created and destroyed with the Car).
+class Car {
+    Engine engine;                     // by value -> composition
+public:
+    void drive(Logger& logger) {       // dependency: Logger passed in
+        engine.start();
+        logger.log("car driving");
+    }
+};
+
+// Aggregation: Team references Players it does not own.
+class Player {
+public:
+    string name;
+    Player(string n) : name(move(n)) {}
+};
+class Team {
+    vector<Player*> players;           // non-owning -> aggregation
+public:
+    void add(Player* p) { players.push_back(p); }
+    void roster() {
+        for (auto* p : players) cout << p->name << " ";
+        cout << "\n";
+    }
+};
+
+int main() {
+    Car car; Logger logger;
+    car.drive(logger);
+
+    Player a("Alice"), b("Bob");       // players outlive any team
+    Team t; t.add(&a); t.add(&b);
+    t.roster();
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+Name relationships precisely: inheritance is ``is-a''; composition is
+owned ``has-a'' (filled diamond, shared lifetime); aggregation is
+referenced ``has-a'' (hollow diamond, independent lifetime); dependency is
+a transient ``uses-a.'' In code the tell is ownership -- by-value/owning
+pointer for composition, non-owning pointer for aggregation. When in
+doubt, prefer composition over inheritance.
+\end{takeawaybox}

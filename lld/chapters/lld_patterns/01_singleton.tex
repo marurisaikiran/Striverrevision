@@ -1,0 +1,73 @@
+\section{Singleton}
+\label{sec:pat-singleton}
+
+\problemstatement{Ensure a class has exactly one instance and provide a
+single global point of access to it -- for example a configuration store,
+a logger, or a connection pool that must be shared, not duplicated.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger phrase is \emph{``there must be exactly one''} -- one logger,
+one config, one thread pool. Beware: Singleton is the most overused
+pattern and effectively a controlled global, so use it only when a second
+instance would be genuinely wrong, not merely inconvenient.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Three moves enforce singularity: make the constructor \texttt{private} so
+nobody can \texttt{new} it, delete the copy constructor and assignment so
+it cannot be duplicated, and expose a static accessor that lazily creates
+and returns the one instance. In C++ the cleanest, thread-safe form uses a
+function-local \texttt{static}, whose initialisation the standard
+guarantees to happen exactly once even under concurrency.
+
+\begin{ideabox}[Meyers' Singleton: a Function-Local Static]
+A \texttt{static} local variable inside the accessor is constructed on
+first call and destroyed at program exit, and C++11 guarantees this
+initialisation is thread-safe. This one-liner sidesteps the double-checked
+locking that plagues Singleton in other languages.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Logger {
+    Logger() { cout << "Logger created\n"; }     // private ctor
+public:
+    Logger(const Logger&) = delete;               // no copying
+    Logger& operator=(const Logger&) = delete;
+
+    static Logger& instance() {                   // single access point
+        static Logger inst;                       // created once, thread-safe
+        return inst;
+    }
+    void log(const string& msg) { cout << "[log] " << msg << "\n"; }
+};
+
+int main() {
+    Logger::instance().log("first");
+    Logger::instance().log("second");             // same instance
+    cout << "&a == &b? "
+         << (&Logger::instance() == &Logger::instance()) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Guarantees one instance; lazy creation; global access.
+\textbf{Cons.} Introduces global state, which hides dependencies and makes
+unit testing hard (you cannot easily substitute a mock). It can also
+become a bottleneck or a hidden coupling point. Prefer dependency
+injection of a single shared instance when testability matters.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Singleton = private constructor + deleted copies + a static accessor.
+In modern C++ the function-local static gives you thread-safe lazy
+initialisation for free. Reach for it sparingly; ``one instance'' is a
+real constraint, but a shared injected object often serves the same need
+without the testing pain of a global.
+\end{takeawaybox}

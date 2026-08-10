@@ -1,0 +1,85 @@
+\section{Chain of Responsibility}
+\label{sec:pat-chain}
+
+\problemstatement{Pass a request along a chain of handlers; each handler
+decides either to process the request or to forward it to the next,
+decoupling the sender from the specific receiver that ends up handling it.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``a request that several handlers might process, and
+we don't know in advance which one will.''} Approval workflows, event
+bubbling, logging levels, and middleware pipelines all fit: try each
+handler in turn until one takes it.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Each handler holds a pointer to the next and implements a
+\texttt{handle(request)}: if it can deal with the request it does;
+otherwise it delegates to the next in line. The client fires the request
+at the head of the chain and never needs to know which link resolves it.
+Handlers can be reordered or inserted without touching the sender.
+
+\begin{ideabox}[Handle or Pass Along]
+Give every handler the same interface and a ``next'' link. The decision
+``mine or not mine'' is local to each handler; the chain's shape is
+configured externally. This decouples \emph{who sends} from \emph{who
+handles}.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Approver {
+protected:
+    Approver* next = nullptr;
+public:
+    Approver* setNext(Approver* n) { next = n; return n; }
+    virtual void handle(int amount) {
+        if (next) next->handle(amount);        // default: pass along
+        else cout << "No one could approve " << amount << "\n";
+    }
+    virtual ~Approver() = default;
+};
+
+class Manager : public Approver {
+public:
+    void handle(int amount) override {
+        if (amount <= 1000) cout << "Manager approves " << amount << "\n";
+        else Approver::handle(amount);
+    }
+};
+class Director : public Approver {
+public:
+    void handle(int amount) override {
+        if (amount <= 10000) cout << "Director approves " << amount << "\n";
+        else Approver::handle(amount);
+    }
+};
+
+int main() {
+    Manager mgr; Director dir;
+    mgr.setNext(&dir);                          // build the chain
+    mgr.handle(500);                            // Manager
+    mgr.handle(5000);                           // passed to Director
+    mgr.handle(50000);                          // unhandled
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Decouples sender and receiver; handlers are added,
+removed, or reordered freely; each handler is simple. \textbf{Cons.} A
+request may fall off the end unhandled; harder to trace which handler
+acted; a long chain adds latency. Ensure a terminal/default handler.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Chain of Responsibility lets a request travel handler-to-handler until one
+processes it, decoupling the caller from the resolver. Recognise it in
+approval hierarchies and middleware. The key risk to mention: unhandled
+requests, so design an end-of-chain default.
+\end{takeawaybox}

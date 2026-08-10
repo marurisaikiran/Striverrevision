@@ -1,0 +1,103 @@
+\section{Database Management Systems}
+\label{sec:qna-dbms}
+
+\subsection*{Foundations}
+
+\question{What is a DBMS and what problems does it solve over flat files?}
+\answer{A DBMS manages structured data with querying, concurrency control,
+integrity constraints, transactions, and recovery. Over flat files it adds
+data independence, controlled redundancy, multi-user safety (ACID), and a
+declarative query language, removing the need for each application to
+reimplement these.}
+
+\question{Difference between primary key, candidate key, and foreign key?}
+\answer{A candidate key is any minimal set of columns uniquely identifying
+a row. The primary key is the chosen candidate key (unique, non-null). A
+foreign key is a column referencing another table's primary key, enforcing
+referential integrity between tables.}
+
+\question{What is normalization? Explain 1NF, 2NF, 3NF.}
+\answer{Normalization organises columns to reduce redundancy and anomalies.
+\textbf{1NF}: atomic values, no repeating groups. \textbf{2NF}: 1NF plus no
+partial dependency of a non-key column on part of a composite key.
+\textbf{3NF}: 2NF plus no transitive dependency (non-key columns depend
+only on the key). BCNF is a stricter 3NF.}
+
+\question{What is denormalization and when is it used?}
+\answer{Deliberately introducing redundancy (e.g.\ storing a computed or
+duplicated column) to speed up reads by avoiding joins. Used in
+read-heavy/analytics systems where query performance outweighs the cost of
+maintaining consistency on writes.}
+
+\subsection*{Transactions and concurrency}
+
+\question{What are ACID properties?}
+\answer{\textbf{Atomicity} (all-or-nothing), \textbf{Consistency} (a
+transaction moves the DB from one valid state to another),
+\textbf{Isolation} (concurrent transactions don't interfere as if serial),
+\textbf{Durability} (committed changes survive crashes). Together they make
+transactions reliable.}
+
+\question{What are the SQL isolation levels and what anomalies do they
+prevent?}
+\answer{From weakest to strongest: \emph{Read Uncommitted} (allows dirty
+reads), \emph{Read Committed} (prevents dirty reads), \emph{Repeatable
+Read} (also prevents non-repeatable reads), \emph{Serializable} (also
+prevents phantom reads). Higher isolation means more correctness but less
+concurrency.}
+
+\question{What is a deadlock and how do databases handle it?}
+\answer{Two or more transactions each wait for locks the others hold,
+forming a cycle so none proceed. DBMSs detect it (wait-for graph) and abort
+a victim, or prevent it via ordering/timeouts. It is the transactional
+analogue of an OS deadlock.}
+
+\question{Difference between optimistic and pessimistic locking?}
+\answer{Pessimistic locking locks data before use, assuming conflicts are
+likely -- safe but reduces concurrency. Optimistic locking assumes
+conflicts are rare: it checks at commit (via a version/timestamp) whether
+data changed, and retries if so. Optimistic suits low-contention,
+read-heavy workloads.}
+
+\subsection*{Indexing and querying}
+
+\question{What is an index and what is the trade-off?}
+\answer{An index is an auxiliary structure (usually a B+ tree) that speeds
+up lookups and range queries on indexed columns, turning a full scan into a
+logarithmic search. The trade-off: extra storage and slower
+writes/updates, since indexes must be maintained.}
+
+\question{Clustered vs non-clustered index?}
+\answer{A clustered index determines the physical order of rows -- there is
+at most one per table, and the leaf level \emph{is} the data. A
+non-clustered index is separate and stores pointers (or the clustered key)
+to the rows; a table can have many. Clustered lookups avoid an extra
+indirection.}
+
+\question{What is the difference between WHERE and HAVING?}
+\answer{\texttt{WHERE} filters rows \emph{before} grouping; \texttt{HAVING}
+filters groups \emph{after} \texttt{GROUP BY} aggregation. You use
+\texttt{HAVING} to filter on aggregate results like
+\texttt{COUNT(*) > 5}.}
+
+\question{Difference between DELETE, TRUNCATE, and DROP?}
+\answer{\texttt{DELETE} removes rows (optionally with a \texttt{WHERE}),
+is logged, and can be rolled back. \texttt{TRUNCATE} removes all rows
+quickly with minimal logging and resets identity, but is harder to roll
+back. \texttt{DROP} removes the entire table structure and data.}
+
+\subsection*{Scale}
+
+\question{SQL vs NoSQL -- when would you choose each?}
+\answer{SQL (relational) suits structured data, complex joins, and strong
+consistency/ACID -- e.g.\ finance. NoSQL (document, key-value, column,
+graph) suits flexible schemas, huge scale, and high write throughput with
+eventual consistency -- e.g.\ user feeds, telemetry. Choose by consistency
+needs, schema stability, and access patterns.}
+
+\question{What is the CAP theorem?}
+\answer{In a distributed store you cannot simultaneously guarantee all of
+Consistency, Availability, and Partition tolerance; under a network
+partition you must trade consistency for availability or vice versa.
+Real systems (partition tolerance being mandatory) are effectively CP or
+AP.}

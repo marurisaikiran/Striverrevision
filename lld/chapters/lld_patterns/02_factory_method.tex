@@ -1,0 +1,81 @@
+\section{Factory Method}
+\label{sec:pat-factory-method}
+
+\problemstatement{Define an interface for creating an object, but let the
+decision of \emph{which} concrete class to instantiate be made elsewhere,
+so client code depends only on the abstract product, never on concrete
+class names.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``create an object without hard-coding its class,''}
+usually to kill a \texttt{switch}/\texttt{if-else} on a type string that
+\texttt{new}s different concrete classes. Whenever adding a new product
+type forces you to edit existing creation code, a factory restores the
+Open/Closed Principle.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Client code should not contain \texttt{new ConcreteA} or \texttt{new
+ConcreteB}. Instead it calls a factory function that takes a request
+(often an enum or string) and returns a pointer to the abstract product.
+The concrete decision lives in one place; the rest of the system speaks
+only the interface. Adding a product means extending the factory, not
+hunting down every \texttt{new} scattered across the codebase.
+
+\begin{ideabox}[One Place Knows the Concrete Classes]
+Centralise object creation behind a function returning the base type. The
+caller says \emph{what} it wants (``a PDF exporter''); the factory decides
+\emph{how} to build it. This single indirection is what lets you swap or
+add implementations without touching callers.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Shape {
+    virtual void draw() const = 0;
+    virtual ~Shape() = default;
+};
+struct Circle : Shape { void draw() const override { cout << "Circle\n"; } };
+struct Square : Shape { void draw() const override { cout << "Square\n"; } };
+
+enum class ShapeType { Circle, Square };
+
+struct ShapeFactory {                          // the one place that knows
+    static unique_ptr<Shape> create(ShapeType t) {
+        switch (t) {
+            case ShapeType::Circle: return make_unique<Circle>();
+            case ShapeType::Square: return make_unique<Square>();
+        }
+        return nullptr;
+    }
+};
+
+int main() {
+    auto s1 = ShapeFactory::create(ShapeType::Circle);
+    auto s2 = ShapeFactory::create(ShapeType::Square);
+    s1->draw();                                // caller knows only "Shape"
+    s2->draw();
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Decouples callers from concrete classes; new products are
+added in one spot; supports the Open/Closed Principle. \textbf{Cons.} Adds
+a layer of indirection and one more class/function to maintain; the
+factory itself still centralises knowledge of every product (mitigated by
+registration-based factories).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Factory Method replaces scattered \texttt{new ConcreteClass} calls with a
+single creator returning the abstract type. It is the standard cure for a
+type-tag \texttt{switch} and the most common way an interviewer expects
+you to satisfy Open/Closed. Abstract Factory (next) generalises it to
+whole \emph{families} of products.
+\end{takeawaybox}

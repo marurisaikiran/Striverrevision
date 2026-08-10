@@ -1,0 +1,83 @@
+\section{Proxy}
+\label{sec:pat-proxy}
+
+\problemstatement{Provide a surrogate or placeholder for another object to
+control access to it -- for lazy initialisation, access control, caching,
+logging, or standing in for a remote object.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``wrap an object to control how and when it is
+used''} without changing its interface: delay an expensive load until
+needed (virtual proxy), check permissions (protection proxy), cache
+results, or represent something across a network (remote proxy).
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+A Proxy implements the \emph{same interface} as the real subject and holds
+a reference to it. It intercepts each call, does its extra job (lazy
+create, permission check, cache lookup, log), then forwards to the real
+object. Because the interface matches, clients cannot tell they are
+talking to a proxy rather than the real thing.
+
+\begin{ideabox}[Same Interface, Controlled Access]
+Proxy shares Decorator's ``wrap with the same interface'' shape but its
+intent is \emph{access control and management}, not adding features. The
+canonical use is the virtual proxy: construct the heavy real object only
+on first genuine use.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Image {
+    virtual void display() = 0;
+    virtual ~Image() = default;
+};
+
+class RealImage : public Image {                // expensive real subject
+    string filename;
+public:
+    RealImage(const string& f) : filename(f) {
+        cout << "Loading " << filename << " from disk\n";   // heavy
+    }
+    void display() override { cout << "Displaying " << filename << "\n"; }
+};
+
+class ImageProxy : public Image {               // virtual proxy
+    string filename;
+    unique_ptr<RealImage> real;                 // created lazily
+public:
+    ImageProxy(const string& f) : filename(f) {}
+    void display() override {
+        if (!real) real = make_unique<RealImage>(filename);  // load on demand
+        real->display();
+    }
+};
+
+int main() {
+    ImageProxy img("photo.png");                // no disk load yet
+    cout << "Proxy created, nothing loaded.\n";
+    img.display();                              // loads now, then displays
+    img.display();                              // reuses, no reload
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Adds access control, laziness, caching or remoting
+transparently; the client interface is unchanged. \textbf{Cons.} Extra
+indirection and latency on first access; a poorly designed proxy can hide
+performance costs or introduce inconsistency between proxy and subject.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Proxy stands in for a real object behind an identical interface to control
+access -- lazy loading, protection, caching, or remoting. It looks like
+Decorator but the intent differs: Decorator \emph{adds behaviour}, Proxy
+\emph{governs access}. Name the proxy variant (virtual, protection,
+remote) when you use it.
+\end{takeawaybox}

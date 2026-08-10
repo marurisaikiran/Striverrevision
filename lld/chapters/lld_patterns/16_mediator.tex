@@ -1,0 +1,87 @@
+\section{Mediator}
+\label{sec:pat-mediator}
+
+\problemstatement{Define an object that encapsulates how a set of objects
+interact, so they refer to the mediator instead of to each other -- turning
+a tangle of many-to-many references into a hub-and-spoke.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``every component talks to every other component''} --
+an $n^2$ web of direct references (a dialog where each widget reacts to
+others, a chat room, air-traffic control). When coupling between peers
+grows quadratic, route it through a mediator.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Instead of colleagues holding references to one another, each holds a
+reference to a single \emph{mediator}. When a colleague changes, it
+notifies the mediator, which decides who else needs to know and calls
+them. The colleagues become simple and reusable; all the interaction logic
+concentrates in one place -- the mediator -- which is the only object that
+knows the participants.
+
+\begin{ideabox}[Centralise the Many-to-Many]
+Replace peer-to-peer links with a hub. Colleagues know only the mediator;
+the mediator knows the colleagues. This converts $O(n^2)$ coupling into
+$O(n)$ and makes interaction rules explicit and changeable in one spot.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class User;
+struct ChatRoom {                               // mediator
+    virtual void send(const string& msg, User* from) = 0;
+    virtual ~ChatRoom() = default;
+};
+
+class User {
+    string name;
+    ChatRoom* room;                             // knows only the mediator
+public:
+    User(string n, ChatRoom* r) : name(move(n)), room(r) {}
+    const string& getName() const { return name; }
+    void send(const string& msg);
+    void receive(const string& msg, const string& from) {
+        cout << name << " got from " << from << ": " << msg << "\n";
+    }
+};
+
+class Room : public ChatRoom {
+    vector<User*> users;
+public:
+    void join(User* u) { users.push_back(u); }
+    void send(const string& msg, User* from) override {
+        for (User* u : users)
+            if (u != from) u->receive(msg, from->getName());   // hub routes
+    }
+};
+
+void User::send(const string& msg) { room->send(msg, this); }
+
+int main() {
+    Room room;
+    User a("Alice", &room), b("Bob", &room), c("Carol", &room);
+    room.join(&a); room.join(&b); room.join(&c);
+    a.send("hi all");                           // no direct peer links
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Removes tight peer-to-peer coupling; interaction logic
+lives in one place; colleagues become reusable. \textbf{Cons.} The
+mediator can swell into a complex ``god object'' as rules accumulate --
+you have centralised complexity, not removed it.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Mediator replaces a many-to-many mesh of collaborators with a hub that
+owns the interaction rules, cutting coupling from $O(n^2)$ to $O(n)$.
+Watch the mediator itself for bloat. Classic examples: chat rooms, UI
+dialog coordination, air-traffic control.
+\end{takeawaybox}

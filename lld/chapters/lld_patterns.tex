@@ -1,0 +1,74 @@
+\chapter{Design Patterns}
+\chapterepigraph{A design pattern is a named, reusable answer to a
+recurring design problem. You will almost never invent one in an
+interview; you will \emph{recognise} that the problem in front of you is
+one you have seen before and reach for the matching pattern. This chapter
+is organised to make that recognition fast: learn the intent and the
+tell-tale phrase of each, and the C++ writes itself.}
+
+\section{How to Choose a Pattern}
+\label{sec:patterns-intro}
+
+The Gang of Four catalogue splits into three families by \emph{what the
+pattern is about}: creating objects, composing objects into larger
+structures, or coordinating behaviour between objects.
+
+\begin{patternbox}[The Three Families and Their Job]
+\begin{itemize}
+  \item \textbf{Creational} -- control \emph{how objects are made}, so
+        code does not hard-wire concrete classes: Singleton, Factory
+        Method, Abstract Factory, Builder, Prototype.
+  \item \textbf{Structural} -- compose objects and classes into larger
+        structures while keeping them flexible: Adapter, Bridge,
+        Composite, Decorator, Facade, Flyweight, Proxy.
+  \item \textbf{Behavioural} -- assign responsibilities and manage
+        communication between objects: Chain of Responsibility, Command,
+        Iterator, Mediator, Memento, Observer, State, Strategy, Template
+        Method, Visitor.
+\end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Recognise by the Sentence the Interviewer Says]
+Patterns are triggered by phrases. ``Exactly one instance'' $\to$
+Singleton. ``Create objects without naming the class'' $\to$ Factory.
+``Build a complex object step by step'' $\to$ Builder. ``Add behaviour at
+run time without subclassing'' $\to$ Decorator. ``Make two incompatible
+interfaces work together'' $\to$ Adapter. ``Notify many objects when one
+changes'' $\to$ Observer. ``Swap an algorithm at run time'' $\to$
+Strategy. ``Behaviour depends on internal state'' $\to$ State. Train on
+the triggers and pattern choice becomes reflexive.
+\end{ideabox}
+
+Each section states the pattern's intent, the phrase that signals it, its
+participants and structure, a complete C++ example, and the trade-offs
+that decide whether it is worth the extra indirection.
+
+\newpage
+
+% ---- Creational ----
+\input{chapters/lld_patterns/01_singleton.tex}
+\input{chapters/lld_patterns/02_factory_method.tex}
+\input{chapters/lld_patterns/03_abstract_factory.tex}
+\input{chapters/lld_patterns/04_builder.tex}
+\input{chapters/lld_patterns/05_prototype.tex}
+
+% ---- Structural ----
+\input{chapters/lld_patterns/06_adapter.tex}
+\input{chapters/lld_patterns/07_bridge.tex}
+\input{chapters/lld_patterns/08_composite.tex}
+\input{chapters/lld_patterns/09_decorator.tex}
+\input{chapters/lld_patterns/10_facade.tex}
+\input{chapters/lld_patterns/11_flyweight.tex}
+\input{chapters/lld_patterns/12_proxy.tex}
+
+% ---- Behavioural ----
+\input{chapters/lld_patterns/13_chain_of_responsibility.tex}
+\input{chapters/lld_patterns/14_command.tex}
+\input{chapters/lld_patterns/15_iterator.tex}
+\input{chapters/lld_patterns/16_mediator.tex}
+\input{chapters/lld_patterns/17_memento.tex}
+\input{chapters/lld_patterns/18_observer.tex}
+\input{chapters/lld_patterns/19_state.tex}
+\input{chapters/lld_patterns/20_strategy.tex}
+\input{chapters/lld_patterns/21_template_method.tex}
+\input{chapters/lld_patterns/22_visitor.tex}

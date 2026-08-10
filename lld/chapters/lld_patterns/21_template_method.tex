@@ -1,0 +1,78 @@
+\section{Template Method}
+\label{sec:pat-template-method}
+
+\problemstatement{Define the skeleton of an algorithm in a base-class
+method, deferring some steps to subclasses, so subclasses can redefine
+certain steps without changing the algorithm's overall structure.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``the same overall procedure with a few steps that
+differ''} -- data importers that all parse/validate/save but read
+different formats, report generators, test set-up/tear-down. When the
+outline is fixed but a few steps vary, fix the outline and vary the steps.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+A base class provides a non-virtual \texttt{templateMethod()} that calls a
+sequence of steps in a fixed order. Some steps are concrete (shared), some
+are \texttt{virtual}/abstract ``hooks'' that subclasses override. The
+invariant sequence lives in one place; only the variable steps are
+subclassed. This inverts control: the base class calls down into the
+subclass (``don't call us, we'll call you'').
+
+\begin{ideabox}[Fix the Skeleton, Override the Steps]
+Keep the algorithm's order in a base method and expose just the varying
+steps as overridable hooks. Subclasses cannot accidentally reorder or skip
+the algorithm -- they only fill in the blanks.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class DataProcessor {
+public:
+    void process() {                            // template method (fixed order)
+        read();
+        auto data = parse();
+        cout << "Processing " << data << " rows\n";
+        save();
+    }
+    virtual ~DataProcessor() = default;
+protected:
+    virtual void read() = 0;                     // varying steps
+    virtual int  parse() = 0;
+    void save() { cout << "Saved to DB\n"; }     // shared step
+};
+
+class CsvProcessor : public DataProcessor {
+protected:
+    void read() override { cout << "Read CSV file\n"; }
+    int  parse() override { return 42; }
+};
+
+int main() {
+    CsvProcessor p;
+    p.process();                                // skeleton runs, steps vary
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Removes duplicated algorithm structure; enforces a fixed
+sequence; subclasses supply only what differs. \textbf{Cons.} Relies on
+inheritance (less flexible than composition); the base--subclass contract
+about which hooks to override can be subtle; changing the skeleton affects
+all subclasses.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Template Method locks an algorithm's structure in a base method and lets
+subclasses override only the variable steps -- inheritance-based inversion
+of control. Its composition-based cousin is Strategy: Template Method
+varies steps via subclassing, Strategy varies the whole algorithm via an
+injected object.
+\end{takeawaybox}

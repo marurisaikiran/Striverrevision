@@ -1,0 +1,77 @@
+\section{Strategy}
+\label{sec:pat-strategy}
+
+\problemstatement{Define a family of interchangeable algorithms,
+encapsulate each one, and make them swappable at run time so the algorithm
+varies independently of the client that uses it.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``several ways to do the same thing, chosen at run
+time''} -- different sort orders, payment methods, compression schemes,
+route-finding algorithms. When you catch yourself writing \texttt{if
+(mode == A) doA(); else doB();}, extract the modes into strategy objects.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Encapsulate each algorithm behind a common interface. The context holds a
+pointer to a strategy and delegates the varying step to it, without knowing
+which concrete algorithm it is. Clients pick and inject a strategy; they
+can change it at run time. This is the Open/Closed Principle for
+behaviour: add a new algorithm as a new class, edit nothing existing.
+
+\begin{ideabox}[Inject the Algorithm as an Object]
+Pull the part that varies into a strategy object and hand it to the
+context. The context is written once against the strategy interface; the
+concrete behaviour is a plug-in chosen by the client. This is composition
+replacing a conditional.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct PaymentStrategy {
+    virtual void pay(int amount) = 0;
+    virtual ~PaymentStrategy() = default;
+};
+struct CreditCard : PaymentStrategy {
+    void pay(int amt) override { cout << "Paid " << amt << " by card\n"; }
+};
+struct UpiPayment : PaymentStrategy {
+    void pay(int amt) override { cout << "Paid " << amt << " via UPI\n"; }
+};
+
+class Checkout {                                // context
+    unique_ptr<PaymentStrategy> strategy;
+public:
+    void setStrategy(unique_ptr<PaymentStrategy> s) { strategy = move(s); }
+    void pay(int amount) { strategy->pay(amount); }   // delegate varying step
+};
+
+int main() {
+    Checkout checkout;
+    checkout.setStrategy(make_unique<CreditCard>());
+    checkout.pay(500);
+    checkout.setStrategy(make_unique<UpiPayment>());  // swap at run time
+    checkout.pay(300);
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Algorithms are interchangeable at run time; removes
+conditionals; each algorithm is isolated and testable; supports
+Open/Closed. \textbf{Cons.} Clients must know the strategies exist to
+choose one; more objects/classes; overkill when the behaviour never varies.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Strategy encapsulates interchangeable algorithms behind one interface and
+lets the client inject the choice, replacing behavioural conditionals with
+composition. It is the single most common behavioural pattern in
+interviews. Contrast with State: same shape, but the \emph{client} picks a
+Strategy while a State machine swaps its own state.
+\end{takeawaybox}

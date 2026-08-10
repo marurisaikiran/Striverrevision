@@ -1,0 +1,93 @@
+\section{Design Splitwise (Expense Sharing)}
+\label{sec:case-splitwise}
+
+\problemstatement{Design an expense-sharing app: users form groups, add
+expenses split among members (equally, by exact amount, or by
+percentage), and query who owes whom. Support simplifying debts so the
+fewest transactions settle everyone.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: What split types -- equal, exact, percentage, shares? Do we track
+pairwise balances or a single net balance per user? Is debt simplification
+required? For this design assume: all three split types, a net-balance
+model, and an optional simplify step.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+\texttt{User}, \texttt{Group}, \texttt{Expense} (amount, payer,
+participants, and a \texttt{Split}), a \texttt{SplitStrategy}
+(\texttt{Equal}, \texttt{Exact}, \texttt{Percent}), and a
+\texttt{BalanceSheet}/\texttt{ExpenseManager} that maintains net balances.
+The varying part -- how an amount is divided -- is a textbook Strategy.
+
+\begin{ideabox}[Split Logic Is a Strategy; Balances Are Netted]
+Model each split rule as a \textbf{SplitStrategy} producing a
+per-participant owed amount, so new rules never touch the manager. Store a
+single net balance per (debtor, creditor) or per user; adding an expense
+just adjusts these. Debt simplification is then a graph settle: net each
+person, then greedily match biggest creditor with biggest debtor.
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SplitStrategy {                          // Strategy: division rule
+    // returns each participant's share of `amount`
+    virtual vector<double> split(double amount, int n,
+                                 const vector<double>& params) const = 0;
+    virtual ~SplitStrategy() = default;
+};
+struct EqualSplit : SplitStrategy {
+    vector<double> split(double amount, int n, const vector<double>&) const override {
+        return vector<double>(n, amount / n);
+    }
+};
+struct PercentSplit : SplitStrategy {
+    vector<double> split(double amount, int n, const vector<double>& pct) const override {
+        vector<double> out(n);
+        for (int i = 0; i < n; i++) out[i] = amount * pct[i] / 100.0;
+        return out;
+    }
+};
+
+class ExpenseManager {
+    // balance[a][b] = how much a owes b
+    map<string, map<string, double>> balance;
+public:
+    void addExpense(const string& payer, const vector<string>& members,
+                    double amount, const SplitStrategy& strat,
+                    const vector<double>& params = {}) {
+        auto shares = strat.split(amount, members.size(), params);
+        for (size_t i = 0; i < members.size(); i++) {
+            if (members[i] == payer) continue;
+            balance[members[i]][payer] += shares[i];   // member owes payer
+        }
+    }
+    void showBalances() {
+        for (auto& [debtor, m] : balance)
+            for (auto& [creditor, amt] : m)
+                if (amt > 1e-9)
+                    cout << debtor << " owes " << creditor << ": " << amt << "\n";
+    }
+};
+
+int main() {
+    ExpenseManager mgr;
+    vector<string> group = {"Alice", "Bob", "Carol"};
+    mgr.addExpense("Alice", group, 300, EqualSplit{});   // each owes Alice 100
+    mgr.showBalances();
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+Splitwise is a Strategy showcase: isolate the split rule so equal/exact/
+percent are plug-ins, and keep a simple netted balance model. The
+memorable extension is \emph{debt simplification} -- reduce the balance
+graph to the minimum number of settling transactions by greedily matching
+the largest creditor and debtor.
+\end{takeawaybox}

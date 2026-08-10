@@ -1,0 +1,82 @@
+\section{Visitor}
+\label{sec:pat-visitor}
+
+\problemstatement{Represent an operation to be performed on the elements of
+an object structure, letting you define a new operation without changing
+the classes of the elements it operates on.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``add new operations over a stable set of element
+types''} -- an AST you want to pretty-print, type-check, and compile,
+without editing every node class each time. When element types rarely
+change but operations keep being added, Visitor centralises each operation.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Each element exposes \texttt{accept(visitor)}, which calls back
+\texttt{visitor.visitConcreteType(*this)} -- a technique called
+\textbf{double dispatch}, because the executed method depends on both the
+element's type and the visitor's type. A visitor bundles one operation
+across all element types as a set of \texttt{visit} overloads. Adding an
+operation is a new visitor class; the element classes are untouched.
+
+\begin{ideabox}[Double Dispatch Moves Operations Out of the Elements]
+\texttt{accept} resolves the element's concrete type; the matching
+\texttt{visit} overload resolves the operation. Together they route to the
+right (element, operation) pair without a type switch, so operations live
+in visitors rather than being smeared across every element class.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Circle; struct Square;
+struct Visitor {
+    virtual void visit(Circle&) = 0;
+    virtual void visit(Square&) = 0;
+    virtual ~Visitor() = default;
+};
+
+struct Shape { virtual void accept(Visitor& v) = 0; virtual ~Shape() = default; };
+struct Circle : Shape {
+    double r = 2;
+    void accept(Visitor& v) override { v.visit(*this); }   // double dispatch
+};
+struct Square : Shape {
+    double side = 3;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+struct AreaVisitor : Visitor {                  // a new operation, no shape edits
+    void visit(Circle& c) override { cout << "Circle area " << 3.14159 * c.r * c.r << "\n"; }
+    void visit(Square& s) override { cout << "Square area " << s.side * s.side << "\n"; }
+};
+
+int main() {
+    vector<unique_ptr<Shape>> shapes;
+    shapes.push_back(make_unique<Circle>());
+    shapes.push_back(make_unique<Square>());
+    AreaVisitor area;
+    for (auto& s : shapes) s->accept(area);     // right visit() per type
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Add new operations easily (one new visitor); gathers a
+scattered operation into one class; keeps element classes clean.
+\textbf{Cons.} Adding a new \emph{element type} forces editing every
+visitor -- the exact opposite trade-off to most patterns. Use only when
+element types are stable and operations grow.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Visitor externalises operations over an object structure via double
+dispatch, so new operations are new visitor classes with the elements
+untouched -- at the cost of making new element types expensive. It is the
+inverse trade-off of a type switch, and the go-to for AST/compiler passes.
+\end{takeawaybox}

@@ -1,0 +1,83 @@
+\section{Decorator}
+\label{sec:pat-decorator}
+
+\problemstatement{Attach additional responsibilities to an object
+dynamically, at run time, without subclassing -- providing a flexible
+alternative to inheritance for extending behaviour.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``add behaviour at run time in combinations,''} where
+a subclass per combination would explode (coffee with milk, with sugar,
+with milk-and-sugar-and-cream). When features stack in arbitrary
+combinations, wrap rather than subclass.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+A decorator implements the \emph{same interface} as the object it wraps
+and holds a pointer to a wrapped component of that interface. It forwards
+calls to the inner object and adds its own behaviour before or after. Since
+a decorator is itself a component, decorators nest: each layer adds one
+feature, and you compose features by stacking wrappers at run time.
+
+\begin{ideabox}[Same Interface, Wrap and Add]
+Unlike Adapter (changes the interface) a Decorator keeps the interface
+identical and augments the behaviour, so wrapped and unwrapped objects are
+interchangeable. Stacking decorators composes features additively without
+a single new subclass.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Coffee {                                // component
+    virtual double cost() const = 0;
+    virtual string desc() const = 0;
+    virtual ~Coffee() = default;
+};
+
+struct Espresso : Coffee {                     // concrete component
+    double cost() const override { return 2.0; }
+    string desc() const override { return "Espresso"; }
+};
+
+struct CoffeeDecorator : Coffee {              // base decorator
+    unique_ptr<Coffee> inner;
+    CoffeeDecorator(unique_ptr<Coffee> c) : inner(move(c)) {}
+};
+
+struct Milk : CoffeeDecorator {
+    Milk(unique_ptr<Coffee> c) : CoffeeDecorator(move(c)) {}
+    double cost() const override { return inner->cost() + 0.5; }
+    string desc() const override { return inner->desc() + " + Milk"; }
+};
+struct Sugar : CoffeeDecorator {
+    Sugar(unique_ptr<Coffee> c) : CoffeeDecorator(move(c)) {}
+    double cost() const override { return inner->cost() + 0.2; }
+    string desc() const override { return inner->desc() + " + Sugar"; }
+};
+
+int main() {
+    unique_ptr<Coffee> order =
+        make_unique<Sugar>(make_unique<Milk>(make_unique<Espresso>()));
+    cout << order->desc() << " = $" << order->cost() << "\n";  // stacked
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Add/remove responsibilities at run time; avoids a subclass
+per feature-combination; each decorator is a small, single-purpose class.
+\textbf{Cons.} Many small objects and layers can be hard to debug; order
+of wrapping can matter; a deep stack obscures the concrete object.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Decorator wraps an object in another of the same interface to add
+behaviour, and nests to compose features -- the run-time alternative to a
+combinatorial subclass tree. Keyword: ``add responsibilities dynamically.''
+It is the pattern behind Java's I/O streams and many middleware chains.
+\end{takeawaybox}

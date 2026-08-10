@@ -1,0 +1,77 @@
+\section{Memento}
+\label{sec:pat-memento}
+
+\problemstatement{Capture and externalise an object's internal state
+without violating encapsulation, so the object can be restored to that
+state later -- the mechanism behind save points and undo.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``save and restore an object's state''} -- snapshots,
+checkpoints, undo history. When you must be able to roll an object back but
+do not want to expose its internals to the code that stores the snapshot,
+use a Memento.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Three roles: the \textbf{Originator} (whose state we snapshot) creates a
+\textbf{Memento} holding a copy of its state and can later restore from
+one; the \textbf{Caretaker} keeps mementos (e.g.\ on an undo stack) but
+treats them as opaque -- it never reads their contents. Encapsulation is
+preserved because only the Originator can read or write a memento's
+internals.
+
+\begin{ideabox}[Opaque Snapshots the Caretaker Cannot Read]
+The Originator packages its own state into a memento and unpacks it on
+restore; the Caretaker only stores and hands mementos back. This division
+gives you undo without leaking private state to the code that manages
+history.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Memento {                                 // opaque snapshot
+    friend class Editor;                        // only Editor sees inside
+    string state;
+    Memento(string s) : state(move(s)) {}
+};
+
+class Editor {                                  // originator
+    string content;
+public:
+    void type(const string& text) { content += text; }
+    string show() const { return content; }
+    Memento save() const { return Memento(content); }      // snapshot
+    void restore(const Memento& m) { content = m.state; }  // roll back
+};
+
+int main() {
+    Editor editor;
+    editor.type("Hello");
+    Memento checkpoint = editor.save();         // caretaker holds this
+    editor.type(", World");
+    cout << "Before undo: " << editor.show() << "\n";
+    editor.restore(checkpoint);                 // back to "Hello"
+    cout << "After undo:  " << editor.show() << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Clean save/restore without breaking encapsulation; pairs
+naturally with Command for undo. \textbf{Cons.} Snapshots can be
+memory-heavy if state is large or saved often; deciding what to include in
+a memento and how frequently to snapshot needs care (consider
+incremental/diff mementos).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Memento snapshots an object's state into an opaque object that only the
+originator can interpret, enabling undo and checkpoints while keeping
+internals private. It frequently teams with Command: the command stores a
+memento to reverse itself. Cost to flag: memory for many/large snapshots.
+\end{takeawaybox}

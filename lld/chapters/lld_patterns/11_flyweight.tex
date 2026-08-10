@@ -1,0 +1,83 @@
+\section{Flyweight}
+\label{sec:pat-flyweight}
+
+\problemstatement{Minimise memory use by sharing as much data as possible
+between many similar objects, separating the intrinsic (shared,
+state-independent) part from the extrinsic (per-instance) part.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``millions of near-identical objects blowing up
+memory''} -- every character in a document, every tree in a forest, every
+bullet in a game. When objects share most of their data, store the shared
+part once and pass in what differs.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Partition an object's state into \textbf{intrinsic} state -- shared,
+immutable, independent of context (a glyph's shape and font) -- and
+\textbf{extrinsic} state -- unique per use (the glyph's position on the
+page). Store one flyweight per distinct intrinsic value in a factory/pool,
+hand the same shared flyweight to every user, and pass extrinsic state as
+method arguments rather than storing it.
+
+\begin{ideabox}[Share the Intrinsic, Pass the Extrinsic]
+Cache and reuse the heavy shared part keyed by its value; supply the light
+per-instance part at call time. A thousand `a' characters point to one
+shared glyph object; only their coordinates differ and those live in the
+document, not in a thousand glyph copies.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Glyph {                                   // flyweight: intrinsic state
+    char symbol;                                // shared, immutable
+public:
+    Glyph(char c) : symbol(c) { cout << "Created glyph '" << c << "'\n"; }
+    void draw(int x, int y) const {             // extrinsic passed in
+        cout << "'" << symbol << "' at (" << x << "," << y << ")\n";
+    }
+};
+
+class GlyphFactory {                            // ensures sharing
+    unordered_map<char, shared_ptr<Glyph>> pool;
+public:
+    shared_ptr<Glyph> get(char c) {
+        auto it = pool.find(c);
+        if (it != pool.end()) return it->second;   // reuse
+        auto g = make_shared<Glyph>(c);
+        pool[c] = g;
+        return g;
+    }
+};
+
+int main() {
+    GlyphFactory factory;
+    string text = "aab";
+    int x = 0;
+    for (char c : text) {
+        auto g = factory.get(c);                // 'a' created once, shared
+        g->draw(x, 0);
+        x += 10;
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Dramatic memory savings when many objects share state;
+fewer allocations. \textbf{Cons.} Complexity of splitting state; extrinsic
+state must be recomputed or passed each time (a CPU-for-memory trade);
+flyweights must be immutable to be safely shared.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Flyweight shares one immutable intrinsic object among many contexts and
+passes the varying extrinsic state as arguments, trading a little CPU for
+large memory savings. Recognise it by ``huge number of objects, mostly
+identical.'' The pool/factory that guarantees sharing is essential.
+\end{takeawaybox}

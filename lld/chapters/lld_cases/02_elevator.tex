@@ -1,0 +1,104 @@
+\section{Design an Elevator System}
+\label{sec:case-elevator}
+
+\problemstatement{Design the control system for a building with multiple
+elevators. Handle external hall calls (up/down on a floor) and internal
+car requests (go to floor N), decide which elevator serves a request, and
+move each car efficiently.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: How many elevators and floors? What scheduling goal -- minimise wait,
+minimise travel, or fairness? Are there express/service elevators? For
+this design assume: $N$ elevators, a central dispatcher, a
+nearest-suitable-car scheduling policy that is swappable, and each car
+running a SCAN (elevator algorithm) sweep.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+\texttt{Elevator} (a car with current floor, direction, and its set of
+target floors), \texttt{Request} (hall or car call), \texttt{Direction}
+(up/down/idle), a \texttt{Dispatcher} that assigns requests to cars via a
+\texttt{SchedulingStrategy}, and a \texttt{Building} owning the elevators.
+Each elevator behaves as a small state machine: idle, moving up, moving
+down.
+
+\begin{ideabox}[Patterns That Keep It Flexible]
+\textbf{Strategy} for \texttt{SchedulingStrategy} (nearest car, least
+load, zoning) so dispatch policy is a plug-in. \textbf{State} for each
+elevator's motion (idle/up/down) to keep the movement logic clean.
+Optionally \textbf{Observer} so displays update as a car moves. The car's
+own sweep is the classic SCAN scheduling of its pending stops.
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+enum class Direction { Up, Down, Idle };
+
+class Elevator {
+public:
+    int id, floor = 0;
+    Direction dir = Direction::Idle;
+    set<int> targets;                           // pending stops
+
+    void addTarget(int f) { targets.insert(f); }
+    int distanceTo(int f) const { return abs(floor - f); }
+
+    void step() {                               // one SCAN move
+        if (targets.empty()) { dir = Direction::Idle; return; }
+        int next = (dir == Direction::Down)
+                     ? *prev(targets.upper_bound(floor))
+                     : *targets.lower_bound(floor);
+        if (next > floor) { floor++; dir = Direction::Up; }
+        else if (next < floor) { floor--; dir = Direction::Down; }
+        else { targets.erase(floor); cout << "Car " << id << " stop @ " << floor << "\n"; }
+    }
+};
+
+struct SchedulingStrategy {                     // Strategy: which car serves
+    virtual Elevator* choose(vector<Elevator>& cars, int floor) = 0;
+    virtual ~SchedulingStrategy() = default;
+};
+struct NearestCar : SchedulingStrategy {
+    Elevator* choose(vector<Elevator>& cars, int floor) override {
+        Elevator* best = nullptr;
+        for (auto& c : cars)
+            if (!best || c.distanceTo(floor) < best->distanceTo(floor)) best = &c;
+        return best;
+    }
+};
+
+class Dispatcher {
+    vector<Elevator> cars;
+    unique_ptr<SchedulingStrategy> policy;
+public:
+    Dispatcher(int n, unique_ptr<SchedulingStrategy> p) : policy(move(p)) {
+        for (int i = 0; i < n; i++) cars.push_back({i});
+    }
+    void hallCall(int floor) {
+        Elevator* car = policy->choose(cars, floor);
+        car->addTarget(floor);
+        cout << "Assigned car " << car->id << " to floor " << floor << "\n";
+    }
+    void tick() { for (auto& c : cars) c.step(); }
+};
+
+int main() {
+    Dispatcher d(2, make_unique<NearestCar>());
+    d.hallCall(5);
+    for (int i = 0; i < 6; i++) d.tick();
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+Elevator design shines when you separate \emph{dispatch} (which car, a
+\textbf{Strategy}) from \emph{motion} (how a car sweeps its stops, a
+\textbf{State}/SCAN algorithm). Discuss the scheduling goal explicitly.
+Follow-ups: concurrency across cars, priority/express calls, and
+starvation avoidance.
+\end{takeawaybox}

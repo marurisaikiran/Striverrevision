@@ -1,0 +1,87 @@
+\section{Design a Rate Limiter}
+\label{sec:case-rate-limiter}
+
+\problemstatement{Design a rate limiter that caps how many requests a
+client may make in a time window -- e.g.\ 100 requests per minute -- and
+lets the algorithm (token bucket, sliding window, fixed window) be swapped.
+Return allow/deny per request.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: Per-user, per-IP, or global limits? Which algorithm -- fixed window,
+sliding window log/counter, token bucket, leaky bucket? Distributed across
+servers or single-node? For this design assume: per-client keys, a
+swappable algorithm, and single-node with a note on distributed
+extensions.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+A \texttt{RateLimiter} facade keyed by client, and a
+\texttt{RateLimitStrategy} interface with implementations
+(\texttt{TokenBucket}, \texttt{FixedWindow}, \texttt{SlidingWindow}). Each
+strategy stores per-client state and answers \texttt{allow()}. The varying
+algorithm is, again, a Strategy.
+
+\begin{ideabox}[Token Bucket in a Nutshell]
+A token bucket holds up to \texttt{capacity} tokens, refilled at a steady
+\texttt{rate} per second. Each request tries to take one token: succeed and
+proceed, or fail and get rejected. It naturally allows short bursts (up to
+capacity) while bounding the long-run average -- which is why it is the
+most common choice. Refill lazily by computing elapsed time on each call
+rather than running a timer.
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct RateLimitStrategy {
+    virtual bool allow(const string& client) = 0;
+    virtual ~RateLimitStrategy() = default;
+};
+
+class TokenBucket : public RateLimitStrategy {
+    double capacity, refillPerSec;
+    struct Bucket { double tokens; double lastRefill; };
+    unordered_map<string, Bucket> buckets;
+
+    double now() {
+        return chrono::duration<double>(
+            chrono::steady_clock::now().time_since_epoch()).count();
+    }
+public:
+    TokenBucket(double cap, double rate) : capacity(cap), refillPerSec(rate) {}
+    bool allow(const string& client) override {
+        double t = now();
+        auto& b = buckets.try_emplace(client, Bucket{capacity, t}).first->second;
+        b.tokens = min(capacity, b.tokens + (t - b.lastRefill) * refillPerSec);
+        b.lastRefill = t;
+        if (b.tokens >= 1.0) { b.tokens -= 1.0; return true; }   // consume
+        return false;                                            // throttled
+    }
+};
+
+class RateLimiter {                             // facade over the strategy
+    unique_ptr<RateLimitStrategy> strategy;
+public:
+    RateLimiter(unique_ptr<RateLimitStrategy> s) : strategy(move(s)) {}
+    bool allow(const string& client) { return strategy->allow(client); }
+};
+
+int main() {
+    RateLimiter limiter(make_unique<TokenBucket>(3, 1));  // burst 3, 1/s
+    for (int i = 0; i < 5; i++)
+        cout << "req " << i << ": " << (limiter.allow("user1") ? "OK" : "DENY") << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+Rate limiting is a \textbf{Strategy} problem: token bucket, fixed window,
+and sliding window are interchangeable behind one \texttt{allow()}
+interface. Know token bucket's burst-vs-average trade-off cold, and
+compute refill lazily. The senior-level extension is \emph{distributed}
+limiting -- shared counters in Redis with atomic increments and expiry.
+\end{takeawaybox}

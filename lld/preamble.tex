@@ -1,0 +1,128 @@
+% ==========================================================
+% Shared preamble: packages, page geometry, custom environments
+% ==========================================================
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{mdframed}
+\usepackage{array}
+\usepackage{booktabs}
+
+% ---------------- Header / Footer ----------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize Maruri Saikiran}
+\fancyhead[R]{\footnotesize Greedy \& Binary Search}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ---------------- Chapter style with epigraph ----------------
+\newenvironment{bookepigraph}
+  {\list{}{\leftmargin=1.2cm\rightmargin=1.2cm}\item[]\itshape}
+  {\endlist}
+\newcommand{\chapterepigraph}[1]{%
+  \begin{bookepigraph}#1\end{bookepigraph}
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\Huge}
+  {\chaptertitlename\ \thechapter}
+  {10pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+
+% ---------------- Code listing style (C++) ----------------
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+\definecolor{codekw}{rgb}{0.0,0.0,0.6}
+\definecolor{codecomment}{rgb}{0.25,0.5,0.25}
+\definecolor{codestring}{rgb}{0.6,0.1,0.1}
+
+\lstdefinestyle{cppstyle}{
+  language=C++,
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  frame=single,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  captionpos=b
+}
+\lstset{style=cppstyle}
+
+% ---------------- Custom pedagogical boxes ----------------
+
+% Box 1: Pattern Recognition -- keywords that hint at the technique
+\newtcolorbox{patternbox}[1][Pattern Recognition]{
+  colback=blue!4!white,
+  colframe=blue!40!black,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=6pt,right=6pt,top=4pt,bottom=4pt
+}
+
+% Box 2: Key Idea / Greedy Choice / Observation
+\newtcolorbox{ideabox}[1][Key Idea]{
+  colback=yellow!8!white,
+  colframe=orange!70!black,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=6pt,right=6pt,top=4pt,bottom=4pt
+}
+
+% Box 3: Complexity Analysis
+\newtcolorbox{complexitybox}[1][Complexity Analysis]{
+  colback=green!5!white,
+  colframe=green!35!black,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=6pt,right=6pt,top=4pt,bottom=4pt
+}
+
+% Box 4: Key Takeaway / Principle (end of section)
+\newtcolorbox{takeawaybox}[1][Key Takeaway]{
+  colback=gray!6!white,
+  colframe=black!70!white,
+  fonttitle=\bfseries,
+  title={#1},
+  breakable,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=6pt,right=6pt,top=4pt,bottom=4pt
+}
+
+% Problem statement leading paragraph
+\newcommand{\problemstatement}[1]{\noindent\textbf{Problem Statement.} #1\par}
+
+% Dry run example label
+\newcommand{\dryrun}[1]{\noindent\textbf{Dry Run.} #1\par}
+
+\setlist[itemize]{leftmargin=1.4em}
+\setlist[enumerate]{leftmargin=1.6em}

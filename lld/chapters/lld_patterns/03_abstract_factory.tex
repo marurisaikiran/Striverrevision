@@ -1,0 +1,88 @@
+\section{Abstract Factory}
+\label{sec:pat-abstract-factory}
+
+\problemstatement{Provide an interface for creating \emph{families} of
+related objects without specifying their concrete classes, so an entire
+family can be swapped in one move -- for example a whole ``dark theme'' set
+of UI widgets versus a ``light theme'' set.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``several related objects that must be used
+together and vary as a set.''} A Windows button must pair with a Windows
+checkbox, not a Mac one. When products come in matched families and you
+must guarantee consistency within a family, reach for Abstract Factory.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+Where Factory Method creates \emph{one} product, Abstract Factory creates a
+\emph{suite}. You define an abstract factory interface with a creator
+method per product type (\texttt{createButton}, \texttt{createCheckbox}).
+Each concrete factory (\texttt{WindowsFactory}, \texttt{MacFactory})
+produces the matching family. Client code holds an abstract factory and
+asks it for products, never knowing or mixing platforms.
+
+\begin{ideabox}[A Factory of Factories, One per Family]
+Group the creators for a coherent family behind a single factory
+interface. Selecting a concrete factory once (at start-up) fixes the whole
+family, structurally preventing a mismatch like a Mac button beside a
+Windows checkbox.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Button   { virtual void paint() = 0; virtual ~Button()   = default; };
+struct Checkbox { virtual void paint() = 0; virtual ~Checkbox() = default; };
+
+struct WinButton   : Button   { void paint() override { cout << "Win button\n"; } };
+struct WinCheckbox : Checkbox { void paint() override { cout << "Win checkbox\n"; } };
+struct MacButton   : Button   { void paint() override { cout << "Mac button\n"; } };
+struct MacCheckbox : Checkbox { void paint() override { cout << "Mac checkbox\n"; } };
+
+struct GUIFactory {                            // abstract factory
+    virtual unique_ptr<Button>   createButton()   = 0;
+    virtual unique_ptr<Checkbox> createCheckbox() = 0;
+    virtual ~GUIFactory() = default;
+};
+struct WinFactory : GUIFactory {
+    unique_ptr<Button>   createButton()   override { return make_unique<WinButton>(); }
+    unique_ptr<Checkbox> createCheckbox() override { return make_unique<WinCheckbox>(); }
+};
+struct MacFactory : GUIFactory {
+    unique_ptr<Button>   createButton()   override { return make_unique<MacButton>(); }
+    unique_ptr<Checkbox> createCheckbox() override { return make_unique<MacCheckbox>(); }
+};
+
+void renderUI(GUIFactory& f) {                 // platform-agnostic
+    f.createButton()->paint();
+    f.createCheckbox()->paint();
+}
+
+int main() {
+    WinFactory win; MacFactory mac;
+    renderUI(win);
+    renderUI(mac);                             // whole family swapped
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Guarantees products from one family are used together;
+swapping families is a one-line change; isolates concrete classes.
+\textbf{Cons.} Adding a \emph{new product type} means changing the factory
+interface and every concrete factory -- a real cost when the product set
+grows. Best when families change often but the set of product types is
+stable.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Abstract Factory is Factory Method scaled to families: one factory
+interface with several creators, one concrete factory per family. It buys
+family consistency at the price of rigidity when new product \emph{types}
+appear. Recognise it whenever ``these objects must all match'' is a
+requirement.
+\end{takeawaybox}

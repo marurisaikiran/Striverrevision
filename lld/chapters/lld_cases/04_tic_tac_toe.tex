@@ -1,0 +1,96 @@
+\section{Design Tic-Tac-Toe}
+\label{sec:case-tic-tac-toe}
+
+\problemstatement{Design a Tic-Tac-Toe game (generalisable to an $n\times
+n$ board) supporting two players taking turns, move validation, and
+win/draw detection. Keep the design extensible to other grid games.}
+
+\begin{patternbox}[Clarify Before Designing]
+Ask: Fixed $3\times3$ or general $n\times n$ with $k$-in-a-row to win? Two
+human players or human-vs-AI? For this design assume: general board size,
+$n$-in-a-row to win, two players, and an efficient $O(1)$ win check per
+move rather than rescanning the board.
+\end{patternbox}
+
+\subsection*{Identify the entities}
+
+\texttt{Game} (orchestrates turns and end conditions), \texttt{Board}
+(grid state and win detection), \texttt{Player} (has a mark/symbol),
+\texttt{Move}, and \texttt{Piece}/\texttt{Symbol}. The game is a small
+lifecycle: in-progress, won, drawn -- a light State/enum.
+
+\begin{ideabox}[Incremental Win Check in O(1) per Move]
+Instead of scanning all lines after every move, keep running counts per
+row, per column, and the two diagonals for each player. A move updates
+just its row, column, and (if on a diagonal) the diagonal counters; a
+count reaching $n$ means a win. This turns win detection from $O(n^2)$
+into $O(1)$ per move.
+\end{ideabox}
+
+\subsection*{Class design (C++ skeleton)}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+class Board {
+    int n;
+    vector<vector<char>> grid;
+    vector<int> rowCnt, colCnt;                 // signed counts per player
+    int diag = 0, anti = 0;
+public:
+    Board(int size) : n(size), grid(size, vector<char>(size, '.')),
+                      rowCnt(size, 0), colCnt(size, 0) {}
+
+    bool inBounds(int r, int c) const { return r >= 0 && r < n && c >= 0 && c < n; }
+    bool isFree(int r, int c) const { return grid[r][c] == '.'; }
+
+    // returns true if this move wins. player = +1 (X) or -1 (O)
+    bool place(int r, int c, char mark, int player) {
+        grid[r][c] = mark;
+        rowCnt[r] += player; colCnt[c] += player;
+        if (r == c) diag += player;
+        if (r + c == n - 1) anti += player;
+        int win = n * player;
+        return rowCnt[r] == win || colCnt[c] == win || diag == win || anti == win;
+    }
+};
+
+struct Player { string name; char mark; int id; };  // id = +1 or -1
+
+class Game {
+    Board board; vector<Player> players; int turn = 0; int movesLeft;
+public:
+    Game(int n, Player a, Player b)
+        : board(n), players{a, b}, movesLeft(n * n) {}
+
+    string move(int r, int c) {
+        Player& p = players[turn];
+        if (!board.inBounds(r, c) || !board.isFree(r, c)) return "Invalid move";
+        bool won = board.place(r, c, p.mark, p.id);
+        movesLeft--;
+        if (won) return p.name + " wins";
+        if (movesLeft == 0) return "Draw";
+        turn ^= 1;                              // next player
+        return "ok";
+    }
+};
+
+int main() {
+    Game g(3, {"Alice",'X',+1}, {"Bob",'O',-1});
+    cout << g.move(0,0) << "\n";                // X
+    cout << g.move(1,0) << "\n";                // O
+    cout << g.move(0,1) << "\n";                // X
+    cout << g.move(1,1) << "\n";                // O
+    cout << g.move(0,2) << "\n";                // X wins (top row)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{takeawaybox}
+Tic-Tac-Toe rewards two things: a clean separation of \texttt{Game}
+(rules/turns) from \texttt{Board} (state/win check), and the $O(1)$
+incremental win-detection insight. Generalise to $n\times n$ up front.
+Follow-ups: an AI player via \textbf{Strategy} (minimax), and other grid
+games (Connect Four) reusing the board abstraction.
+\end{takeawaybox}

@@ -1,0 +1,89 @@
+\section{Observer}
+\label{sec:pat-observer}
+
+\problemstatement{Define a one-to-many dependency so that when one object
+(the subject) changes state, all its dependents (observers) are notified
+and updated automatically -- the foundation of event systems and
+publish/subscribe.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``when X changes, several other things must react''} --
+a spreadsheet cell and its charts, a stock price and its displays, a model
+and its views. When one source has many interested listeners that come and
+go, use Observer.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+The \textbf{Subject} maintains a list of \textbf{Observers} and offers
+\texttt{subscribe}/\texttt{unsubscribe}. On a relevant change it calls
+\texttt{notify()}, which invokes \texttt{update()} on every observer. The
+subject knows only the observer \emph{interface}, so observers can be added
+or removed at run time without the subject knowing their concrete types.
+This is the classic Model-View decoupling.
+
+\begin{ideabox}[Publish to a List of Subscribers]
+Keep subscribers behind an interface and iterate them on change. Loose
+coupling is the point: the subject broadcasts an event; who listens, and
+how many, is not its concern and can vary dynamically.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Observer {
+    virtual void update(int price) = 0;
+    virtual ~Observer() = default;
+};
+
+class Stock {                                   // subject
+    vector<Observer*> observers;
+    int price = 0;
+public:
+    void subscribe(Observer* o)   { observers.push_back(o); }
+    void unsubscribe(Observer* o) {
+        observers.erase(remove(observers.begin(), observers.end(), o),
+                        observers.end());
+    }
+    void setPrice(int p) {
+        price = p;
+        for (Observer* o : observers) o->update(price);   // notify all
+    }
+};
+
+struct Display : Observer {
+    string name;
+    Display(string n) : name(move(n)) {}
+    void update(int price) override {
+        cout << name << " sees price " << price << "\n";
+    }
+};
+
+int main() {
+    Stock stock;
+    Display a("Phone"), b("Web");
+    stock.subscribe(&a); stock.subscribe(&b);
+    stock.setPrice(100);                        // both notified
+    stock.unsubscribe(&a);
+    stock.setPrice(120);                        // only Web notified
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Loose coupling between subject and observers; observers
+added/removed at run time; supports broadcast/event architectures.
+\textbf{Cons.} Notification order is unspecified; risk of update storms or
+cycles; a dangling observer that forgot to unsubscribe causes bugs or
+leaks (use weak references or careful lifetime management).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Observer wires a one-to-many ``notify on change'' relationship behind an
+observer interface, the core of MVC and pub/sub. Interview keyword: ``when
+this changes, update all those.'' The pitfalls to name are lapsed-listener
+leaks and unspecified notification order.
+\end{takeawaybox}

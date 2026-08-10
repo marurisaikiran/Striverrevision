@@ -1,0 +1,59 @@
+\chapter{LLD Case Studies}
+\chapterepigraph{An LLD interview is a conversation, not a coding sprint.
+You are judged on how you clarify vague requirements, carve the problem
+into classes with clean responsibilities, choose patterns with
+justification, and leave room for the features the interviewer will ask
+for next. Each case study here follows that arc: clarify, identify
+entities, design, and name the patterns that keep the design flexible.}
+
+\section{How to Approach Any LLD Problem}
+\label{sec:cases-intro}
+
+Before writing a single class, run the same four steps every time. They
+turn a scary open-ended prompt into a structured design.
+
+\begin{ideabox}[The Four-Step LLD Method]
+\begin{enumerate}
+  \item \textbf{Clarify \& scope.} Ask about requirements and
+        constraints; state your assumptions. Nail down what is in and out
+        of scope \emph{before} designing.
+  \item \textbf{Identify entities.} Extract the nouns -- they become
+        classes; the verbs become methods. Assign each class one clear
+        responsibility (SRP).
+  \item \textbf{Design relationships \& patterns.} Decide how classes
+        relate (composition over inheritance) and where a known pattern
+        fits (Strategy for varying rules, Factory for creation, Observer
+        for notifications, State for lifecycles).
+  \item \textbf{Walk a scenario \& extend.} Trace one end-to-end flow,
+        then show how a likely new requirement slots in without rewrites.
+\end{enumerate}
+\end{ideabox}
+
+\begin{patternbox}[Patterns That Recur Across Case Studies]
+\begin{itemize}
+  \item \textbf{Pricing/matching/eligibility rules that vary} --
+        \textbf{Strategy}.
+  \item \textbf{Creating objects by type} -- \textbf{Factory}.
+  \item \textbf{Lifecycle with modes} (order, game, machine) --
+        \textbf{State}.
+  \item \textbf{``Notify these when that happens''} -- \textbf{Observer}.
+  \item \textbf{One shared resource} (config, id generator, in-memory
+        store) -- \textbf{Singleton} (used judiciously).
+  \item \textbf{Complex object assembly} -- \textbf{Builder}.
+\end{itemize}
+\end{patternbox}
+
+The case studies progress from the classic ``design a parking lot'' to
+notification, logging, and rate-limiting systems. Each names the patterns
+from Chapter~2 it relies on, so the two chapters reinforce each other.
+
+\newpage
+
+\input{chapters/lld_cases/01_parking_lot.tex}
+\input{chapters/lld_cases/02_elevator.tex}
+\input{chapters/lld_cases/03_vending_machine.tex}
+\input{chapters/lld_cases/04_tic_tac_toe.tex}
+\input{chapters/lld_cases/05_splitwise.tex}
+\input{chapters/lld_cases/06_notification_system.tex}
+\input{chapters/lld_cases/07_logger.tex}
+\input{chapters/lld_cases/08_rate_limiter.tex}

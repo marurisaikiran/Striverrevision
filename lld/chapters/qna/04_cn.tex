@@ -1,0 +1,93 @@
+\section{Computer Networks}
+\label{sec:qna-cn}
+
+\subsection*{Models and layers}
+
+\question{Explain the OSI model layers.}
+\answer{Seven layers, bottom to top: \textbf{Physical} (bits on the wire),
+\textbf{Data Link} (frames, MAC), \textbf{Network} (packets, IP, routing),
+\textbf{Transport} (end-to-end, TCP/UDP), \textbf{Session} (dialog
+control), \textbf{Presentation} (encoding/encryption), \textbf{Application}
+(HTTP, DNS). Mnemonic: ``Please Do Not Throw Sausage Pizza Away.''}
+
+\question{Difference between the OSI and TCP/IP models?}
+\answer{OSI is a 7-layer reference model; TCP/IP is the 4-layer
+(Link, Internet, Transport, Application) practical model the internet
+actually uses. TCP/IP merges OSI's top three into Application and the
+bottom two into Link. OSI is for teaching; TCP/IP is for building.}
+
+\subsection*{Transport}
+
+\question{TCP vs UDP?}
+\answer{TCP is connection-oriented, reliable, ordered, and flow/congestion
+controlled -- at the cost of overhead and latency (used for web, email,
+file transfer). UDP is connectionless, unreliable, and unordered but fast
+and lightweight (used for video, VoIP, gaming, DNS). Choose by whether you
+need reliability or low latency.}
+
+\question{Explain the TCP three-way handshake.}
+\answer{To establish a connection: the client sends \texttt{SYN}, the
+server replies \texttt{SYN-ACK}, and the client sends \texttt{ACK}. This
+synchronises sequence numbers in both directions and confirms both sides
+can send and receive before data flows.}
+
+\question{How does TCP ensure reliability?}
+\answer{Through sequence numbers (ordering), acknowledgements and
+retransmission (lost-packet recovery), checksums (corruption detection),
+flow control via a sliding window (don't overwhelm the receiver), and
+congestion control (don't overwhelm the network).}
+
+\question{What is the difference between flow control and congestion
+control?}
+\answer{Flow control prevents a fast sender from overrunning a slow
+\emph{receiver}, using the receiver's advertised window. Congestion control
+prevents overloading the \emph{network} itself, using algorithms like slow
+start and AIMD (additive increase, multiplicative decrease).}
+
+\subsection*{Application and addressing}
+
+\question{What happens when you type a URL and press Enter?}
+\answer{DNS resolves the domain to an IP; the browser opens a TCP
+connection (and a TLS handshake for HTTPS); it sends an HTTP request; the
+server responds; the browser parses HTML and fetches further resources
+(CSS, JS, images), then renders. Caching, redirects, and keep-alive
+connections optimise the steps.}
+
+\question{What is DNS and how does resolution work?}
+\answer{DNS maps human-readable domain names to IP addresses. Resolution is
+hierarchical: the resolver queries a root server, then the TLD server
+(e.g.\ \texttt{.com}), then the domain's authoritative server, caching
+results along the way to speed future lookups.}
+
+\question{Difference between HTTP and HTTPS?}
+\answer{HTTPS is HTTP over TLS: it encrypts the traffic, authenticates the
+server via certificates, and protects integrity, preventing eavesdropping
+and tampering. HTTP is plaintext. HTTPS adds a TLS handshake but is now the
+default for the web.}
+
+\question{TCP vs UDP -- which does HTTP use, and is that changing?}
+\answer{HTTP/1.1 and HTTP/2 run over TCP. HTTP/3 runs over QUIC, which is
+built on \emph{UDP}, to avoid TCP's head-of-line blocking and speed up
+connection setup -- an example of choosing UDP plus custom reliability for
+performance.}
+
+\subsection*{Devices and security}
+
+\question{Difference between a router, a switch, and a hub?}
+\answer{A hub broadcasts to all ports (Layer 1, dumb). A switch forwards
+frames only to the destination port using MAC addresses (Layer 2). A router
+connects different networks and forwards packets by IP address, choosing
+routes (Layer 3).}
+
+\question{What is NAT?}
+\answer{Network Address Translation maps many private IP addresses to one
+(or few) public IPs at the router, conserving scarce IPv4 addresses and
+adding a layer of isolation. The router rewrites addresses/ports and tracks
+the mapping to route replies back.}
+
+\question{What is the difference between symmetric and asymmetric
+encryption?}
+\answer{Symmetric uses one shared secret key for both encryption and
+decryption -- fast, but key distribution is hard. Asymmetric uses a
+public/private key pair -- solving key distribution but slower. TLS combines
+them: asymmetric to exchange a session key, then symmetric for bulk data.}

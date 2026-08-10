@@ -1,0 +1,92 @@
+\section{Command}
+\label{sec:pat-command}
+
+\problemstatement{Encapsulate a request as an object, so requests can be
+parameterised, queued, logged, and undone -- decoupling the object that
+invokes an operation from the one that knows how to perform it.}
+
+\begin{patternbox}[When You Reach for It]
+The triggers are \emph{``undo/redo,''} \emph{``queue or schedule
+operations,''} and \emph{``parameterise a button/menu with an action.''}
+When an action must be treated as a first-class value -- stored, passed,
+reversed -- wrap it in a Command object.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+A Command object exposes \texttt{execute()} (and often \texttt{undo()})
+and holds everything the action needs: a reference to the receiver and any
+arguments. An invoker (a button, a queue, a macro) triggers commands
+without knowing what they do. Because each command is an object, you can
+keep a history stack for undo, replay a log, or batch commands into a
+macro.
+
+\begin{ideabox}[Turn a Method Call into an Object]
+Reifying ``call this method with these arguments'' as an object is what
+enables undo, queuing, logging and macros -- none of which are possible
+with a bare function call. The invoker depends only on the Command
+interface.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Light {                                  // receiver
+    bool on = false;
+    void turnOn()  { on = true;  cout << "Light on\n"; }
+    void turnOff() { on = false; cout << "Light off\n"; }
+};
+
+struct Command {
+    virtual void execute() = 0;
+    virtual void undo() = 0;
+    virtual ~Command() = default;
+};
+
+struct LightOnCommand : Command {
+    Light& light;
+    LightOnCommand(Light& l) : light(l) {}
+    void execute() override { light.turnOn(); }
+    void undo() override { light.turnOff(); }
+};
+
+class RemoteControl {                            // invoker with undo
+    vector<unique_ptr<Command>> history;
+public:
+    void submit(unique_ptr<Command> cmd) {
+        cmd->execute();
+        history.push_back(move(cmd));
+    }
+    void undoLast() {
+        if (!history.empty()) {
+            history.back()->undo();
+            history.pop_back();
+        }
+    }
+};
+
+int main() {
+    Light light;
+    RemoteControl remote;
+    remote.submit(make_unique<LightOnCommand>(light));
+    remote.undoLast();                          // reverses it
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Enables undo/redo, queuing, logging, and macros; decouples
+invoker from receiver; commands are composable. \textbf{Cons.} A class per
+action can proliferate; undo requires each command to capture enough state
+to reverse itself, which can be non-trivial.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Command packages an action plus its receiver and arguments into an object
+with \texttt{execute}/\texttt{undo}, unlocking undo stacks, queues, and
+macros. The interview keyword is almost always ``undo/redo.'' It is the
+backbone of editors and task schedulers.
+\end{takeawaybox}

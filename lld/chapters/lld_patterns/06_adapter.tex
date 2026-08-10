@@ -1,0 +1,79 @@
+\section{Adapter}
+\label{sec:pat-adapter}
+
+\problemstatement{Convert the interface of an existing class into another
+interface that clients expect, letting classes that could not otherwise
+collaborate -- because of mismatched method names or signatures -- work
+together.}
+
+\begin{patternbox}[When You Reach for It]
+The trigger is \emph{``I have a class that does the right thing but has
+the wrong interface,''} often a third-party or legacy library you cannot
+change. When the client expects \texttt{request()} but the library offers
+\texttt{specificRequest()}, an Adapter bridges the gap.
+\end{patternbox}
+
+\subsection*{Understanding the pattern}
+
+The Adapter implements the interface the client wants and, internally,
+holds an instance of the incompatible class (object adapter, via
+composition). Each method translates the client's call into one or more
+calls on the wrapped object. The client codes against the target
+interface; the adapter absorbs the mismatch.
+
+\begin{ideabox}[Wrap the Wrong Interface in the Right One]
+Compose the incompatible ``adaptee'' inside a class that presents the
+expected interface, forwarding and translating calls. Nothing about the
+adaptee or the client changes -- the adapter is the only new, and only
+throwaway-if-needed, piece.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+// Target: what the client expects.
+struct MediaPlayer {
+    virtual void play(const string& file) = 0;
+    virtual ~MediaPlayer() = default;
+};
+
+// Adaptee: useful, but wrong interface (cannot be modified).
+struct LegacyMp4Engine {
+    void playMp4(const string& filename) {
+        cout << "Playing MP4: " << filename << "\n";
+    }
+};
+
+// Adapter: presents MediaPlayer, delegates to the legacy engine.
+class Mp4Adapter : public MediaPlayer {
+    LegacyMp4Engine engine;                    // composed adaptee
+public:
+    void play(const string& file) override {
+        engine.playMp4(file);                  // translate the call
+    }
+};
+
+int main() {
+    unique_ptr<MediaPlayer> player = make_unique<Mp4Adapter>();
+    player->play("song.mp4");                  // client uses target API
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}[Trade-offs]
+\textbf{Pros.} Reuses existing/legacy code without modifying it; isolates
+interface-conversion logic in one place; supports Single Responsibility.
+\textbf{Cons.} Adds an extra layer; if many methods need adapting the
+adapter grows. A sign the underlying interfaces should perhaps be
+redesigned if you control both.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Adapter makes an existing class fit an expected interface by wrapping and
+translating -- ``right behaviour, wrong signature.'' Contrast with
+Decorator (same interface, added behaviour) and Facade (new simpler
+interface over many classes): all three wrap, but for different reasons.
+\end{takeawaybox}

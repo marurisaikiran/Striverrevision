@@ -1,0 +1,61 @@
+\chapter{OOP Foundations and SOLID}
+\chapterepigraph{Low-level design is the craft of turning a vague
+requirement into a set of classes that are easy to change. Every design
+pattern and every case study in this book is, at bottom, an application of
+two things: the four pillars of object orientation, and the five SOLID
+principles that keep those pillars from cracking as requirements evolve.
+Learn these first and the rest of the book becomes recognition, not
+memorisation.}
+
+\section{Why This Chapter Comes First}
+\label{sec:lld-intro}
+
+Interviewers rarely ask ``recite the four pillars.'' They ask you to
+\emph{design} something -- a parking lot, a notification service, a game --
+and then watch whether your classes have clear responsibilities, whether
+new features would force you to rewrite old code, and whether you can
+justify each choice. Those judgements all trace back to the fundamentals
+in this chapter.
+
+\begin{ideabox}[The One Question Behind All Good Design]
+Every design decision reduces to: \emph{``when the requirement changes,
+how much code must I touch, and how likely am I to break something that
+already works?''} Encapsulation, abstraction, inheritance and
+polymorphism are the tools; the SOLID principles are the discipline that
+aims those tools at \textbf{minimising the blast radius of change}. Keep
+this question in mind and you can derive the right answer in an interview
+instead of recalling one.
+\end{ideabox}
+
+\subsection*{How to Recognise Which Principle a Design Smell Violates}
+
+\begin{patternbox}[Design Smells and the Principle They Break]
+\begin{itemize}
+  \item \textbf{A class that changes for many unrelated reasons}, or a
+        ``manager''/``utils'' god class -- \textbf{Single Responsibility}.
+  \item \textbf{Adding a new type forces editing a big
+        \texttt{if/else} or \texttt{switch}} on a type field --
+        \textbf{Open/Closed} (and usually a missing polymorphic
+        hierarchy or a Factory/Strategy pattern).
+  \item \textbf{A subclass that throws ``not supported'' or weakens a
+        base-class guarantee} (the classic Square-extends-Rectangle) --
+        \textbf{Liskov Substitution}.
+  \item \textbf{A fat interface whose implementers are forced to stub out
+        methods they do not need} -- \textbf{Interface Segregation}.
+  \item \textbf{High-level policy code that \texttt{new}s concrete
+        low-level classes directly}, making it impossible to swap
+        implementations or unit-test -- \textbf{Dependency Inversion}
+        (inject an abstraction instead).
+\end{itemize}
+\end{patternbox}
+
+The three sections of this chapter cover the four pillars, the ways
+classes relate to one another (association, aggregation, composition, and
+inheritance, with their UML notation), and the SOLID principles with a
+concrete before/after refactor for each.
+
+\newpage
+
+\input{chapters/lld_oops/01_four_pillars.tex}
+\input{chapters/lld_oops/02_class_relationships_uml.tex}
+\input{chapters/lld_oops/03_solid.tex}
