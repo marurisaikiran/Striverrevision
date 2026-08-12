@@ -1,0 +1,36 @@
+\chapter{Minimum Spanning Trees}
+\chapterepigraph{To connect every node at least total cost, greedily add
+the cheapest edge that joins two so-far-separate parts. The Disjoint Set
+data structure makes ``are these already connected?'' almost free, and the
+same structure -- run in reverse, or watched over time -- answers dynamic
+connectivity questions too.}
+
+\section{Greedy Connection with Disjoint Set}
+\label{sec:cses-graph-mst-intro}
+
+A minimum spanning tree (MST) connects all $n$ nodes with $n-1$ edges of
+minimum total weight. Kruskal's algorithm sorts edges and adds each that
+does not form a cycle, using Union-Find for the cycle test.
+
+\begin{patternbox}[MST and Connectivity Problems]
+\begin{itemize}
+  \item \textbf{Cheapest way to connect everything} -- \textbf{Kruskal's
+        MST} with Disjoint Set: Road Reparation (report impossible if the
+        graph is disconnected).
+  \item \textbf{Add edges over time, tracking components and the largest
+        component} -- \textbf{incremental Disjoint Set}: Road
+        Construction.
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Union-Find Makes the Cycle Test O(1)]
+Kruskal's correctness rests on always taking the cheapest edge between two
+different components. Disjoint Set answers ``same component?'' in near
+constant time (with path compression and union by size), and its size
+counter directly gives the largest-component answer for Road Construction.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/cses_graphs/26_road_reparation.tex}
+\input{chapters/cses_graphs/27_road_construction.tex}

@@ -1,0 +1,98 @@
+\section{Road Reparation}
+\label{sec:cses-road-reparation}
+
+\problemstatement{Given $n$ cities and $m$ possible roads, each with a
+repair cost, choose roads of minimum total cost so that every city is
+reachable from every other. Output the minimum cost, or \texttt{IMPOSSIBLE}
+if the cities cannot all be connected.}
+
+\begin{patternbox}
+``Connect all cities at minimum total cost'' is a \textbf{minimum spanning
+tree}. \textbf{Kruskal's algorithm} sorts roads by cost and adds each that
+joins two different components, using Disjoint Set for the cycle test; if
+fewer than $n-1$ roads are added, the graph is disconnected.
+\end{patternbox}
+
+\subsection*{Kruskal with Union-Find}
+
+Sort all roads ascending by cost. Process each: if its endpoints are in
+different components (checked via Disjoint Set), add it to the MST, union
+the components, and accumulate the cost. Skip roads whose endpoints are
+already connected (they would form a cycle). After processing, if exactly
+$n-1$ roads were added, output the total; otherwise the graph could not be
+fully connected, so print \texttt{IMPOSSIBLE}.
+
+\begin{ideabox}[Cheapest Safe Edge First]
+The MST is built greedily: the cheapest edge crossing between two
+components is always safe to include. Disjoint Set makes ``same component?''
+near-constant, and reaching $n-1$ edges certifies a spanning tree exists.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Sort roads by cost. Initialise Disjoint Set.
+  \item For each road, if it joins two components, union and add its cost;
+        count added roads.
+  \item If $n-1$ roads were added, output the total cost; else
+        \texttt{IMPOSSIBLE}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=3$; roads $1\!-\!2(3)$, $2\!-\!3(5)$, $1\!-\!3(4)$.}
+
+\begin{itemize}
+  \item Sorted: $3,4,5$. Add $1\!-\!2(3)$; add $1\!-\!3(4)$; skip
+        $2\!-\!3$ (cycle).
+  \item Total $=3+4=7$, two roads $=n-1$: connected.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct DSU {
+    vector<int> parent, sz;
+    DSU(int n) : parent(n + 1), sz(n + 1, 1) { iota(parent.begin(), parent.end(), 0); }
+    int find(int x) { return parent[x] == x ? x : parent[x] = find(parent[x]); }
+    bool unite(int a, int b) {
+        a = find(a); b = find(b);
+        if (a == b) return false;
+        if (sz[a] < sz[b]) swap(a, b);
+        parent[b] = a; sz[a] += sz[b];
+        return true;
+    }
+};
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<tuple<long long,int,int>> edges(m);
+    for (auto& [w, a, b] : edges) cin >> a >> b >> w;
+    sort(edges.begin(), edges.end());
+
+    DSU dsu(n);
+    long long total = 0;
+    int used = 0;
+    for (auto& [w, a, b] : edges)
+        if (dsu.unite(a, b)) { total += w; used++; }
+
+    if (used == n - 1) cout << total << "\n";
+    else cout << "IMPOSSIBLE\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(m\log m)$ -- sorting dominates; unions are
+near-constant. \textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Minimum-cost full connection is an MST; Kruskal plus Disjoint Set builds it
+and, by counting added edges, detects disconnection. This is the canonical
+network-design primitive.
+\end{takeawaybox}

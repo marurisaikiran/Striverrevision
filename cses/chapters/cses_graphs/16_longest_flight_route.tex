@@ -1,0 +1,106 @@
+\section{Longest Flight Route}
+\label{sec:cses-longest-flight-route}
+
+\problemstatement{Given a \emph{directed acyclic} graph of $n$ cities and
+$m$ flights, find a route from city $1$ to city $n$ visiting the maximum
+number of cities, and print it, or \texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+Longest path in a \textbf{DAG} is a topological-order DP -- unlike general
+graphs (where longest path is NP-hard), acyclicity makes it linear. Process
+nodes so that every predecessor is finalised first, and each node takes the
+best incoming route.
+\end{patternbox}
+
+\subsection*{DP over topological order}
+
+Let $\textit{dp}[v]$ be the maximum number of cities on a route from $1$ to
+$v$. Initialise $\textit{dp}[1]=1$ and others $-\infty$ (unreachable).
+Processing nodes in topological order, relax each edge $u\to v$: if
+$\textit{dp}[u]+1>\textit{dp}[v]$, set $\textit{dp}[v]=\textit{dp}[u]+1$ and
+record $u$ as $v$'s predecessor. Because $u$ precedes $v$ topologically,
+$\textit{dp}[u]$ is final when used. Reconstruct the route by following
+predecessors back from $n$.
+
+\begin{ideabox}[Acyclicity Turns Longest Path into DP]
+In a DAG the topological order guarantees each node's best value is computed
+before it is needed downstream, so a single sweep finds the longest path.
+The predecessor array turns the length into a printable route.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Topologically sort (Kahn's). $\textit{dp}[1]=1$, rest $-\infty$.
+  \item In topological order, relax out-edges, updating $\textit{dp}$ and
+        predecessors.
+  \item If $\textit{dp}[n]<0$ print \texttt{IMPOSSIBLE}; else backtrack
+        from $n$ and print the route.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2$, $1\!\to\!3$, $2\!\to\!3$, $3\!\to\!4$; $n=4$.}
+
+\begin{itemize}
+  \item $\textit{dp}$: $1{:}1,2{:}2,3{:}3$ (via $1\!\to\!2\!\to\!3$),
+        $4{:}4$.
+  \item Longest route $1\to2\to3\to4$, four cities.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    vector<int> indeg(n + 1, 0);
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        indeg[b]++;
+    }
+
+    // topological order via Kahn's
+    vector<int> order, deg = indeg;
+    queue<int> q;
+    for (int i = 1; i <= n; i++) if (deg[i] == 0) q.push(i);
+    while (!q.empty()) {
+        int u = q.front(); q.pop(); order.push_back(u);
+        for (int v : adj[u]) if (--deg[v] == 0) q.push(v);
+    }
+
+    const int NEG = -1e9;
+    vector<int> dp(n + 1, NEG), pre(n + 1, 0);
+    dp[1] = 1;
+    for (int u : order)
+        if (dp[u] > NEG)
+            for (int v : adj[u])
+                if (dp[u] + 1 > dp[v]) { dp[v] = dp[u] + 1; pre[v] = u; }
+
+    if (dp[n] < 0) { cout << "IMPOSSIBLE\n"; return 0; }
+    vector<int> route;
+    for (int v = n; v != 0; v = pre[v]) route.push_back(v);
+    reverse(route.begin(), route.end());
+    cout << route.size() << "\n";
+    for (int v : route) cout << v << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- topological sort plus one relaxation
+sweep. \textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Longest path is intractable in general but linear on a DAG: relax edges in
+topological order and track predecessors. The acyclicity guarantee is the
+entire reason this DP is valid -- the same guarantee Game Routes (next)
+exploits for path counting.
+\end{takeawaybox}

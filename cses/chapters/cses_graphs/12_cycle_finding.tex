@@ -1,0 +1,104 @@
+\section{Cycle Finding}
+\label{sec:cses-cycle-finding}
+
+\problemstatement{Given a directed graph of $n$ nodes and $m$ edges with
+(possibly negative) weights, find a negative cycle and print the nodes on
+it, or output \texttt{NO CYCLE}.}
+
+\begin{patternbox}
+Detecting a negative cycle is the failure mode of \textbf{Bellman--Ford}:
+if any edge can still be relaxed after $n-1$ rounds, a negative cycle is
+reachable. Following predecessor pointers back $n$ steps lands on the cycle,
+which is then unwound.
+\end{patternbox}
+
+\subsection*{Relax $n$ times, then trace back}
+
+Initialise all distances to $0$ (so every node is a potential start) and
+relax all edges $n$ times, recording a predecessor on each successful
+relaxation. If some edge relaxes on the $n$-th round, its endpoint $x$ is
+affected by a negative cycle. Stepping from $x$ back through predecessors
+$n$ times guarantees landing on a node $y$ that is truly on the cycle;
+following predecessors from $y$ until $y$ repeats reconstructs the cycle.
+
+\begin{ideabox}[The n-th Relaxation Exposes a Negative Cycle]
+Shortest paths use at most $n-1$ edges, so a further improvement can only
+come from a cycle with negative total weight. Walking back $n$ predecessors
+from the improved node skips the ``tail'' into the cycle, ensuring the
+printed sequence is the cycle itself.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dist}[i]=0$ for all $i$; relax all edges $n$ times,
+        storing predecessors; remember the last node improved on round
+        $n$.
+  \item If none improved, print \texttt{NO CYCLE}.
+  \item Else step back $n$ times to reach a cycle node, then collect the
+        cycle by following predecessors until it repeats; print it.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2(1)$, $2\!\to\!3(-3)$, $3\!\to\!1(1)$ (cycle sum
+$-1$).}
+
+\begin{itemize}
+  \item After repeated relaxation, an edge keeps improving -- a negative
+        cycle exists.
+  \item Tracing back yields the cycle $1\to2\to3\to1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<array<long long,3>> edges(m);
+    for (auto& e : edges) cin >> e[0] >> e[1] >> e[2];
+
+    vector<long long> dist(n + 1, 0);
+    vector<int> pre(n + 1, -1);
+    int x = -1;
+    for (int i = 0; i < n; i++) {
+        x = -1;
+        for (auto& [u, v, w] : edges)
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pre[v] = u;
+                x = v;                            // node improved this round
+            }
+    }
+
+    if (x == -1) { cout << "NO CYCLE\n"; return 0; }
+    for (int i = 0; i < n; i++) x = pre[x];       // step into the cycle
+
+    vector<int> cyc;
+    for (int v = x; ; v = pre[v]) {
+        cyc.push_back(v);
+        if (v == x && cyc.size() > 1) break;
+    }
+    reverse(cyc.begin(), cyc.end());
+    cout << "YES\n";
+    for (int v : cyc) cout << v << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nm)$ -- Bellman--Ford relaxation.
+\textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Negative-cycle finding is Bellman--Ford relaxed one extra round, then a
+back-walk of $n$ predecessors to land firmly on the cycle. Initialising all
+distances to $0$ makes every node a virtual source, so any negative cycle
+anywhere is caught.
+\end{takeawaybox}

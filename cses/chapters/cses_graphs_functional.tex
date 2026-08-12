@@ -1,0 +1,41 @@
+\chapter{Successor and Functional Graphs}
+\chapterepigraph{When every node has exactly one outgoing edge, the graph
+is a \emph{functional graph}: following the arrows always leads into a
+cycle, with trees of nodes feeding into it. This rigid structure -- ``rho
+shaped'' tails leading to loops -- makes far-future queries answerable by
+binary lifting and cycle lengths computable in one pass.}
+
+\section{One Outgoing Edge Changes Everything}
+\label{sec:cses-graph-functional-intro}
+
+In a successor graph each node $x$ has a single successor
+$\textit{succ}(x)$. Repeatedly applying $\textit{succ}$ from any start must
+eventually repeat a node and enter a cycle, since the state space is
+finite.
+
+\begin{patternbox}[Functional-Graph Techniques]
+\begin{itemize}
+  \item \textbf{``Where am I after $k$ steps?'' for huge $k$} --
+        \textbf{binary lifting}: precompute $\textit{succ}^{2^j}$ so any
+        $k$ is composed from its binary digits: Planets Queries I.
+  \item \textbf{Distance between two nodes on the functional graph} --
+        binary lifting plus cycle analysis (a directed analogue of LCA):
+        Planets Queries II.
+  \item \textbf{Length of the cycle each node eventually enters} --
+        one pass marking tails and loops (or Floyd/Brent cycle finding):
+        Planets Cycles.
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Binary Lifting Answers $k$ Steps in $O(\log k)$]
+Store, for each node, where you land after $2^0,2^1,2^2,\ldots$ steps.
+Any $k$-step jump is the composition of the jumps for the set bits of $k$,
+so a query costs $O(\log k)$ after $O(n\log k)$ preprocessing -- the same
+doubling idea as sparse tables and LCA.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/cses_graphs/23_planets_queries_i.tex}
+\input{chapters/cses_graphs/24_planets_queries_ii.tex}
+\input{chapters/cses_graphs/25_planets_cycles.tex}

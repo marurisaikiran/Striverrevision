@@ -1,0 +1,103 @@
+\section{Counting Rooms}
+\label{sec:cses-counting-rooms}
+
+\problemstatement{Given an $n\times m$ grid of floor (\texttt{.}) and wall
+(\texttt{\#}) cells, count the number of rooms: maximal groups of floor
+cells connected through shared edges (four directions).}
+
+\begin{patternbox}
+\emph{``Count connected regions in a grid''} is a \textbf{flood fill}:
+whenever an unvisited floor cell is found, start a traversal that marks its
+entire room, and increment a counter. Each new traversal is exactly one
+room.
+\end{patternbox}
+
+\subsection*{Flood fill counts components}
+
+Scan every cell. When you hit a floor cell not yet visited, it belongs to a
+new room, so increment the room count and run a BFS or DFS that marks all
+floor cells reachable from it (moving only up/down/left/right through
+floor). Because each cell is marked the first time it is reached and never
+revisited, the number of traversals launched equals the number of rooms.
+
+\begin{ideabox}[One Launch per Component]
+The visited grid guarantees each cell is consumed once. So the count of
+``fresh starts'' -- unvisited floor cells that trigger a new flood -- is the
+component count. This is the grid form of connected-component counting.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For each cell $(i,j)$: if it is floor and unvisited, increment the
+        room count and flood-fill from it.
+  \item The flood marks every floor cell reachable through the four
+        directions.
+  \item Output the room count.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$3\times3$ grid: row0 ``.\#.'', row1 ``.\#.'', row2 ``...''.}
+
+\begin{itemize}
+  \item Start at $(0,0)$: flood the left column and bottom row -- one
+        room.
+  \item $(0,2)$ connects down to $(1,2)$ then to the bottom row, already
+        visited -- so it is the \emph{same} room via the bottom.
+  \item Here everything floor is one connected room, so the answer is
+        $1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, m;
+vector<string> g;
+vector<vector<bool>> vis;
+
+void bfs(int si, int sj) {
+    queue<pair<int,int>> q;
+    q.push({si, sj}); vis[si][sj] = true;
+    int dr[] = {-1,1,0,0}, dc[] = {0,0,-1,1};
+    while (!q.empty()) {
+        auto [r, c] = q.front(); q.pop();
+        for (int k = 0; k < 4; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m) continue;
+            if (g[nr][nc] == '#' || vis[nr][nc]) continue;
+            vis[nr][nc] = true;
+            q.push({nr, nc});
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+    g.resize(n);
+    for (auto& row : g) cin >> row;
+    vis.assign(n, vector<bool>(m, false));
+
+    int rooms = 0;
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            if (g[i][j] == '.' && !vis[i][j]) { rooms++; bfs(i, j); }
+
+    cout << rooms << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nm)$ -- each cell is visited once.
+\textbf{Space Complexity.} $O(nm)$ for the visited grid and BFS queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Counting rooms is connected-component counting on an implicit grid graph:
+one flood fill per unvisited region. This is the simplest graph traversal
+and the template for every grid problem that follows.
+\end{takeawaybox}

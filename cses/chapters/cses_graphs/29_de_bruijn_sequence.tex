@@ -1,0 +1,99 @@
+\section{De Bruijn Sequence}
+\label{sec:cses-de-bruijn-sequence}
+
+\problemstatement{For a given $n$, output a binary string that contains
+\emph{every} binary string of length $n$ as a substring, and is as short as
+possible (length $2^n+n-1$, treating the string as almost cyclic).}
+
+\begin{patternbox}
+A De Bruijn sequence is an \textbf{Eulerian path in the De Bruijn graph}:
+nodes are the $2^{n-1}$ binary strings of length $n-1$, and each length-$n$
+string is an edge from its $(n-1)$-prefix to its $(n-1)$-suffix. Every node
+has equal in- and out-degree, so an Eulerian circuit exists.
+\end{patternbox}
+
+\subsection*{Edges are the length-n strings}
+
+Build a graph whose nodes are all $(n-1)$-bit strings. For each $n$-bit
+string, add an edge from its first $n-1$ bits to its last $n-1$ bits,
+labelled by the last bit. Because appending $0$ or $1$ to any node gives a
+valid edge, in-degree equals out-degree everywhere -- the Eulerian
+condition. Run Hierholzer to traverse every edge once; concatenating the
+starting node with each edge's appended bit produces a string in which every
+length-$n$ substring appears exactly once.
+
+\begin{ideabox}[Traverse Every Length-n String as an Edge]
+Walking an Eulerian circuit uses each length-$n$ string (edge) exactly once,
+and consecutive edges overlap in $n-1$ characters, so the emitted bits form
+a compact sequence containing all $2^n$ patterns.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Nodes $=$ integers $0\ldots2^{n-1}-1$; for each node $v$ and bit
+        $b$, edge to $((v\ll1)\,|\,b)\bmod 2^{n-1}$ labelled $b$.
+  \item Hierholzer from node $0$, recording edge labels.
+  \item Output the start node's $n-1$ bits followed by the recorded labels.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=2$: nodes $\{0,1\}$ (1-bit), edges for $00,01,10,11$.}
+
+\begin{itemize}
+  \item Eulerian circuit visits all four length-$2$ strings.
+  \item A valid output is \texttt{00110}: substrings $00,01,11,10$ all
+        appear.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    if (n == 1) { cout << "01\n"; return 0; }
+
+    int nodes = 1 << (n - 1);
+    int mask = nodes - 1;
+    vector<int> ptr(nodes, 0);                    // next bit to try per node (0 then 1)
+
+    // Hierholzer recording edge labels; stack holds {node, label used to enter}
+    vector<int> labels;
+    stack<pair<int,int>> st;
+    st.push({0, -1});                              // start at node 0, no entering label
+    while (!st.empty()) {
+        auto [v, lab] = st.top();
+        if (ptr[v] < 2) {                          // an unused out-edge (bit 0 then 1)
+            int b = ptr[v]++;
+            int to = ((v << 1) | b) & mask;
+            st.push({to, b});
+        } else {
+            st.pop();
+            if (lab != -1) labels.push_back(lab);
+        }
+    }
+    reverse(labels.begin(), labels.end());
+
+    string res(n - 1, '0');                        // start node = (n-1) zero bits
+    for (int b : labels) res += char('0' + b);
+    cout << res << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n)$ -- one traversal of the $2^n$ edges.
+\textbf{Space Complexity.} $O(2^n)$ for the recursion/circuit.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A De Bruijn sequence is an Eulerian circuit in the De Bruijn graph, where
+length-$n$ strings are edges over $(n-1)$-length nodes. The construction is
+the flagship application of Eulerian paths beyond literal edge-traversal
+puzzles.
+\end{takeawaybox}

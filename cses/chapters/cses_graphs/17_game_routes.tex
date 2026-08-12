@@ -1,0 +1,94 @@
+\section{Game Routes}
+\label{sec:cses-game-routes}
+
+\problemstatement{Given a \emph{directed acyclic} graph of $n$ levels and
+$m$ edges, count the number of distinct routes from level $1$ to level $n$.
+Output the count modulo $10^9+7$.}
+
+\begin{patternbox}
+Counting paths in a \textbf{DAG} is a topological-order DP: the number of
+routes to a node is the sum of the routes to its predecessors. Acyclicity
+guarantees each predecessor's count is final before it is used.
+\end{patternbox}
+
+\subsection*{Sum over predecessors}
+
+Let $\textit{ways}[v]$ be the number of routes from $1$ to $v$, with
+$\textit{ways}[1]=1$. In topological order, push each node's count forward:
+for every edge $u\to v$, add $\textit{ways}[u]$ to $\textit{ways}[v]$
+(modulo $10^9+7$). Since $u$ comes before $v$ topologically,
+$\textit{ways}[u]$ is complete when added. The answer is $\textit{ways}[n]$.
+
+\begin{ideabox}[Every Route Has a Unique Last Edge]
+Classifying routes to $v$ by their final edge $u\to v$ partitions them
+without overlap, so summing $\textit{ways}[u]$ over all predecessors $u$
+counts each route exactly once -- the DAG analogue of the coin-counting
+recurrence.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Topologically sort. $\textit{ways}[1]=1$.
+  \item In topological order, for each edge $u\to v$ add $\textit{ways}[u]$
+        to $\textit{ways}[v]$ modulo $10^9+7$.
+  \item Output $\textit{ways}[n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2$, $1\!\to\!3$, $2\!\to\!4$, $3\!\to\!4$; $n=4$.}
+
+\begin{itemize}
+  \item $\textit{ways}[1]=1$, $[2]=1$, $[3]=1$, $[4]=\textit{ways}[2]+
+        \textit{ways}[3]=2$.
+  \item Two routes: $1\to2\to4$ and $1\to3\to4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1e9 + 7;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    vector<int> indeg(n + 1, 0);
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        indeg[b]++;
+    }
+
+    vector<int> order, deg = indeg;
+    queue<int> q;
+    for (int i = 1; i <= n; i++) if (deg[i] == 0) q.push(i);
+    while (!q.empty()) {
+        int u = q.front(); q.pop(); order.push_back(u);
+        for (int v : adj[u]) if (--deg[v] == 0) q.push(v);
+    }
+
+    vector<long long> ways(n + 1, 0);
+    ways[1] = 1;
+    for (int u : order)
+        for (int v : adj[u])
+            ways[v] = (ways[v] + ways[u]) % MOD;
+
+    cout << ways[n] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$. \textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+DAG path counting sums predecessor counts in topological order. Longest
+Flight Route and Game Routes are the same sweep with $\max{+}1$ versus
+sum -- the recurring pairing of optimisation and counting on the same DP
+skeleton.
+\end{takeawaybox}

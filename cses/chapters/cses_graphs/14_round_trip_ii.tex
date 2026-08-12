@@ -1,0 +1,109 @@
+\section{Round Trip II}
+\label{sec:cses-round-trip-ii}
+
+\problemstatement{Given a \emph{directed} graph of $n$ nodes and $m$ edges,
+find a directed cycle and print its nodes in order, or \texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+A directed cycle is found by \textbf{DFS with three colours}: white
+(unvisited), grey (on the current recursion stack), black (fully
+processed). An edge to a \emph{grey} node is a back edge -- it closes a
+directed cycle.
+\end{patternbox}
+
+\subsection*{Grey means ``on the current path''}
+
+Colour a node grey when DFS enters it and black when it finishes. During
+DFS at $u$, if a neighbour $v$ is grey, then $v$ is an ancestor still on the
+recursion stack, so the path $v\to\cdots\to u$ plus the edge $u\to v$ is a
+directed cycle. Reconstruct it via parent pointers from $u$ back to $v$. A
+neighbour that is black is already finished and off the path, so it does not
+indicate a cycle (unlike the undirected case, direction matters).
+
+\begin{ideabox}[Back Edge to a Grey Ancestor]
+The colour of the target distinguishes a cycle-closing back edge (grey,
+still on the stack) from a harmless cross/forward edge (black, done).
+Tracking parents lets the grey-to-current path be printed as the cycle.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item DFS from each white node; mark grey on entry, black on exit,
+        storing parents.
+  \item On finding a grey neighbour $v$ from $u$: record $v$ (cycle start)
+        and $u$ (cycle end), stop.
+  \item Reconstruct $v\to\cdots\to u\to v$ and print; else
+        \texttt{IMPOSSIBLE}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2$, $2\!\to\!3$, $3\!\to\!1$.}
+
+\begin{itemize}
+  \item DFS greys $1,2,3$; from $3$ the edge to grey $1$ is a back edge.
+  \item Cycle $1\to2\to3\to1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, m;
+vector<vector<int>> adj;
+vector<int> color, parent;                       // 0 white, 1 grey, 2 black
+int cs = -1, ce = -1;
+
+bool dfs(int u) {
+    color[u] = 1;
+    for (int v : adj[u]) {
+        if (color[v] == 0) {
+            parent[v] = u;
+            if (dfs(v)) return true;
+        } else if (color[v] == 1) {              // back edge to grey ancestor
+            cs = v; ce = u; return true;
+        }
+    }
+    color[u] = 2;
+    return false;
+}
+
+int main() {
+    cin >> n >> m;
+    adj.assign(n + 1, {});
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+    }
+    color.assign(n + 1, 0);
+    parent.assign(n + 1, 0);
+
+    for (int s = 1; s <= n; s++)
+        if (color[s] == 0 && dfs(s)) break;
+
+    if (cs == -1) { cout << "IMPOSSIBLE\n"; return 0; }
+    vector<int> cyc;
+    cyc.push_back(cs);
+    for (int v = ce; v != cs; v = parent[v]) cyc.push_back(v);
+    cyc.push_back(cs);
+    reverse(cyc.begin(), cyc.end());
+    cout << cyc.size() << "\n";
+    for (int v : cyc) cout << v << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- one DFS. \textbf{Space Complexity.}
+$O(n+m)$, recursion depth $O(n)$ (use an explicit stack for very large $n$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Directed cycle detection is DFS with grey/black colours: a back edge points
+to a grey (on-stack) ancestor. The colour distinction -- absent in the
+undirected version -- is exactly what respects edge direction.
+\end{takeawaybox}

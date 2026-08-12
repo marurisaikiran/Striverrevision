@@ -1,0 +1,122 @@
+\section{Download Speed}
+\label{sec:cses-download-speed}
+
+\problemstatement{Given a directed graph of $n$ nodes and $m$ edges, each
+with a capacity (bandwidth), find the maximum data rate from node $1$
+(source) to node $n$ (sink).}
+
+\begin{patternbox}
+Maximum throughput under capacities is the \textbf{maximum flow} problem.
+\textbf{Dinic's algorithm} computes it efficiently: repeatedly build a
+level graph with BFS, then push blocking flow along shortest augmenting
+paths with DFS.
+\end{patternbox}
+
+\subsection*{Level graphs and blocking flow}
+
+A flow assigns each edge a value up to its capacity, with flow conserved at
+every node except source and sink; the max flow is the greatest total
+leaving the source. Dinic alternates two phases: a BFS labels each node with
+its distance (level) from the source in the residual graph; a DFS then sends
+as much flow as possible along edges that go strictly one level deeper (the
+blocking flow). Reverse edges are maintained so earlier flow can be
+rerouted. When BFS can no longer reach the sink, the flow is maximum.
+
+\begin{ideabox}[Augment Along Shortest Paths, in Bulk]
+Restricting augmenting paths to the level graph (only forward-level edges)
+and saturating them all before rebuilding gives Dinic its speed: the number
+of BFS phases is $O(V)$, far fewer than pushing one path at a time.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the flow network with forward capacities and zero-capacity
+        reverse edges.
+  \item While BFS reaches the sink: DFS blocking flow along level edges,
+        accumulating flow.
+  \item Output the total flow.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2(3)$, $1\!\to\!3(2)$, $2\!\to\!4(2)$, $3\!\to\!4(3)$;
+sink $4$.}
+
+\begin{itemize}
+  \item Push $2$ along $1\!\to\!2\!\to\!4$ and $2$ along
+        $1\!\to\!3\!\to\!4$.
+  \item Max flow $=4$ (limited by outgoing/incoming capacities).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Dinic {
+    struct Edge { int to; long long cap; int rev; };
+    vector<vector<Edge>> g;
+    vector<int> level, it;
+    Dinic(int n) : g(n), level(n), it(n) {}
+    void addEdge(int u, int v, long long c) {
+        g[u].push_back({v, c, (int)g[v].size()});
+        g[v].push_back({u, 0, (int)g[u].size() - 1});   // reverse edge
+    }
+    bool bfs(int s, int t) {
+        fill(level.begin(), level.end(), -1);
+        queue<int> q; level[s] = 0; q.push(s);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (auto& e : g[u])
+                if (e.cap > 0 && level[e.to] < 0) { level[e.to] = level[u] + 1; q.push(e.to); }
+        }
+        return level[t] >= 0;
+    }
+    long long dfs(int u, int t, long long f) {
+        if (u == t) return f;
+        for (int& i = it[u]; i < (int)g[u].size(); i++) {
+            Edge& e = g[u][i];
+            if (e.cap > 0 && level[u] < level[e.to]) {
+                long long d = dfs(e.to, t, min(f, e.cap));
+                if (d > 0) { e.cap -= d; g[e.to][e.rev].cap += d; return d; }
+            }
+        }
+        return 0;
+    }
+    long long maxflow(int s, int t) {
+        long long flow = 0;
+        while (bfs(s, t)) {
+            fill(it.begin(), it.end(), 0);
+            long long f;
+            while ((f = dfs(s, t, LLONG_MAX)) > 0) flow += f;
+        }
+        return flow;
+    }
+};
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    Dinic dinic(n + 1);
+    for (int i = 0; i < m; i++) {
+        int a, b; long long c; cin >> a >> b >> c;
+        dinic.addEdge(a, b, c);
+    }
+    cout << dinic.maxflow(1, n) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V^2 E)$ worst case (Dinic), far faster in
+practice. \textbf{Space Complexity.} $O(V+E)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Maximum throughput is maximum flow; Dinic's level-graph blocking flow is the
+standard efficient solver. This one algorithm is the engine behind the next
+three problems -- min cut, matching, and edge-disjoint paths -- each just a
+different network.
+\end{takeawaybox}

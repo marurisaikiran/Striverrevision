@@ -1,0 +1,147 @@
+\section{Planets Queries II}
+\label{sec:cses-planets-queries-ii}
+
+\problemstatement{Each of $n$ planets has one teleporter. Answer $q$
+queries: the minimum number of teleports to go from planet $a$ to planet
+$b$, or $-1$ if impossible.}
+
+\begin{patternbox}
+A functional graph is ``rho-shaped'': trees of tail nodes feeding into
+cycles. Decompose it into cycles and the depth of each node to its cycle,
+then a query splits into a \textbf{tail case} (answered by binary lifting)
+and a \textbf{cycle case} (answered by modular arithmetic on the cycle).
+\end{patternbox}
+
+\subsection*{Tails into cycles}
+
+Peel nodes of in-degree $0$ repeatedly; whatever remains lies on cycles.
+Label each cycle, giving its nodes positions $0,1,\ldots$ and recording the
+cycle length. Each tail node gets a $\textit{depth}$ (steps to reach its
+cycle) and an $\textit{entry}$ (the cycle node it first lands on). For a
+query $(a,b)$:
+\begin{itemize}
+  \item \textbf{Tail case:} if $b$ lies on the path from $a$ into the
+        cycle, then $\textit{depth}[a]\ge\textit{depth}[b]$ and jumping
+        $\textit{depth}[a]-\textit{depth}[b]$ steps (binary lifting) from
+        $a$ lands on $b$; that jump count is the answer.
+  \item \textbf{Cycle case:} if $b$ is on the same cycle $a$ reaches, walk
+        $\textit{depth}[a]$ steps to $a$'s entry, then around the cycle:
+        $\textit{depth}[a]+((\textit{pos}[b]-\textit{pos}[\textit{entry}[a]])
+        \bmod L)$.
+\end{itemize}
+Take whichever applies; otherwise $-1$.
+
+\begin{ideabox}[Split the Query by Where b Lives]
+The rho structure means $b$ is reachable from $a$ only if it is on $a$'s
+tail before the cycle, or on the cycle $a$ enters. Binary lifting verifies
+the tail case exactly; modular position arithmetic handles the cycle case.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build binary lifting for the successor function.
+  \item Peel to find cycle nodes; assign cycle ids, positions, lengths;
+        compute $\textit{depth}$ and $\textit{entry}$ for tail nodes.
+  \item Per query, evaluate the tail and cycle cases; output the minimum or
+        $-1$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$\textit{succ}=[2,3,1,3]$: $1\!\to\!2\!\to\!3\!\to\!1$ cycle, $4\!
+\to\!3$ tail.}
+
+\begin{itemize}
+  \item Query $(4,1)$: $4$ enters the cycle at $3$ in $1$ step, then $3\to
+        1$ is $2$ more steps around the cycle. Answer $3$.
+  \item Query $(1,4)$: $4$ is a tail node not reachable from the cycle --
+        $-1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int LOG = 20;
+
+int main() {
+    int n, q;
+    cin >> n >> q;
+    vector<int> succ(n + 1);
+    vector<vector<int>> up(LOG, vector<int>(n + 1));
+    vector<int> indeg(n + 1, 0);
+    for (int i = 1; i <= n; i++) { cin >> succ[i]; up[0][i] = succ[i]; indeg[succ[i]]++; }
+    for (int j = 1; j < LOG; j++)
+        for (int i = 1; i <= n; i++) up[j][i] = up[j - 1][up[j - 1][i]];
+
+    auto jump = [&](int x, int k) {
+        for (int j = 0; j < LOG; j++) if (k & (1 << j)) x = up[j][x];
+        return x;
+    };
+
+    // peel tree nodes; remaining are cycle nodes
+    vector<int> deg = indeg, order;
+    queue<int> pq;
+    for (int i = 1; i <= n; i++) if (deg[i] == 0) pq.push(i);
+    vector<bool> removed(n + 1, false);
+    while (!pq.empty()) {
+        int u = pq.front(); pq.pop();
+        removed[u] = true; order.push_back(u);
+        if (--deg[succ[u]] == 0) pq.push(succ[u]);
+    }
+
+    vector<int> depth(n + 1, 0), entry(n + 1, 0), lead(n + 1, 0), pos(n + 1, 0);
+    vector<bool> isCyc(n + 1, false);
+    vector<int> cycLen(n + 1, 0);
+    int cid = 0;
+    for (int i = 1; i <= n; i++) {
+        if (removed[i] || isCyc[i]) continue;
+        cid++; int c = i, len = 0;
+        for (int x = i; !isCyc[x]; x = succ[x]) {
+            isCyc[x] = true; pos[x] = len++; lead[x] = cid;
+            entry[x] = x; depth[x] = 0;
+        }
+        cycLen[cid] = len;
+    }
+    for (int idx = (int)order.size() - 1; idx >= 0; idx--) {   // reverse peel order
+        int u = order[idx];
+        depth[u] = depth[succ[u]] + 1;
+        entry[u] = entry[succ[u]];
+        lead[u] = lead[succ[u]];
+    }
+
+    while (q--) {
+        int a, b;
+        cin >> a >> b;
+        long long ans = -1;
+        if (a == b) { cout << 0 << "\n"; continue; }
+        // tail case: b on a's path into the cycle
+        if (depth[a] >= depth[b]) {
+            int steps = depth[a] - depth[b];
+            if (jump(a, steps) == b) ans = steps;
+        }
+        // cycle case: b on the same cycle a reaches
+        if (isCyc[b] && lead[b] == lead[a]) {
+            int L = cycLen[lead[a]];
+            long long steps = depth[a] + ((pos[b] - pos[entry[a]]) % L + L) % L;
+            if (ans == -1 || steps < ans) ans = steps;
+        }
+        cout << ans << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ preprocessing, $O(\log n)$ per query.
+\textbf{Space Complexity.} $O(n\log n)$ for the lifting table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Distances in a functional graph split by structure: binary lifting settles
+the tree-tail case, modular cycle arithmetic settles the cycle case. Seeing
+the rho shape -- tails feeding cycles -- is the key to organising the query
+logic.
+\end{takeawaybox}

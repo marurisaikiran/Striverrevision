@@ -1,0 +1,129 @@
+\section{Giant Pizza}
+\label{sec:cses-giant-pizza}
+
+\problemstatement{There are $n$ toppings and $m$ friends. Each friend has
+two wishes, each either ``topping $t$ present (\texttt{+})'' or ``topping
+$t$ absent (\texttt{-})''; a friend is satisfied if at least one wish holds.
+Decide the toppings so every friend is satisfied, or output
+\texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+Each friend is a clause $(a\lor b)$ over boolean topping variables -- this is
+\textbf{2-SAT}. Build the \emph{implication graph} ($\lnot a\Rightarrow b$
+and $\lnot b\Rightarrow a$), find its SCCs, and a variable is unsatisfiable
+iff it shares an SCC with its own negation.
+\end{patternbox}
+
+\subsection*{Implications, SCCs, and the assignment}
+
+Represent each topping $i$ by two literal-nodes: ``present'' and
+``absent,'' with negation flipping between them. A clause $(a\lor b)$ adds
+$\lnot a\to b$ and $\lnot b\to a$ (if one wish fails the other must hold).
+Compute SCCs. If some literal and its negation land in the same SCC, they
+are forced equal -- a contradiction -- so the answer is \texttt{IMPOSSIBLE}.
+Otherwise assign each variable the truth value of whichever of its two
+literals appears \emph{later} in topological order; with Tarjan's reverse-
+topological numbering, that is the literal with the \emph{smaller} component
+id.
+
+\begin{ideabox}[A Literal and Its Negation Must Differ]
+If $x$ and $\lnot x$ are mutually reachable (same SCC), the constraints
+force $x=\lnot x$, impossible. Otherwise picking the ``downstream''
+(sink-ward) literal of each pair as true satisfies every implication, since
+truth flows along edges toward sinks.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the implication graph on $2n$ literal-nodes.
+  \item Find SCCs (Tarjan). If any variable has $\textit{comp}[x]=
+        \textit{comp}[\lnot x]$, print \texttt{IMPOSSIBLE}.
+  \item Else set topping $i$ present iff $\textit{comp}[\text{present}_i]<
+        \textit{comp}[\text{absent}_i]$; print \texttt{+}/\texttt{-}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{One friend: (\texttt{+}1 \texttt{-}2).}
+
+\begin{itemize}
+  \item Clause $(x_1\lor\lnot x_2)$: implications $\lnot x_1\to\lnot x_2$
+        and $x_2\to x_1$.
+  \item An assignment like $x_1=$ present, $x_2=$ absent satisfies it.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int N;                                            // number of literal-nodes = 2n
+vector<vector<int>> adj;
+vector<int> disc, low, comp;
+vector<bool> onStack;
+stack<int> stk;
+int timer_ = 0, sccCount = 0;
+
+void tarjan(int u) {
+    disc[u] = low[u] = ++timer_;
+    stk.push(u); onStack[u] = true;
+    for (int v : adj[u]) {
+        if (!disc[v]) { tarjan(v); low[u] = min(low[u], low[v]); }
+        else if (onStack[v]) low[u] = min(low[u], disc[v]);
+    }
+    if (low[u] == disc[u]) {
+        sccCount++;
+        while (true) {
+            int x = stk.top(); stk.pop(); onStack[x] = false;
+            comp[x] = sccCount;
+            if (x == u) break;
+        }
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> m >> n;                                // m friends, n toppings
+    N = 2 * n;
+    adj.assign(N, {});
+    auto lit = [&](char s, int t) {               // literal node index
+        return 2 * (t - 1) + (s == '+' ? 0 : 1);
+    };
+    auto neg = [&](int l) { return l ^ 1; };
+    for (int i = 0; i < m; i++) {
+        char s1, s2; int t1, t2;
+        cin >> s1 >> t1 >> s2 >> t2;
+        int a = lit(s1, t1), b = lit(s2, t2);
+        adj[neg(a)].push_back(b);                 // clause (a OR b)
+        adj[neg(b)].push_back(a);
+    }
+
+    disc.assign(N, 0); low.assign(N, 0);
+    comp.assign(N, 0); onStack.assign(N, false);
+    for (int i = 0; i < N; i++) if (!disc[i]) tarjan(i);
+
+    string ans;
+    for (int i = 0; i < n; i++) {
+        int pres = 2 * i, abse = 2 * i + 1;
+        if (comp[pres] == comp[abse]) { cout << "IMPOSSIBLE\n"; return 0; }
+        ans += (comp[pres] < comp[abse]) ? '+' : '-';   // present iff smaller comp id
+    }
+    for (char c : ans) cout << c << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- linear in the implication graph.
+\textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Any set of two-literal constraints is 2-SAT: build the implication graph,
+find SCCs, and check no variable shares an SCC with its negation. The
+sink-ward literal of each pair gives a satisfying assignment -- one of the
+most elegant applications of strong connectivity.
+\end{takeawaybox}

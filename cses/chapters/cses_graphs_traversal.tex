@@ -1,0 +1,53 @@
+\chapter{Graph Traversal}
+\chapterepigraph{Every graph problem starts with a traversal. BFS and DFS
+are the same idea -- visit a node, then visit its unvisited neighbours --
+differing only in whether a queue or a stack (recursion) decides who is
+next. BFS's level-by-level order gives shortest paths in unweighted graphs;
+DFS's dive-deep order exposes components, cycles, and structure. This
+chapter is the foundation the rest of the book stands on.}
+
+\section{BFS and DFS: One Idea, Two Orders}
+\label{sec:cses-graph-traversal-intro}
+
+A traversal marks nodes visited so none is processed twice, and explores
+outward from a source. The only choice is the order neighbours are taken.
+
+\begin{ideabox}[Queue for Shortest, Stack for Structure]
+\textbf{BFS} uses a queue: it visits all nodes at distance $1$, then $2$,
+and so on, so the first time it reaches a node is via a shortest
+(fewest-edges) path. \textbf{DFS} uses recursion (an implicit stack): it
+follows one path as deep as possible before backtracking, which naturally
+reveals connected components, cycles (a back edge to an ancestor), and
+bipartiteness (a 2-colouring conflict).
+\end{ideabox}
+
+\begin{patternbox}[What Each Problem Here Needs]
+\begin{itemize}
+  \item \textbf{Count/flood connected regions} -- DFS or BFS flood fill:
+        Counting Rooms.
+  \item \textbf{Shortest path / reconstruct path in an unweighted graph
+        or grid} -- BFS: Labyrinth, Message Route.
+  \item \textbf{Is everything connected / how many edges to connect} --
+        component counting: Building Roads.
+  \item \textbf{2-colour the graph} -- BFS/DFS bipartite check: Building
+        Teams.
+  \item \textbf{Find a cycle} -- DFS back edge (or DSU) in an undirected
+        graph: Round Trip.
+  \item \textbf{Multi-source spread / escape} -- BFS from many sources at
+        once: Monsters.
+\end{itemize}
+\end{patternbox}
+
+Each section gives the CSES-style input handling, the traversal, path or
+answer reconstruction where required, a dry run, complete C++, and
+complexity.
+
+\newpage
+
+\input{chapters/cses_graphs/01_counting_rooms.tex}
+\input{chapters/cses_graphs/02_labyrinth.tex}
+\input{chapters/cses_graphs/03_message_route.tex}
+\input{chapters/cses_graphs/04_building_roads.tex}
+\input{chapters/cses_graphs/05_building_teams.tex}
+\input{chapters/cses_graphs/06_round_trip.tex}
+\input{chapters/cses_graphs/07_monsters.tex}

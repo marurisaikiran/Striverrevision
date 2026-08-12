@@ -1,0 +1,49 @@
+\chapter{DAGs, Topological Order, and Strong Connectivity}
+\chapterepigraph{Direction changes everything. A directed acyclic graph
+has a topological order that turns path counting and longest paths into
+simple DP. A general directed graph may have cycles, but contracting each
+strongly connected component to a point recovers a DAG -- and that
+condensation, plus its cousin 2-SAT, solves a surprising range of
+problems.}
+
+\section{Order and Components in Directed Graphs}
+\label{sec:cses-graph-dag-intro}
+
+Two structural facts drive this chapter: a DAG can be linearised
+(topological sort), and any directed graph condenses into a DAG of its
+strongly connected components (SCCs).
+
+\begin{patternbox}[Directed-Graph Toolkit]
+\begin{itemize}
+  \item \textbf{Detect a directed cycle / order tasks} --
+        \textbf{topological sort} (DFS colours or Kahn's queue): Round
+        Trip II, Course Schedule.
+  \item \textbf{Longest path / count paths in a DAG} -- \textbf{DP in
+        topological order}: Longest Flight Route, Game Routes,
+        Investigation.
+  \item \textbf{Group mutually reachable nodes} -- \textbf{SCC} (Kosaraju
+        or Tarjan): Planets and Kingdoms, Flight Routes Check.
+  \item \textbf{Condense to a DAG, then DP} -- SCC condensation: Coin
+        Collector.
+  \item \textbf{Satisfy boolean constraints of the form ``$a$ or $b$''}
+        -- \textbf{2-SAT} via the implication graph's SCCs: Giant Pizza.
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Condensation Turns Any Directed Graph into a DAG]
+Contract each SCC into a single super-node. The result is always acyclic,
+so topological-order DP applies to it. This ``find SCCs, condense, then DP
+on the DAG'' pipeline is the backbone of the hard problems here.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/cses_graphs/14_round_trip_ii.tex}
+\input{chapters/cses_graphs/15_course_schedule.tex}
+\input{chapters/cses_graphs/16_longest_flight_route.tex}
+\input{chapters/cses_graphs/17_game_routes.tex}
+\input{chapters/cses_graphs/18_investigation.tex}
+\input{chapters/cses_graphs/19_planets_kingdoms.tex}
+\input{chapters/cses_graphs/20_flight_routes_check.tex}
+\input{chapters/cses_graphs/21_giant_pizza.tex}
+\input{chapters/cses_graphs/22_coin_collector.tex}

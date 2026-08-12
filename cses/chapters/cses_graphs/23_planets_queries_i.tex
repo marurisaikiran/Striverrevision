@@ -1,0 +1,89 @@
+\section{Planets Queries I}
+\label{sec:cses-planets-queries-i}
+
+\problemstatement{Each of $n$ planets has exactly one teleporter to a
+successor planet. Answer $q$ queries: starting from planet $x$ and
+teleporting $k$ times (where $k$ can be up to $10^9$), which planet do you
+reach?}
+
+\begin{patternbox}
+Following one edge per node many times is answered by \textbf{binary
+lifting}: precompute where you land after $2^0,2^1,2^2,\ldots$ steps, then
+compose the jumps for the set bits of $k$ to answer each query in
+$O(\log k)$.
+\end{patternbox}
+
+\subsection*{Doubling the jump}
+
+Let $\textit{up}[j][x]$ be the planet reached after $2^j$ teleports from
+$x$. The base is $\textit{up}[0][x]=\textit{succ}(x)$, and doubling gives
+$\textit{up}[j][x]=\textit{up}[j-1][\textit{up}[j-1][x]]$ -- jump $2^{j-1}$,
+then $2^{j-1}$ more. For a query $(x,k)$, walk through the bits of $k$: for
+each set bit $j$, replace $x$ with $\textit{up}[j][x]$. After processing all
+bits, $x$ is the destination.
+
+\begin{ideabox}[Any k Is a Sum of Powers of Two]
+Because $k$ decomposes into its binary digits, a $k$-step jump is the
+composition of the precomputed $2^j$-jumps for the bits set in $k$. Thus
+$O(n\log k)$ preprocessing yields $O(\log k)$ per query -- the same doubling
+trick as sparse tables and LCA.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Read $\textit{succ}$; build $\textit{up}[0]$; fill
+        $\textit{up}[j]$ by composing the previous level.
+  \item For each $(x,k)$: for every set bit $j$ of $k$, advance $x=
+        \textit{up}[j][x]$.
+  \item Output the final $x$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$\textit{succ}=[2,3,1]$ (a 3-cycle); query $x=1,k=4$.}
+
+\begin{itemize}
+  \item $k=4=100_2$: jump $2^2=4$ steps. $\textit{up}[2][1]=$ four steps
+        around the 3-cycle $=1\to2\to3\to1\to2$, landing on $2$.
+  \item Answer $2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const int LOG = 30;                              // 2^30 > 1e9
+
+int main() {
+    int n, q;
+    cin >> n >> q;
+    vector<vector<int>> up(LOG, vector<int>(n + 1));
+    for (int i = 1; i <= n; i++) cin >> up[0][i];  // successor
+    for (int j = 1; j < LOG; j++)
+        for (int i = 1; i <= n; i++)
+            up[j][i] = up[j - 1][up[j - 1][i]];
+
+    while (q--) {
+        int x, k;
+        cin >> x >> k;
+        for (int j = 0; j < LOG; j++)
+            if (k & (1 << j)) x = up[j][x];        // apply 2^j-jump for set bits
+        cout << x << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log k)$ preprocessing, $O(\log k)$ per query.
+\textbf{Space Complexity.} $O(n\log k)$ for the lifting table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Binary lifting answers ``$k$ steps ahead'' in a functional graph in
+logarithmic time by composing power-of-two jumps. The same table underlies
+$k$-th ancestor queries and LCA, and powers the harder Planets Queries II
+next.
+\end{takeawaybox}

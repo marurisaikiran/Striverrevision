@@ -1,0 +1,93 @@
+\section{High Score}
+\label{sec:cses-high-score}
+
+\problemstatement{A directed graph of $n$ rooms and $m$ edges, each edge
+carrying a score (possibly negative). Starting in room $1$ and ending in
+room $n$, maximise the total collected score. If the score can be made
+arbitrarily large, output $-1$.}
+
+\begin{patternbox}
+Maximising with possibly negative (and positive) edges, plus detecting an
+unbounded answer, is \textbf{Bellman--Ford} run for maxima. A positive
+cycle that lies on some $1\to n$ path makes the score unbounded -- the
+analogue of a negative cycle in the minimisation form.
+\end{patternbox}
+
+\subsection*{Maximise, then check reachable positive cycles}
+
+Set $\textit{dist}[1]=0$, others $-\infty$, and relax every edge $n-1$
+times using $\max$: $\textit{dist}[v]=\max(\textit{dist}[v],
+\textit{dist}[u]+w)$. After that, run one more round: any node whose value
+still increases sits on or downstream of a positive cycle. Mark such nodes
+and propagate the mark forward; if node $n$ ends up marked \emph{and} is
+reachable from $1$, the answer is $-1$. Otherwise $\textit{dist}[n]$ is the
+maximum score.
+
+\begin{ideabox}[A Positive Cycle on the Path Means Unbounded]
+Only cycles that are both reachable from $1$ and can reach $n$ matter --
+looping such a cycle adds score forever. Extra relaxation rounds detect the
+still-improving nodes, and a forward propagation checks whether $n$ is
+affected.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Relax all edges $n-1$ times with $\max$ (from $\textit{dist}[1]=0$).
+  \item Run $n$ more rounds; if an edge still improves $v$, mark $v=+\infty$
+        and propagate the mark along edges.
+  \item If $\textit{dist}[n]=+\infty$ output $-1$, else output
+        $\textit{dist}[n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2(5)$, $2\!\to\!3(-2)$, $3\!\to\!2(3)$ (cycle $2\!\to\!3
+\!\to\!2$ gains $+1$), $3\!\to\!4(1)$; $n=4$.}
+
+\begin{itemize}
+  \item Cycle $2\!\to\!3\!\to\!2$ has net $+1$ and reaches $4$ -- score is
+        unbounded.
+  \item Output $-1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long NEG = LLONG_MIN / 4;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<array<long long,3>> edges(m);          // {u, v, w}
+    for (auto& e : edges) cin >> e[0] >> e[1] >> e[2];
+
+    vector<long long> dist(n + 1, NEG);
+    dist[1] = 0;
+    for (int i = 0; i < n - 1; i++)
+        for (auto& [u, v, w] : edges)
+            if (dist[u] > NEG) dist[v] = max(dist[v], dist[u] + w);
+
+    // extra rounds: mark nodes on/after a positive cycle as +infinity
+    for (int i = 0; i < n; i++)
+        for (auto& [u, v, w] : edges)
+            if (dist[u] > NEG && dist[u] + w > dist[v]) dist[v] = LLONG_MAX / 4;
+
+    cout << (dist[n] >= LLONG_MAX / 8 ? -1 : dist[n]) << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nm)$ -- Bellman--Ford's relaxation rounds.
+\textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Maximising a path score with mixed-sign edges is Bellman--Ford with $\max$;
+a reachable positive cycle makes it unbounded. Running extra rounds and
+propagating a ``$+\infty$'' mark cleanly detects the nodes an unbounded
+cycle can inflate -- the mirror of negative-cycle detection.
+\end{takeawaybox}

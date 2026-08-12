@@ -1,0 +1,105 @@
+\section{Planets and Kingdoms}
+\label{sec:cses-planets-kingdoms}
+
+\problemstatement{Given a directed graph of $n$ planets and $m$
+teleporters, partition the planets into kingdoms so that two planets are in
+the same kingdom iff each can reach the other. Output the number of
+kingdoms and each planet's kingdom id.}
+
+\begin{patternbox}
+``Mutually reachable groups'' are the \textbf{strongly connected components}
+(SCCs) of a directed graph. \textbf{Tarjan's algorithm} finds all SCCs in a
+single DFS using discovery times and a low-link value that detects the root
+of each component.
+\end{patternbox}
+
+\subsection*{Tarjan's low-link}
+
+DFS assigns each node an increasing discovery index. A node's
+$\textit{low}$ is the smallest index reachable from it using tree edges
+plus at most one back edge to a node still on the DFS stack. When a node's
+$\textit{low}$ equals its own index, it is the root of an SCC: pop the DFS
+stack down to it, and those nodes form one component. Nodes not yet assigned
+sit on an explicit stack so cross-component edges are excluded.
+
+\begin{ideabox}[low == index Marks a Component Root]
+The low-link captures ``the earliest ancestor I can loop back to.'' If a
+node cannot reach anything older than itself, it closes a strongly connected
+region, so everything above it on the stack is exactly that SCC.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item DFS every node, maintaining discovery indices, low-links, and an
+        on-stack marker.
+  \item When $\textit{low}[u]=\textit{index}[u]$, pop the stack to $u$,
+        labelling those nodes with a new component id.
+  \item Output the component count and each node's id.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2$, $2\!\to\!1$, $2\!\to\!3$.}
+
+\begin{itemize}
+  \item $\{1,2\}$ are mutually reachable -- one kingdom; $\{3\}$ alone.
+  \item Two kingdoms.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, m, timer_ = 0, sccCount = 0;
+vector<vector<int>> adj;
+vector<int> disc, low, comp;
+vector<bool> onStack;
+stack<int> stk;
+
+void tarjan(int u) {
+    disc[u] = low[u] = ++timer_;
+    stk.push(u); onStack[u] = true;
+    for (int v : adj[u]) {
+        if (!disc[v]) { tarjan(v); low[u] = min(low[u], low[v]); }
+        else if (onStack[v]) low[u] = min(low[u], disc[v]);
+    }
+    if (low[u] == disc[u]) {                      // u is an SCC root
+        sccCount++;
+        while (true) {
+            int x = stk.top(); stk.pop(); onStack[x] = false;
+            comp[x] = sccCount;
+            if (x == u) break;
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+    adj.assign(n + 1, {});
+    for (int i = 0; i < m; i++) { int a, b; cin >> a >> b; adj[a].push_back(b); }
+    disc.assign(n + 1, 0); low.assign(n + 1, 0);
+    comp.assign(n + 1, 0); onStack.assign(n + 1, false);
+
+    for (int i = 1; i <= n; i++) if (!disc[i]) tarjan(i);
+
+    cout << sccCount << "\n";
+    for (int i = 1; i <= n; i++) cout << comp[i] << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- a single DFS. \textbf{Space
+Complexity.} $O(n+m)$; recursion depth $O(n)$ (use an iterative DFS for very
+large $n$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Mutually-reachable partitions are SCCs, and Tarjan finds them in one DFS via
+the low-link ``earliest reachable ancestor'' test. SCCs underlie strong-
+connectivity checks, 2-SAT, and condensation DP -- the next three problems.
+\end{takeawaybox}

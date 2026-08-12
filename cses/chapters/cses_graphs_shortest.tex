@@ -1,0 +1,46 @@
+\chapter{Shortest Paths}
+\chapterepigraph{Weighted shortest paths are all the same operation --
+relaxation -- applied in different orders. Dijkstra relaxes from the
+nearest node using a heap; Bellman-Ford relaxes every edge repeatedly and
+survives negative weights; Floyd-Warshall relaxes through every
+intermediate node for all pairs at once. The CSES shortest-path problems
+tour these three engines and their twists.}
+
+\section{Relaxation, Three Ways}
+\label{sec:cses-graph-shortest-intro}
+
+Relaxing an edge $u\to v$ of weight $w$ means: if
+$\textit{dist}[u]+w<\textit{dist}[v]$, improve $\textit{dist}[v]$. Which
+edges, and in what order, distinguishes the algorithms.
+
+\begin{patternbox}[Choosing the Shortest-Path Engine]
+\begin{itemize}
+  \item \textbf{Single source, non-negative weights} -- \textbf{Dijkstra}
+        with a priority queue: Shortest Routes I, and (with a twist)
+        Flight Discount and Flight Routes.
+  \item \textbf{All pairs, small $n$} -- \textbf{Floyd-Warshall}:
+        Shortest Routes II.
+  \item \textbf{Negative weights / detect a negative cycle} --
+        \textbf{Bellman-Ford}: High Score, Cycle Finding.
+  \item \textbf{$k$-th shortest / few best paths} -- Dijkstra keeping the
+        best $k$ arrival costs per node: Flight Routes.
+  \item \textbf{One special edge (a discount)} -- a \textbf{layered}
+        (state $\times$ used-discount) Dijkstra: Flight Discount.
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Layering Encodes Extra State in the Node]
+Several twists (used a discount yet? how many stops so far?) are handled by
+running the same algorithm on an expanded graph whose nodes are
+$(\text{original node},\ \text{extra state})$. The algorithm does not
+change; only the node set grows.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/cses_graphs/08_shortest_routes_i.tex}
+\input{chapters/cses_graphs/09_shortest_routes_ii.tex}
+\input{chapters/cses_graphs/10_high_score.tex}
+\input{chapters/cses_graphs/11_flight_discount.tex}
+\input{chapters/cses_graphs/12_cycle_finding.tex}
+\input{chapters/cses_graphs/13_flight_routes.tex}

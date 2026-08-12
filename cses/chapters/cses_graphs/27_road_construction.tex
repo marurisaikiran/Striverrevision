@@ -1,0 +1,91 @@
+\section{Road Construction}
+\label{sec:cses-road-construction}
+
+\problemstatement{There are $n$ cities and initially no roads. Roads are
+built one at a time ($m$ of them). After each new road, output the current
+number of connected components and the size of the largest component.}
+
+\begin{patternbox}
+Adding edges and tracking connectivity over time is \textbf{incremental
+Disjoint Set}. Maintain a running component count and the maximum component
+size, both updated in $O(\alpha)$ whenever a union actually merges two
+different components.
+\end{patternbox}
+
+\subsection*{Update counts on each real union}
+
+Start with $n$ components, each of size $1$, and a maximum size of $1$.
+For each new road, union its endpoints: if they were already in the same
+component, nothing changes. If they were separate, the component count
+drops by one, the merged component's size is the sum of the two, and the
+maximum size is updated against it. Print the count and maximum after each
+road.
+
+\begin{ideabox}[Only Real Merges Change the Answer]
+Union-Find's size counter gives the merged component's size immediately, so
+the largest-component tracker updates in $O(1)$ per successful union. A
+union that finds both endpoints already together leaves both statistics
+untouched.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Disjoint Set of $n$ singletons; $\textit{components}=n$,
+        $\textit{maxSize}=1$.
+  \item Per road: if the endpoints unite, decrement $\textit{components}$
+        and update $\textit{maxSize}$ with the new size.
+  \item Output $\textit{components}$ and $\textit{maxSize}$ after each road.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=4$; roads $1\!-\!2$, $3\!-\!4$, $2\!-\!3$.}
+
+\begin{itemize}
+  \item After $1\!-\!2$: components $3$, max $2$.
+  \item After $3\!-\!4$: components $2$, max $2$.
+  \item After $2\!-\!3$: merges the two pairs -- components $1$, max $4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<int> parent(n + 1), sz(n + 1, 1);
+    iota(parent.begin(), parent.end(), 0);
+    function<int(int)> find = [&](int x) { return parent[x] == x ? x : parent[x] = find(parent[x]); };
+
+    int components = n, maxSize = 1;
+    while (m--) {
+        int a, b; cin >> a >> b;
+        a = find(a); b = find(b);
+        if (a != b) {
+            if (sz[a] < sz[b]) swap(a, b);
+            parent[b] = a;
+            sz[a] += sz[b];
+            components--;
+            maxSize = max(maxSize, sz[a]);
+        }
+        cout << components << " " << maxSize << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((n+m)\,\alpha(n))$ -- near-linear.
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Online connectivity under edge additions is incremental Union-Find, with the
+component count and largest-size maintained on each real merge. Disjoint Set
+handles edge \emph{additions} gladly; edge \emph{deletions} are the hard
+case needing offline or advanced structures.
+\end{takeawaybox}

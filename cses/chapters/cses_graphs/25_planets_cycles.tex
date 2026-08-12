@@ -1,0 +1,104 @@
+\section{Planets Cycles}
+\label{sec:cses-planets-cycles}
+
+\problemstatement{Each of $n$ planets has one teleporter. For each starting
+planet, output how many planets you visit before returning to a planet you
+have already seen (i.e.\ the number of teleports until the first repeat).}
+
+\begin{patternbox}
+In a functional graph, starting anywhere you walk a tail and then loop a
+cycle. The count until the first repeat is $\textit{depth}+\textit{cycle
+length}$: the tail steps to reach the cycle plus the cycle's size. So the
+same rho decomposition as Planets Queries II answers every node at once.
+\end{patternbox}
+
+\subsection*{Tail length plus cycle length}
+
+Peel to identify cycle nodes; for each cycle record its length. A node on a
+cycle simply revisits after $\textit{cycleLen}$ steps. A tail node walks
+$\textit{depth}$ steps to reach the cycle, then $\textit{cycleLen}$ more to
+return to its entry point -- so its answer is
+$\textit{depth}+\textit{cycleLen}(\textit{entry})$. Computing $\textit{depth}$
+and the cycle each node leads to (in reverse peel order) gives all answers in
+one pass.
+
+\begin{ideabox}[Every Walk Is Tail Then Loop]
+The first repeat is always the cycle entry, reached again after one full
+loop. Hence the visited count is exactly tail length plus cycle length,
+independent of where on the cycle you enter.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Peel tree nodes; label cycles with their lengths.
+  \item Cycle node answer $=\textit{cycleLen}$; tail node answer
+        $=\textit{depth}+\textit{cycleLen}(\textit{lead})$.
+  \item Output every node's answer.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$\textit{succ}=[2,3,1,3]$: cycle $1\!\to\!2\!\to\!3$ (length $3$),
+tail $4\!\to\!3$.}
+
+\begin{itemize}
+  \item Nodes $1,2,3$: answer $3$ each. Node $4$: depth $1$ + cycle $3$
+        $=4$.
+  \item Output $3\ 3\ 3\ 4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> succ(n + 1), indeg(n + 1, 0);
+    for (int i = 1; i <= n; i++) { cin >> succ[i]; indeg[succ[i]]++; }
+
+    vector<int> deg = indeg, order;
+    queue<int> pq;
+    for (int i = 1; i <= n; i++) if (deg[i] == 0) pq.push(i);
+    vector<bool> removed(n + 1, false);
+    while (!pq.empty()) {
+        int u = pq.front(); pq.pop();
+        removed[u] = true; order.push_back(u);
+        if (--deg[succ[u]] == 0) pq.push(succ[u]);
+    }
+
+    vector<int> depth(n + 1, 0), lead(n + 1, 0), cycLen(n + 1, 0);
+    vector<bool> isCyc(n + 1, false);
+    int cid = 0;
+    for (int i = 1; i <= n; i++) {
+        if (removed[i] || isCyc[i]) continue;
+        cid++; int len = 0;
+        for (int x = i; !isCyc[x]; x = succ[x]) { isCyc[x] = true; lead[x] = cid; len++; }
+        cycLen[cid] = len;
+    }
+    for (int idx = (int)order.size() - 1; idx >= 0; idx--) {
+        int u = order[idx];
+        depth[u] = depth[succ[u]] + 1;
+        lead[u] = lead[succ[u]];
+    }
+
+    for (int i = 1; i <= n; i++)
+        cout << depth[i] + cycLen[lead[i]] << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- peeling plus one reverse pass.
+\textbf{Space Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Steps-until-repeat in a functional graph is tail depth plus cycle length,
+computed for every node from one rho decomposition. Recognising the tail-
+then-loop structure turns a per-node simulation into a single linear pass.
+\end{takeawaybox}

@@ -1,0 +1,101 @@
+\section{Flight Routes Check}
+\label{sec:cses-flight-routes-check}
+
+\problemstatement{Given a directed graph of $n$ cities and $m$ flights,
+determine whether you can travel between \emph{every} pair of cities. If so
+output \texttt{YES}; otherwise output two cities $a$, $b$ such that there is
+no route from $a$ to $b$.}
+
+\begin{patternbox}
+Strong connectivity can be checked without full SCC decomposition: a graph
+is strongly connected iff, from any single node $s$, \emph{everyone is
+reachable} in the original graph \emph{and} \emph{everyone can reach $s$}
+(reachable in the reversed graph). Two DFS runs suffice.
+\end{patternbox}
+
+\subsection*{Forward and reverse reachability from one node}
+
+Pick $s=1$. DFS in the original graph: if some node $u$ is unreachable, then
+there is no route $1\to u$, so print ``$1\ u$''. Otherwise DFS in the graph
+with all edges reversed: if some node $u$ is unreachable there, it cannot
+reach $1$ in the original, so print ``$u\ 1$''. If both DFS runs cover every
+node, then $1$ can reach all and all can reach $1$, which makes every pair
+connected via $1$ -- output \texttt{YES}.
+
+\begin{ideabox}[Strong Connectivity = Reach All and Be Reached from One Node]
+If a single node both reaches everyone and is reached by everyone, any two
+nodes $a,b$ connect through it ($a\to s\to b$). So two reachability
+searches -- one forward, one reversed -- decide strong connectivity and
+produce a counterexample pair when it fails.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item DFS/BFS from $1$ in the original graph; if node $u$ unreached,
+        print ``$1\ u$''.
+  \item DFS/BFS from $1$ in the reversed graph; if node $u$ unreached,
+        print ``$u\ 1$''.
+  \item Else print \texttt{YES}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2$, $2\!\to\!3$ (no way back); $n=3$.}
+
+\begin{itemize}
+  \item Reversed DFS from $1$ cannot reach $2$ (edges reversed:
+        $2\!\to\!1$, $3\!\to\!2$), so $2$ cannot reach $1$.
+  \item Output ``$2\ 1$''.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+void bfs(int s, vector<vector<int>>& g, vector<bool>& vis) {
+    queue<int> q; q.push(s); vis[s] = true;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : g[u]) if (!vis[v]) { vis[v] = true; q.push(v); }
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1), radj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        radj[b].push_back(a);
+    }
+
+    vector<bool> vis(n + 1, false);
+    bfs(1, adj, vis);
+    for (int u = 1; u <= n; u++)
+        if (!vis[u]) { cout << 1 << " " << u << "\n"; return 0; }
+
+    fill(vis.begin(), vis.end(), false);
+    bfs(1, radj, vis);
+    for (int u = 1; u <= n; u++)
+        if (!vis[u]) { cout << u << " " << 1 << "\n"; return 0; }
+
+    cout << "YES\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- two traversals. \textbf{Space
+Complexity.} $O(n+m)$ for both adjacency lists.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Strong connectivity needs only two searches from one node -- forward and on
+the reversed graph -- not a full SCC pass. The unreached node in either
+search is a ready-made counterexample pair, which is exactly what the
+problem asks for.
+\end{takeawaybox}

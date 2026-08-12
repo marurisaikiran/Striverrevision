@@ -1,0 +1,97 @@
+\section{Message Route}
+\label{sec:cses-message-route}
+
+\problemstatement{Given an undirected graph of $n$ computers and $m$
+connections, find a route with the fewest edges from computer $1$ to
+computer $n$. Output the number of computers on the route and the route
+itself, or \texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+Fewest edges in an unweighted graph is \textbf{BFS}. Recording each node's
+predecessor lets the shortest route be reconstructed by walking parents
+back from $n$ to $1$.
+\end{patternbox}
+
+\subsection*{BFS with parent pointers}
+
+BFS from node $1$. The first time a node is dequeued-into, it is via a
+shortest route, so store the node it came from. When $n$ is reached, follow
+$\textit{parent}$ from $n$ back to $1$, then reverse to get the route in
+forward order. If $n$ is never visited, the answer is \texttt{IMPOSSIBLE}.
+
+\begin{ideabox}[Parents Turn Distances into Routes]
+This is Labyrinth on a general graph rather than a grid: the same BFS,
+the same parent-backtrack. On any unweighted graph, ``fewest edges''
+plus ``print the path'' is always BFS plus predecessors.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build adjacency lists. BFS from $1$, storing $\textit{parent}[v]$
+        on first visit.
+  \item If $n$ unvisited, print \texttt{IMPOSSIBLE}.
+  \item Else backtrack $n\to\ldots\to1$, reverse, and print the count and
+        route.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Edges $1\!-\!2$, $2\!-\!3$, $1\!-\!3$; $n=3$.}
+
+\begin{itemize}
+  \item BFS from $1$ reaches $3$ directly (edge $1\!-\!3$), parent
+        $[3]=1$.
+  \item Route $1\to3$: two computers. (The two-edge path $1\!-\!2\!-\!3$
+        is longer and not chosen.)
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        adj[b].push_back(a);
+    }
+
+    vector<int> parent(n + 1, 0);
+    vector<bool> vis(n + 1, false);
+    queue<int> q;
+    q.push(1); vis[1] = true;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : adj[u])
+            if (!vis[v]) { vis[v] = true; parent[v] = u; q.push(v); }
+    }
+
+    if (!vis[n]) { cout << "IMPOSSIBLE\n"; return 0; }
+    vector<int> route;
+    for (int v = n; v != 0; v = parent[v]) route.push_back(v);
+    reverse(route.begin(), route.end());
+
+    cout << route.size() << "\n";
+    for (int v : route) cout << v << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- one BFS. \textbf{Space Complexity.}
+$O(n+m)$ for adjacency lists, parents, and the queue.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Message Route is the graph (not grid) version of shortest-path-with-route:
+BFS for fewest edges, parent pointers for the path. Master this pair --
+BFS distance and parent reconstruction -- as the reflex for all unweighted
+shortest-path queries.
+\end{takeawaybox}

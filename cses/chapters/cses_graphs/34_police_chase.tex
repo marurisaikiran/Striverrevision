@@ -1,0 +1,132 @@
+\section{Police Chase}
+\label{sec:cses-police-chase}
+
+\problemstatement{Given an undirected graph of $n$ intersections and $m$
+streets, find the minimum number of streets to remove so that node $1$ is
+disconnected from node $n$, and output those streets.}
+
+\begin{patternbox}
+``Fewest edges to disconnect $s$ from $t$'' is the \textbf{minimum cut},
+which by the max-flow--min-cut theorem equals the \textbf{maximum flow} with
+every edge given capacity $1$. The cut edges are those crossing from the
+source-reachable side to the rest after the flow saturates.
+\end{patternbox}
+
+\subsection*{Max flow, then read the cut}
+
+Model each street as an undirected unit-capacity edge (a pair of directed
+edges). The max flow from $1$ to $n$ equals the minimum number of streets
+whose removal disconnects them. After computing it, BFS in the residual
+graph from node $1$: the reachable set $S$ is one side of the cut. Every
+original street with exactly one endpoint in $S$ is a cut edge -- print
+those. Their count equals the max-flow value.
+
+\begin{ideabox}[The Reachable Side Defines the Cut]
+When no augmenting path remains, the nodes still reachable from the source
+in the residual graph are separated from the rest by saturated edges. The
+original edges straddling that boundary are precisely a minimum edge cut.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Add each street as a unit-capacity edge in both directions; run max
+        flow $1\to n$.
+  \item BFS the residual graph from $1$ to get the reachable set $S$.
+  \item Output every original street with one endpoint in $S$ and one
+        outside.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Path $1\!-\!2\!-\!3$ with $n=3$; a single street between $2$ and
+$3$ (and $1,2$).}
+
+\begin{itemize}
+  \item Max flow $=1$; residual-reachable set from $1$ is $\{1,2\}$.
+  \item The street $2\!-\!3$ crosses the boundary -- remove it (one
+        street).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Dinic {
+    struct Edge { int to; long long cap; int rev; };
+    vector<vector<Edge>> g;
+    vector<int> level, it;
+    Dinic(int n) : g(n), level(n), it(n) {}
+    void addEdge(int u, int v, long long c) {
+        g[u].push_back({v, c, (int)g[v].size()});
+        g[v].push_back({u, c, (int)g[u].size() - 1});   // undirected: both cap c
+    }
+    bool bfs(int s, int t) {
+        fill(level.begin(), level.end(), -1);
+        queue<int> q; level[s] = 0; q.push(s);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (auto& e : g[u])
+                if (e.cap > 0 && level[e.to] < 0) { level[e.to] = level[u] + 1; q.push(e.to); }
+        }
+        return level[t] >= 0;
+    }
+    long long dfs(int u, int t, long long f) {
+        if (u == t) return f;
+        for (int& i = it[u]; i < (int)g[u].size(); i++) {
+            Edge& e = g[u][i];
+            if (e.cap > 0 && level[u] < level[e.to]) {
+                long long d = dfs(e.to, t, min(f, e.cap));
+                if (d > 0) { e.cap -= d; g[e.to][e.rev].cap += d; return d; }
+            }
+        }
+        return 0;
+    }
+    long long maxflow(int s, int t) {
+        long long flow = 0;
+        while (bfs(s, t)) {
+            fill(it.begin(), it.end(), 0);
+            long long f;
+            while ((f = dfs(s, t, LLONG_MAX)) > 0) flow += f;
+        }
+        return flow;
+    }
+};
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    Dinic dinic(n + 1);
+    vector<pair<int,int>> streets(m);
+    for (auto& [a, b] : streets) { cin >> a >> b; dinic.addEdge(a, b, 1); }
+
+    long long cut = dinic.maxflow(1, n);
+    // residual reachability from source
+    vector<bool> reach(n + 1, false);
+    queue<int> q; q.push(1); reach[1] = true;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (auto& e : dinic.g[u])
+            if (e.cap > 0 && !reach[e.to]) { reach[e.to] = true; q.push(e.to); }
+    }
+
+    cout << cut << "\n";
+    for (auto& [a, b] : streets)
+        if (reach[a] != reach[b]) cout << a << " " << b << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(V^2E)$ for the flow; the cut extraction is
+$O(V+E)$. \textbf{Space Complexity.} $O(V+E)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Minimum edge cut equals maximum flow with unit capacities, and the cut edges
+straddle the residual-reachable frontier. Max-flow--min-cut is one of the
+most powerful reductions in graph theory -- ``disconnect cheaply'' becomes
+``push maximally.''
+\end{takeawaybox}

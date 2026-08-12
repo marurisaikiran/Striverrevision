@@ -1,0 +1,114 @@
+\section{Labyrinth}
+\label{sec:cses-labyrinth}
+
+\problemstatement{Given a grid with a start \texttt{A}, a target
+\texttt{B}, floor \texttt{.}, and walls \texttt{\#}, find a shortest path
+from \texttt{A} to \texttt{B} moving in the four directions. Output
+\texttt{YES}, its length, and the sequence of moves (\texttt{U/D/L/R}), or
+\texttt{NO}.}
+
+\begin{patternbox}
+A grid where each move costs one step is an unweighted graph, so
+\textbf{BFS} finds the shortest path, and remembering \emph{how} each cell
+was first reached (which move and from where) reconstructs the actual path.
+\end{patternbox}
+
+\subsection*{BFS plus per-cell parent}
+
+Run BFS from \texttt{A}. The first time BFS reaches a cell, it does so by a
+shortest path, so record the move (\texttt{U/D/L/R}) used to enter it and
+its predecessor. When \texttt{B} is reached, walk the parent pointers back
+to \texttt{A}, collecting the moves, then reverse them. If BFS finishes
+without reaching \texttt{B}, output \texttt{NO}.
+
+\begin{ideabox}[Store the Move That First Reached Each Cell]
+Distances alone say how long the path is; storing the direction taken into
+each cell lets you replay the path. Because BFS's first arrival is optimal,
+these stored moves spell out one shortest route.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item BFS from \texttt{A}; for each newly visited cell store the move
+        character that entered it.
+  \item On reaching \texttt{B}, backtrack via parents, collect moves,
+        reverse.
+  \item Output \texttt{YES}, the length, and the move string; else
+        \texttt{NO}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{A} at $(0,0)$, \texttt{B} at $(0,2)$, top row open.}
+
+\begin{itemize}
+  \item BFS reaches $(0,1)$ via \texttt{R}, then $(0,2)$ via \texttt{R}.
+  \item Backtrack from \texttt{B}: moves \texttt{R},\texttt{R}; reversed
+        gives \texttt{RR}, length $2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<string> g(n);
+    for (auto& row : g) cin >> row;
+
+    int sr, sc, er, ec;
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++) {
+            if (g[i][j] == 'A') { sr = i; sc = j; }
+            if (g[i][j] == 'B') { er = i; ec = j; }
+        }
+
+    vector<vector<char>> move(n, vector<char>(m, 0));
+    vector<vector<bool>> vis(n, vector<bool>(m, false));
+    int dr[] = {-1,1,0,0}, dc[] = {0,0,-1,1};
+    char mv[] = {'U','D','L','R'};
+
+    queue<pair<int,int>> q;
+    q.push({sr, sc}); vis[sr][sc] = true;
+    while (!q.empty()) {
+        auto [r, c] = q.front(); q.pop();
+        for (int k = 0; k < 4; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m) continue;
+            if (g[nr][nc] == '#' || vis[nr][nc]) continue;
+            vis[nr][nc] = true;
+            move[nr][nc] = mv[k];
+            q.push({nr, nc});
+        }
+    }
+
+    if (!vis[er][ec]) { cout << "NO\n"; return 0; }
+    string path;
+    int r = er, c = ec;
+    while (!(r == sr && c == sc)) {
+        char mvc = move[r][c];
+        path += mvc;
+        if (mvc == 'U') r++; else if (mvc == 'D') r--;
+        else if (mvc == 'L') c++; else c--;      // step back
+    }
+    reverse(path.begin(), path.end());
+    cout << "YES\n" << path.size() << "\n" << path << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nm)$ -- one BFS over the grid.
+\textbf{Space Complexity.} $O(nm)$ for visited and move grids.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Shortest path on an unweighted grid is BFS; storing the entering move per
+cell turns the distance into a printable route. The backtrack-and-reverse
+pattern reappears in every ``print the path'' problem, including Message
+Route next.
+\end{takeawaybox}

@@ -1,0 +1,102 @@
+\section{Mail Delivery}
+\label{sec:cses-mail-delivery}
+
+\problemstatement{Given an undirected graph of $n$ nodes and $m$ edges,
+find a route that starts and ends at node $1$ and traverses \emph{every
+edge exactly once} (an Eulerian circuit), or output \texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+An \textbf{Eulerian circuit} exists iff the graph is connected (over
+edge-bearing nodes) and \emph{every vertex has even degree}. When it
+exists, \textbf{Hierholzer's algorithm} stitches it together in linear
+time.
+\end{patternbox}
+
+\subsection*{Degree check, then Hierholzer}
+
+First verify every vertex has even degree and all edges lie in one
+connected piece reachable from node $1$; otherwise no circuit exists.
+Hierholzer's then walks edges greedily from node $1$, marking each used,
+until it returns to a node with no unused edges -- backtracking (popping to
+an output list) whenever stuck, which merges sub-cycles into one trail.
+Reversing the popped order yields the Eulerian circuit. A per-node pointer
+skips already-used edges so total work stays linear.
+
+\begin{ideabox}[Even Degrees Guarantee You Can Always Leave]
+Entering a vertex uses one incident edge; an even degree guarantees an
+unused edge to leave by, so the walk only gets stuck back at the start.
+Hierholzer exploits this to splice every local cycle into a single circuit.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Check all degrees even and edges connected; else
+        \texttt{IMPOSSIBLE}.
+  \item Hierholzer from node $1$ using a stack and per-node edge pointer,
+        marking edges used.
+  \item Reverse the popped nodes; if it uses all $m$ edges, print it.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Square $1\!-\!2$, $2\!-\!3$, $3\!-\!4$, $4\!-\!1$.}
+
+\begin{itemize}
+  \item All degrees $2$ (even), connected -- a circuit exists.
+  \item Hierholzer yields $1\to2\to3\to4\to1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<pair<int,int>>> adj(n + 1);    // {neighbor, edgeId}
+    vector<int> deg(n + 1, 0);
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back({b, i});
+        adj[b].push_back({a, i});
+        deg[a]++; deg[b]++;
+    }
+    for (int i = 1; i <= n; i++)
+        if (deg[i] % 2 != 0) { cout << "IMPOSSIBLE\n"; return 0; }
+
+    vector<int> ptr(n + 1, 0);
+    vector<bool> used(m, false);
+    vector<int> circuit;
+    stack<int> st;
+    st.push(1);
+    while (!st.empty()) {
+        int u = st.top();
+        while (ptr[u] < (int)adj[u].size() && used[adj[u][ptr[u]].second]) ptr[u]++;
+        if (ptr[u] == (int)adj[u].size()) { circuit.push_back(u); st.pop(); }
+        else {
+            auto [v, id] = adj[u][ptr[u]];
+            used[id] = true;
+            st.push(v);
+        }
+    }
+    reverse(circuit.begin(), circuit.end());
+    if ((int)circuit.size() != m + 1) { cout << "IMPOSSIBLE\n"; return 0; }
+    for (int v : circuit) cout << v << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- each edge is used once; pointers avoid
+rescanning. \textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Eulerian circuits are a degree check plus Hierholzer's stitching of cycles.
+The per-node pointer and edge-used markers keep it linear even with
+multi-edges. The circuit-size check at the end catches disconnection.
+\end{takeawaybox}

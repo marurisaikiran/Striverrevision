@@ -1,0 +1,43 @@
+\chapter{Eulerian and Hamiltonian Paths}
+\chapterepigraph{Two famous path problems look similar but could not be
+more different in difficulty. An Eulerian path uses every \emph{edge}
+exactly once and exists under a simple degree condition, findable in
+linear time. A Hamiltonian path visits every \emph{node} exactly once, is
+NP-hard in general, and here is tamed only by small $n$ (bitmask DP) or a
+heuristic on a grid.}
+
+\section{Every Edge Once vs Every Node Once}
+\label{sec:cses-graph-euler-intro}
+
+The distinction is the whole chapter: edges (Eulerian, easy) versus nodes
+(Hamiltonian, hard).
+
+\begin{patternbox}[Which Path Are You Asked For?]
+\begin{itemize}
+  \item \textbf{Use every edge exactly once} -- \textbf{Eulerian
+        circuit/path} via Hierholzer's algorithm, after checking the
+        degree conditions: Mail Delivery (undirected circuit),
+        Teleporters Path (directed path), De Bruijn Sequence (Eulerian
+        path in a De Bruijn graph).
+  \item \textbf{Visit every node exactly once (count or find)} --
+        \textbf{Hamiltonian}: bitmask DP over visited sets when $n\le20$
+        (Hamiltonian Flights), or a Warnsdorff heuristic on a board
+        (Knight's Tour).
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Eulerian Existence Is a Degree Check]
+An undirected connected graph has an Eulerian circuit iff every vertex has
+even degree; a directed one iff every vertex's in-degree equals its
+out-degree (for a path, exactly one $+1/-1$ imbalance pair). Hierholzer's
+algorithm then stitches edge-disjoint cycles into a single trail in linear
+time.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/cses_graphs/28_mail_delivery.tex}
+\input{chapters/cses_graphs/29_de_bruijn_sequence.tex}
+\input{chapters/cses_graphs/30_teleporters_path.tex}
+\input{chapters/cses_graphs/31_hamiltonian_flights.tex}
+\input{chapters/cses_graphs/32_knights_tour.tex}

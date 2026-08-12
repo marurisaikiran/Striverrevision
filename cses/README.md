@@ -14,6 +14,7 @@ This folder is self-contained (it carries its own `preamble.tex`).
 | **Dynamic Programming** | `cses_dp.pdf` | All 19 CSES DP problems (Dice Combinations → Counting Numbers) |
 | **String Algorithms** | `cses_strings.pdf` | All 21 CSES String Algorithms (KMP/Z, Manacher, suffix automaton, suffix arrays, Burrows–Wheeler) |
 | **Sliding Window & Two Pointers** | `cses_sliding_window.pdf` | 11 Sliding Window problems + 6 two-pointer/subarray problems from Sorting & Searching |
+| **Graph Algorithms** | `cses_graphs.pdf` | All 36 CSES Graph Algorithms problems, in 7 chapters (traversal, shortest paths, DAG/SCC/2-SAT, functional graphs, MST, Eulerian/Hamiltonian, max-flow/matching) |
 
 ## Building
 
@@ -24,6 +25,7 @@ Each book has a `<name>_main.tex` at the folder root that `\input`s
 tectonic cses_dp_main.tex
 tectonic cses_strings_main.tex
 tectonic cses_sliding_window_main.tex
+tectonic cses_graphs_main.tex
 ```
 
 (Any LaTeX engine with the packages in `preamble.tex` works too.)

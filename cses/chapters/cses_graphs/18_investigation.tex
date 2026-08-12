@@ -1,0 +1,114 @@
+\section{Investigation}
+\label{sec:cses-investigation}
+
+\problemstatement{Given a directed graph of $n$ cities and $m$ flights with
+non-negative prices, from city $1$ to city $n$ report four things: the
+minimum price; the number of minimum-price routes (mod $10^9+7$); and the
+minimum and maximum number of flights among minimum-price routes.}
+
+\begin{patternbox}
+All four answers come from a single \textbf{Dijkstra} augmented with three
+extra arrays alongside the distance: a route count, a min-edges count, and a
+max-edges count. Each is updated in lockstep with the distance relaxation.
+\end{patternbox}
+
+\subsection*{Carry four quantities through relaxation}
+
+Maintain, per node: $\textit{dist}$ (min price), $\textit{cnt}$ (number of
+cheapest routes), $\textit{mn}$ (fewest flights on a cheapest route),
+$\textit{mx}$ (most flights on a cheapest route). When relaxing edge
+$u\to v$ with price $w$:
+\begin{itemize}
+  \item If $\textit{dist}[u]+w<\textit{dist}[v]$: a strictly cheaper route
+        -- copy over $\textit{cnt}[v]=\textit{cnt}[u]$, $\textit{mn}[v]=
+        \textit{mn}[u]+1$, $\textit{mx}[v]=\textit{mx}[u]+1$.
+  \item If equal ($\textit{dist}[u]+w=\textit{dist}[v]$): another cheapest
+        route -- $\textit{cnt}[v]\mathrel{+}=\textit{cnt}[u]$,
+        $\textit{mn}[v]=\min(\textit{mn}[v],\textit{mn}[u]+1)$,
+        $\textit{mx}[v]=\max(\textit{mx}[v],\textit{mx}[u]+1)$.
+\end{itemize}
+
+\begin{ideabox}[One Pass, Four Aggregates]
+Because Dijkstra finalises nodes in nondecreasing distance, when a node is
+popped its $\textit{dist}$ is final and its three companion aggregates are
+complete. Updating them exactly on strict-improvement vs tie relaxations
+computes all four answers together.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Initialise arrays; $\textit{dist}[1]=0$, $\textit{cnt}[1]=1$,
+        $\textit{mn}[1]=\textit{mx}[1]=0$.
+  \item Run Dijkstra; on each edge apply the strict/tie update rules to all
+        four arrays.
+  \item Output $\textit{dist}[n],\textit{cnt}[n],\textit{mn}[n],
+        \textit{mx}[n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2(1)$, $1\!\to\!3(1)$, $2\!\to\!4(1)$, $3\!\to\!4(1)$;
+$n=4$.}
+
+\begin{itemize}
+  \item Cheapest price $2$; two cheapest routes; both use $2$ flights.
+  \item Output $2\ 2\ 2\ 2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long INF = 1e18, MOD = 1e9 + 7;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<pair<int,long long>>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int a, b; long long w; cin >> a >> b >> w;
+        adj[a].push_back({b, w});
+    }
+
+    vector<long long> dist(n + 1, INF), cnt(n + 1, 0);
+    vector<int> mn(n + 1, 1e9), mx(n + 1, 0);
+    dist[1] = 0; cnt[1] = 1; mn[1] = 0; mx[1] = 0;
+    priority_queue<pair<long long,int>, vector<pair<long long,int>>,
+                   greater<>> pq;
+    pq.push({0, 1});
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (d > dist[u]) continue;
+        for (auto& [v, w] : adj[u]) {
+            long long nd = d + w;
+            if (nd < dist[v]) {
+                dist[v] = nd;
+                cnt[v] = cnt[u];
+                mn[v] = mn[u] + 1;
+                mx[v] = mx[u] + 1;
+                pq.push({nd, v});
+            } else if (nd == dist[v]) {
+                cnt[v] = (cnt[v] + cnt[u]) % MOD;
+                mn[v] = min(mn[v], mn[u] + 1);
+                mx[v] = max(mx[v], mx[u] + 1);
+            }
+        }
+    }
+    cout << dist[n] << " " << cnt[n] << " " << mn[n] << " " << mx[n] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((n+m)\log n)$. \textbf{Space Complexity.}
+$O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Several statistics about shortest paths -- count, min-edges, max-edges --
+piggyback on one Dijkstra by carrying extra aggregates updated on strict
+improvements versus ties. This ``augment the relaxation'' technique answers
+rich shortest-path questions in a single run.
+\end{takeawaybox}

@@ -1,0 +1,94 @@
+\section{Building Teams}
+\label{sec:cses-building-teams}
+
+\problemstatement{Given $n$ players and $m$ friendships, assign each player
+to one of two teams so that no two friends are on the same team. Output a
+valid assignment, or \texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+\emph{``Split into two groups so every edge crosses''} is
+\textbf{2-colouring}, i.e.\ testing bipartiteness. BFS or DFS colours each
+node opposite its neighbour; a conflict (an edge between same-coloured
+nodes) means an odd cycle exists and the answer is \texttt{IMPOSSIBLE}.
+\end{patternbox}
+
+\subsection*{Two-colour via traversal}
+
+Colour a start node $1$, its neighbours $2$, their neighbours $1$, and so
+on, alternating on every edge. If the traversal ever tries to colour a node
+the same as an already-coloured neighbour, the graph contains an odd cycle
+and cannot be 2-coloured. Repeat over all components, since the graph may
+be disconnected.
+
+\begin{ideabox}[Bipartite iff No Odd Cycle]
+Alternating colours along edges is consistent exactly when every cycle has
+even length. The first same-colour edge encountered is a certificate of an
+odd cycle, so the traversal both constructs the teams and detects
+impossibility.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For each uncoloured node, BFS/DFS colouring neighbours with the
+        opposite colour.
+  \item If a neighbour already has the same colour, output
+        \texttt{IMPOSSIBLE}.
+  \item Otherwise output every node's colour ($1$ or $2$).
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Friendships $1\!-\!2$, $2\!-\!3$; $n=3$.}
+
+\begin{itemize}
+  \item Colour $1{=}1$, $2{=}2$, $3{=}1$. No same-colour edge.
+  \item Teams: player $1$ and $3$ on team $1$, player $2$ on team $2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        adj[b].push_back(a);
+    }
+
+    vector<int> color(n + 1, 0);
+    for (int s = 1; s <= n; s++) {
+        if (color[s]) continue;
+        color[s] = 1;
+        queue<int> q; q.push(s);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v : adj[u]) {
+                if (!color[v]) { color[v] = 3 - color[u]; q.push(v); }
+                else if (color[v] == color[u]) { cout << "IMPOSSIBLE\n"; return 0; }
+            }
+        }
+    }
+    for (int i = 1; i <= n; i++) cout << color[i] << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- one traversal. \textbf{Space
+Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Two-team assignment is bipartite 2-colouring: alternate colours along
+edges, and a same-colour edge proves an odd cycle. The trick $3-\text{color}$
+flips between $1$ and $2$ cleanly. This underlies conflict-graph and
+scheduling feasibility checks.
+\end{takeawaybox}

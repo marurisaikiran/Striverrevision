@@ -1,0 +1,43 @@
+\chapter{Maximum Flow and Matching}
+\chapterepigraph{Maximum flow is the master problem of this chapter. Once
+you can push the most units from a source to a sink through capacitated
+edges, you get minimum cuts, bipartite matchings, and edge-disjoint paths
+almost for free -- each is a maximum flow with the graph set up just so.}
+
+\section{Everything Is a Flow}
+\label{sec:cses-graph-flows-intro}
+
+A flow network has capacities on edges; the maximum flow from source $s$
+to sink $t$ is the greatest total that can be pushed while respecting
+capacities and conservation. Augmenting-path algorithms (BFS-based
+Edmonds--Karp, or Dinic with level graphs) compute it.
+
+\begin{patternbox}[Flow Reductions in This Chapter]
+\begin{itemize}
+  \item \textbf{Maximum throughput / edge-disjoint paths count} --
+        \textbf{max flow} with unit or given capacities: Download Speed,
+        Distinct Routes (unit capacities; then decompose the flow into
+        paths).
+  \item \textbf{Fewest edges to disconnect $s$ from $t$} -- \textbf{min
+        cut} $=$ max flow (max-flow--min-cut theorem), and the cut edges
+        are those from reachable to unreachable after saturation: Police
+        Chase.
+  \item \textbf{Maximum bipartite matching} -- \textbf{max flow} with a
+        super-source into one side and a super-sink out of the other, all
+        unit capacities: School Dance.
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[Residual Graphs and Augmenting Paths]
+Flow algorithms repeatedly find a path from $s$ to $t$ with spare capacity
+and push along it, adding \emph{reverse} edges so earlier decisions can be
+undone. When no augmenting path remains, the flow is maximum, and the
+nodes still reachable from $s$ define the minimum cut.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/cses_graphs/33_download_speed.tex}
+\input{chapters/cses_graphs/34_police_chase.tex}
+\input{chapters/cses_graphs/35_school_dance.tex}
+\input{chapters/cses_graphs/36_distinct_routes.tex}

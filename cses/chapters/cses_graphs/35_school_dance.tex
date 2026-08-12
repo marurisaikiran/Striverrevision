@@ -1,0 +1,129 @@
+\section{School Dance}
+\label{sec:cses-school-dance}
+
+\problemstatement{There are $n$ boys and $m$ girls, and $k$ acceptable
+boy--girl pairs. Form the maximum number of dancing pairs so that each
+person is in at most one pair, and output the pairs.}
+
+\begin{patternbox}
+Maximum \textbf{bipartite matching} is a \textbf{maximum flow}: add a super-
+source into every boy, edges for each acceptable pair, and every girl into a
+super-sink, all with capacity $1$. The max flow equals the maximum matching,
+and the used pair-edges are the matching.
+\end{patternbox}
+
+\subsection*{Matching as unit-capacity flow}
+
+Build nodes: source $S$, boys $1\ldots n$, girls $1\ldots m$, sink $T$. Add
+$S\to\text{boy}$ (cap $1$, so each boy is used at most once),
+$\text{boy}\to\text{girl}$ for each acceptable pair (cap $1$), and
+$\text{girl}\to T$ (cap $1$). A unit of flow from $S$ to $T$ traces a
+boy--girl pairing, and capacity $1$ everywhere enforces ``at most one
+partner.'' The max flow is the largest matching; a boy--girl edge that ended
+up saturated is a matched pair.
+
+\begin{ideabox}[Unit Capacities Enforce ``At Most One'']
+Capacity-$1$ edges out of the source (per boy) and into the sink (per girl)
+guarantee each person is matched once. Integral max flow then corresponds
+exactly to a maximum matching -- the classic flow reduction.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build the source/boys/girls/sink network with unit capacities.
+  \item Run max flow; its value is the matching size.
+  \item For each pair-edge boy$\to$girl whose forward capacity is now $0$,
+        output the pair.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Boys $\{1,2\}$, girls $\{1,2\}$; pairs $(1,1),(1,2),(2,1)$.}
+
+\begin{itemize}
+  \item Match boy $1$--girl $2$ and boy $2$--girl $1$: two pairs.
+  \item Max flow $=2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Dinic {
+    struct Edge { int to; long long cap; int rev; };
+    vector<vector<Edge>> g;
+    vector<int> level, it;
+    Dinic(int n) : g(n), level(n), it(n) {}
+    int addEdge(int u, int v, long long c) {
+        g[u].push_back({v, c, (int)g[v].size()});
+        g[v].push_back({u, 0, (int)g[u].size() - 1});
+        return (int)g[u].size() - 1;                 // index of forward edge
+    }
+    bool bfs(int s, int t) {
+        fill(level.begin(), level.end(), -1);
+        queue<int> q; level[s] = 0; q.push(s);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (auto& e : g[u])
+                if (e.cap > 0 && level[e.to] < 0) { level[e.to] = level[u] + 1; q.push(e.to); }
+        }
+        return level[t] >= 0;
+    }
+    long long dfs(int u, int t, long long f) {
+        if (u == t) return f;
+        for (int& i = it[u]; i < (int)g[u].size(); i++) {
+            Edge& e = g[u][i];
+            if (e.cap > 0 && level[u] < level[e.to]) {
+                long long d = dfs(e.to, t, min(f, e.cap));
+                if (d > 0) { e.cap -= d; g[e.to][e.rev].cap += d; return d; }
+            }
+        }
+        return 0;
+    }
+    long long maxflow(int s, int t) {
+        long long flow = 0;
+        while (bfs(s, t)) {
+            fill(it.begin(), it.end(), 0);
+            long long f;
+            while ((f = dfs(s, t, LLONG_MAX)) > 0) flow += f;
+        }
+        return flow;
+    }
+};
+
+int main() {
+    int n, m, k;
+    cin >> n >> m >> k;
+    int S = 0, T = n + m + 1;                        // boys 1..n, girls n+1..n+m
+    Dinic dinic(T + 1);
+    for (int i = 1; i <= n; i++) dinic.addEdge(S, i, 1);
+    for (int j = 1; j <= m; j++) dinic.addEdge(n + j, T, 1);
+
+    vector<array<int,3>> pairEdge;                   // {boy, girl, forward edge index}
+    for (int i = 0; i < k; i++) {
+        int a, b; cin >> a >> b;                     // boy a, girl b
+        int idx = dinic.addEdge(a, n + b, 1);
+        pairEdge.push_back({a, n + b, idx});
+    }
+
+    cout << dinic.maxflow(S, T) << "\n";
+    for (auto& [boy, girlNode, idx] : pairEdge)
+        if (dinic.g[boy][idx].cap == 0)              // saturated => matched
+            cout << boy << " " << girlNode - n << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(E\sqrt{V})$ for bipartite matching via Dinic.
+\textbf{Space Complexity.} $O(V+E)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Bipartite matching is unit-capacity max flow with a super-source and super-
+sink; saturated pair-edges are the matches. This reduction makes matching,
+assignment, and covering problems all instances of flow.
+\end{takeawaybox}

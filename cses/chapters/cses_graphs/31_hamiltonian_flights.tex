@@ -1,0 +1,93 @@
+\section{Hamiltonian Flights}
+\label{sec:cses-hamiltonian-flights}
+
+\problemstatement{Given a directed graph of $n$ cities ($n\le20$) and $m$
+flights, count the number of routes from city $1$ to city $n$ that visit
+\emph{every} city exactly once (Hamiltonian paths). Output the count modulo
+$10^9+7$.}
+
+\begin{patternbox}
+Hamiltonian path counting is NP-hard in general, but $n\le20$ invites
+\textbf{bitmask DP}: the state is (set of visited cities, current city), and
+$2^n\cdot n$ states are affordable.
+\end{patternbox}
+
+\subsection*{DP over visited subsets}
+
+Let $\textit{dp}[\textit{mask}][v]$ be the number of routes that start at
+city $1$, have visited exactly the set $\textit{mask}$ (which must include
+$1$ and $v$), and currently sit at $v$. Base case:
+$\textit{dp}[\{1\}][1]=1$. Transition: from state $(\textit{mask},u)$, for
+each flight $u\to v$ with $v\notin\textit{mask}$, add
+$\textit{dp}[\textit{mask}][u]$ to
+$\textit{dp}[\textit{mask}\cup\{v\}][v]$. The answer is
+$\textit{dp}[\text{full}][n]$ -- all cities visited, ending at $n$.
+
+\begin{ideabox}[The Visited Set Is the State]
+A Hamiltonian path cannot revisit a city, so the exact set already visited
+(plus where you are) fully determines valid continuations. Encoding that set
+as a bitmask makes the DP finite: $2^n$ subsets times $n$ endpoints.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dp}[1\ll0][1]=1$ (city $1$ is bit $0$).
+  \item For each mask (increasing) and each city $u$ in it with
+        $\textit{dp}>0$: extend along flights $u\to v$ with $v$ unvisited.
+  \item Output $\textit{dp}[(1\ll n)-1][n-1]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$n=3$; flights $1\!\to\!2$, $2\!\to\!3$, $1\!\to\!3$.}
+
+\begin{itemize}
+  \item Only $1\to2\to3$ visits all three ending at $3$; $1\to3$ skips
+        city $2$.
+  \item Count $=1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1e9 + 7;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n);                    // 0-indexed cities
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a - 1].push_back(b - 1);
+    }
+
+    int full = 1 << n;
+    vector<vector<long long>> dp(full, vector<long long>(n, 0));
+    dp[1][0] = 1;                                  // visited {city 0}, at city 0
+    for (int mask = 1; mask < full; mask++)
+        for (int u = 0; u < n; u++) {
+            if (!(mask & (1 << u)) || dp[mask][u] == 0) continue;
+            for (int v : adj[u])
+                if (!(mask & (1 << v)))
+                    dp[mask | (1 << v)][v] =
+                        (dp[mask | (1 << v)][v] + dp[mask][u]) % MOD;
+        }
+    cout << dp[full - 1][n - 1] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(2^n\cdot n^2)$ in the worst case ($n$ endpoints,
+$n$ neighbours). \textbf{Space Complexity.} $O(2^n\cdot n)$ for the DP table.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Hamiltonian counting is bitmask DP with state (visited set, current node);
+small $n$ is what makes the exponential state space tractable. This
+subset-DP template also solves the travelling salesman problem and
+assignment-style problems.
+\end{takeawaybox}

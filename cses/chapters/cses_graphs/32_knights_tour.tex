@@ -1,0 +1,108 @@
+\section{Knight's Tour}
+\label{sec:cses-knights-tour}
+
+\problemstatement{On an $8\times8$ chessboard, starting from a given square,
+find a knight's tour: a sequence of knight moves visiting every square
+exactly once. Output the board with each square labelled by the step at
+which the knight visits it.}
+
+\begin{patternbox}
+A knight's tour is a Hamiltonian path on the knight-move graph. Rather than
+exponential search, \textbf{Warnsdorff's heuristic} makes it near-instant:
+always move to the square with the \emph{fewest} onward unvisited moves.
+\end{patternbox}
+
+\subsection*{Warnsdorff's rule}
+
+From the current square, consider all legal knight moves to unvisited
+squares. Move to the one whose \emph{onward degree} -- the number of
+unvisited squares \emph{it} can reach -- is smallest. The intuition:
+squares with few exits are the easiest to get stranded in, so visit them
+early while they are still reachable. Ties can be broken arbitrarily (or by
+a fixed order). On a standard board this greedy choice completes a full tour
+without backtracking in practice.
+
+\begin{ideabox}[Escape the Tightest Corners First]
+Choosing the least-accessible next square keeps the most flexible squares
+for later, avoiding dead ends. This ``most-constrained first'' heuristic
+turns an exponential Hamiltonian search into an $O(64)$ greedy walk.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Mark the start square as step $1$.
+  \item Repeat $63$ times: among unvisited knight-move targets, pick the
+        one with the fewest unvisited onward moves; go there, label the
+        next step.
+  \item Output the $8\times8$ grid of step labels.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Start at a corner, e.g.\ $(0,0)$.}
+
+\begin{itemize}
+  \item The corner has only two moves; Warnsdorff steers toward low-degree
+        squares first, threading all $64$ cells.
+  \item The result is a valid tour numbered $1\ldots64$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int dr[] = {-2,-2,-1,-1,1,1,2,2};
+int dc[] = {-1,1,-2,2,-2,2,-1,1};
+
+int main() {
+    int sr, sc;
+    cin >> sc >> sr;                              // column, row (1-indexed)
+    sr--; sc--;
+
+    vector<vector<int>> board(8, vector<int>(8, 0));
+    auto inb = [](int r, int c) { return r >= 0 && r < 8 && c >= 0 && c < 8; };
+    auto onward = [&](int r, int c) {             // unvisited onward moves
+        int cnt = 0;
+        for (int k = 0; k < 8; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (inb(nr, nc) && board[nr][nc] == 0) cnt++;
+        }
+        return cnt;
+    };
+
+    int r = sr, c = sc;
+    board[r][c] = 1;
+    for (int step = 2; step <= 64; step++) {
+        int best = -1, bestR = -1, bestC = -1;
+        for (int k = 0; k < 8; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (!inb(nr, nc) || board[nr][nc]) continue;
+            int deg = onward(nr, nc);
+            if (best == -1 || deg < best) { best = deg; bestR = nr; bestC = nc; }
+        }
+        r = bestR; c = bestC;
+        board[r][c] = step;
+    }
+
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) cout << board[i][j] << " ";
+        cout << "\n";
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(64)$ moves, each evaluating a constant number
+of candidates -- effectively constant for the fixed board. \textbf{Space
+Complexity.} $O(1)$ (a fixed $8\times8$ board).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Warnsdorff's ``fewest onward moves'' heuristic finds a knight's tour without
+backtracking by always escaping the most constrained square first. It is the
+practical alternative when a full Hamiltonian search would be too slow.
+\end{takeawaybox}

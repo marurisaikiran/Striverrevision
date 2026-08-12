@@ -1,0 +1,92 @@
+\section{Shortest Routes I}
+\label{sec:cses-shortest-routes-i}
+
+\problemstatement{Given a directed graph of $n$ cities and $m$ roads with
+non-negative lengths, output the shortest distance from city $1$ to every
+city.}
+
+\begin{patternbox}
+Single source, non-negative weights: \textbf{Dijkstra's algorithm}. Always
+finalise the unvisited node with the smallest tentative distance (found via
+a min-heap), then relax its outgoing edges.
+\end{patternbox}
+
+\subsection*{Greedy finalisation with a heap}
+
+Keep $\textit{dist}[1]=0$ and all others $\infty$. Repeatedly pop the
+smallest $(\textit{d},u)$ from a priority queue; if it is stale (a better
+distance is already recorded) skip it, else relax each edge $u\to v$ of
+weight $w$: if $\textit{dist}[u]+w<\textit{dist}[v]$, update and push $v$.
+Non-negativity guarantees a popped node's distance is final.
+
+\begin{ideabox}[Non-Negativity Makes the Nearest Node Final]
+When the closest unfinished node is popped, no later path can beat its
+distance, because any such path would pass through a node already at least
+as far and then add a non-negative edge. This is why Dijkstra is correct
+only without negative edges.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item $\textit{dist}[1]=0$; push $(0,1)$.
+  \item Pop smallest; skip if stale; else relax all out-edges, pushing
+        improved neighbours.
+  \item Output $\textit{dist}[1\ldots n]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Edges $1\!\to\!2(5)$, $1\!\to\!3(2)$, $3\!\to\!2(1)$.}
+
+\begin{itemize}
+  \item Pop $(0,1)$: relax $2\to5$, $3\to2$. Pop $(2,3)$: relax $2$ via
+        $3$: $2+1=3<5$.
+  \item Distances: $\textit{dist}=[0,3,2]$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<pair<int,long long>>> adj(n + 1);   // {to, weight}
+    for (int i = 0; i < m; i++) {
+        int a, b; long long w; cin >> a >> b >> w;
+        adj[a].push_back({b, w});
+    }
+
+    vector<long long> dist(n + 1, LLONG_MAX);
+    dist[1] = 0;
+    priority_queue<pair<long long,int>, vector<pair<long long,int>>,
+                   greater<>> pq;
+    pq.push({0, 1});
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (d > dist[u]) continue;                     // stale
+        for (auto& [v, w] : adj[u])
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({dist[v], v});
+            }
+    }
+    for (int i = 1; i <= n; i++) cout << dist[i] << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((n+m)\log n)$. \textbf{Space Complexity.}
+$O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Shortest Routes I is textbook Dijkstra: heap of tentative distances, skip
+stale pops, relax outgoing edges. It is the single-source backbone the
+Flight Discount and Flight Routes twists build on.
+\end{takeawaybox}

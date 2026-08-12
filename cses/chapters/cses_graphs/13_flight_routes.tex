@@ -1,0 +1,95 @@
+\section{Flight Routes}
+\label{sec:cses-flight-routes}
+
+\problemstatement{Given a directed graph of $n$ cities and $m$ flights with
+prices, find the $k$ cheapest route prices from city $1$ to city $n$.
+Routes may reuse cities and flights, and different routes with equal price
+are listed separately.}
+
+\begin{patternbox}
+The $k$ cheapest arrival costs is a \textbf{modified Dijkstra} in which each
+node may be finalised up to $k$ times. Pop costs in increasing order; the
+first $k$ times node $n$ is popped are its $k$ cheapest route prices.
+\end{patternbox}
+
+\subsection*{Let each node pop $k$ times}
+
+Standard Dijkstra finalises each node once. Here, keep a counter of how many
+times each node has been popped from the min-heap. Pop the smallest cost;
+if the popped node has already been finalised $k$ times, skip it; otherwise
+increment its counter and, only while the counter is $\le k$, relax its
+edges (pushing $\textit{cost}+w$ for each). The $k$ costs recorded when node
+$n$ is popped, in order, are the answer.
+
+\begin{ideabox}[Bounded Multiplicity Gives k-Shortest]
+Because the heap always yields the globally smallest unfinalised cost, the
+$i$-th time a node is popped corresponds to its $i$-th cheapest arrival.
+Capping each node at $k$ pops keeps the heap small while still producing the
+$k$ best costs to the destination.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Min-heap seeded with $(0,1)$; a pop-count array.
+  \item Pop smallest $(d,u)$; if $u$ popped $k$ times, skip; else count it,
+        record if $u=n$, and relax edges.
+  \item Output the $k$ recorded costs for node $n$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2(1)$, $1\!\to\!2(3)$, $2\!\to\!3(1)$; $k=2$, $n=3$.}
+
+\begin{itemize}
+  \item Cheapest to $3$: $1{+}1=2$; second cheapest: $3{+}1=4$.
+  \item Output $2\ 4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m, k;
+    cin >> n >> m >> k;
+    vector<vector<pair<int,long long>>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int a, b; long long w; cin >> a >> b >> w;
+        adj[a].push_back({b, w});
+    }
+
+    vector<int> cnt(n + 1, 0);
+    vector<long long> best;
+    priority_queue<pair<long long,int>, vector<pair<long long,int>>,
+                   greater<>> pq;
+    pq.push({0, 1});
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (cnt[u] >= k) continue;                 // already have k for u
+        cnt[u]++;
+        if (u == n) best.push_back(d);
+        if (cnt[u] > k) continue;
+        for (auto& [v, w] : adj[u])
+            if (cnt[v] < k) pq.push({d + w, v});
+    }
+    for (long long c : best) cout << c << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(mk\log(mk))$ -- each edge may be pushed up to
+$k$ times. \textbf{Space Complexity.} $O(mk)$ for the heap in the worst
+case.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The $k$ shortest (repeatable) route costs come from a Dijkstra that lets
+each node be finalised $k$ times. Capping pops per node bounds the work
+while the heap's increasing-cost order guarantees the first $k$ arrivals at
+the sink are the cheapest.
+\end{takeawaybox}

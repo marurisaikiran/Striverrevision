@@ -1,0 +1,111 @@
+\section{Round Trip}
+\label{sec:cses-round-trip}
+
+\problemstatement{Given an undirected graph of $n$ nodes and $m$ edges,
+find any cycle (a route that starts and ends at the same node using
+distinct edges) and print the sequence of nodes, or \texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+\emph{``Find a cycle in an undirected graph''} is a \textbf{DFS} that
+watches for a \textbf{back edge}: an edge to an already-visited node that
+is not the immediate parent. Such an edge closes a cycle, which is
+reconstructed from the DFS parent chain.
+\end{patternbox}
+
+\subsection*{Back edge closes a cycle}
+
+Run DFS tracking each node's parent. If DFS at node $u$ finds a neighbour
+$v$ that is already visited and $v$ is not $u$'s parent, then $v$ is an
+ancestor of $u$ and the tree path from $v$ down to $u$, plus the edge
+$u\to v$, forms a cycle. Reconstruct it by following parents from $u$ up to
+$v$.
+
+\begin{ideabox}[Not-the-Parent Is the Whole Condition]
+In an undirected graph every edge appears from both ends, so seeing the
+parent again is not a cycle. A visited neighbour that is \emph{not} the
+parent is a genuine back edge -- the signal of a cycle. Recording parents
+lets you print it.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item DFS from each unvisited node, storing parents.
+  \item On finding a visited non-parent neighbour $v$ from $u$: walk
+        parents $u\to\cdots\to v$, append $v$ again to close the loop, and
+        print.
+  \item If no back edge is ever found, print \texttt{IMPOSSIBLE}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Edges $1\!-\!2$, $2\!-\!3$, $3\!-\!1$.}
+
+\begin{itemize}
+  \item DFS $1\to2\to3$; from $3$, neighbour $1$ is visited and not
+        $3$'s parent ($2$) -- back edge.
+  \item Cycle: $1\to2\to3\to1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, m;
+vector<vector<int>> adj;
+vector<int> parent;
+vector<bool> vis;
+int cycleStart = -1, cycleEnd = -1;
+
+bool dfs(int u, int p) {
+    vis[u] = true;
+    parent[u] = p;
+    for (int v : adj[u]) {
+        if (v == p) continue;                    // skip the edge back to parent
+        if (vis[v]) { cycleStart = v; cycleEnd = u; return true; }
+        if (dfs(v, u)) return true;
+    }
+    return false;
+}
+
+int main() {
+    cin >> n >> m;
+    adj.assign(n + 1, {});
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        adj[b].push_back(a);
+    }
+    parent.assign(n + 1, 0);
+    vis.assign(n + 1, false);
+
+    for (int s = 1; s <= n; s++)
+        if (!vis[s] && dfs(s, -1)) break;
+
+    if (cycleStart == -1) { cout << "IMPOSSIBLE\n"; return 0; }
+    vector<int> cyc;
+    for (int v = cycleEnd; v != cycleStart; v = parent[v]) cyc.push_back(v);
+    cyc.push_back(cycleStart);
+    cyc.push_back(cycleEnd);                      // close the loop
+    reverse(cyc.begin(), cyc.end());
+
+    cout << cyc.size() << "\n";
+    for (int v : cyc) cout << v << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- one DFS. \textbf{Space Complexity.}
+$O(n+m)$, plus recursion depth $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Undirected cycle detection is a DFS back edge to a non-parent ancestor;
+parents reconstruct the cycle. (Disjoint Set also detects a cycle -- the
+first edge joining two already-connected nodes -- but does not print it as
+directly.)
+\end{takeawaybox}

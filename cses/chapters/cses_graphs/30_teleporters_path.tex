@@ -1,0 +1,105 @@
+\section{Teleporters Path}
+\label{sec:cses-teleporters-path}
+
+\problemstatement{Given a \emph{directed} graph of $n$ nodes and $m$ edges,
+find a path from node $1$ to node $n$ that uses \emph{every edge exactly
+once} (a directed Eulerian path), or output \texttt{IMPOSSIBLE}.}
+
+\begin{patternbox}
+A directed \textbf{Eulerian path} from $1$ to $n$ exists iff node $1$ has
+one more outgoing than incoming edge, node $n$ one more incoming than
+outgoing, every other node has equal in- and out-degree, and all edges are
+connected. \textbf{Hierholzer's algorithm} then constructs it.
+\end{patternbox}
+
+\subsection*{Degree imbalance pins the endpoints}
+
+Check the directed degree conditions: $\textit{out}[1]-\textit{in}[1]=1$,
+$\textit{in}[n]-\textit{out}[n]=1$, and $\textit{in}=\textit{out}$ for all
+other nodes; also confirm every edge is reachable so the trail is a single
+path. Then run Hierholzer from node $1$: follow unused out-edges via a
+per-node pointer, pushing onto a stack; when a node has no unused out-edges,
+pop it to the path. Reversing the popped nodes gives the Eulerian path,
+which necessarily ends at $n$.
+
+\begin{ideabox}[The +1/-1 Imbalance Fixes Start and End]
+Equal in/out degree everywhere would force a circuit; a single node with an
+extra out-edge must be the start and a single node with an extra in-edge the
+end. Hierholzer respects this automatically, terminating the trail at $n$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute in/out degrees; verify the $1\to n$ Eulerian-path
+        conditions, else \texttt{IMPOSSIBLE}.
+  \item Hierholzer from node $1$ over directed out-edges with a per-node
+        pointer.
+  \item Reverse the popped nodes; if all $m$ edges are used and it ends at
+        $n$, print it.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2$, $2\!\to\!3$, $1\!\to\!3$? (degrees must fit).}
+
+\begin{itemize}
+  \item With $1\!\to\!2$, $2\!\to\!3$: $\textit{out}[1]{-}\textit{in}[1]{=}
+        1$, $\textit{in}[3]{-}\textit{out}[3]{=}1$, node $2$ balanced.
+  \item Path $1\to2\to3$ uses both edges.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    vector<int> indeg(n + 1, 0), outdeg(n + 1, 0);
+    for (int i = 0; i < m; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        outdeg[a]++; indeg[b]++;
+    }
+
+    // Eulerian path 1 -> n conditions
+    bool ok = (outdeg[1] - indeg[1] == 1) && (indeg[n] - outdeg[n] == 1);
+    for (int i = 1; i <= n && ok; i++)
+        if (i != 1 && i != n && indeg[i] != outdeg[i]) ok = false;
+    if (!ok) { cout << "IMPOSSIBLE\n"; return 0; }
+
+    vector<int> ptr(n + 1, 0), path;
+    stack<int> st;
+    st.push(1);
+    while (!st.empty()) {
+        int u = st.top();
+        if (ptr[u] < (int)adj[u].size()) {
+            int v = adj[u][ptr[u]++];
+            st.push(v);
+        } else { path.push_back(u); st.pop(); }
+    }
+    reverse(path.begin(), path.end());
+
+    if ((int)path.size() != m + 1 || path.front() != 1 || path.back() != n) {
+        cout << "IMPOSSIBLE\n"; return 0;
+    }
+    for (int v : path) cout << v << " ";
+    cout << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$. \textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Directed Eulerian paths need the in/out degree imbalance to name the
+endpoints, then Hierholzer. The final check -- all edges used and the trail
+runs $1\to n$ -- guards against disconnected edge sets that pass the local
+degree test.
+\end{takeawaybox}

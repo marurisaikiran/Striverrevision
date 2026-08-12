@@ -1,0 +1,98 @@
+\section{Flight Discount}
+\label{sec:cses-flight-discount}
+
+\problemstatement{A directed graph of $n$ cities and $m$ flights with
+prices. You hold one discount coupon that halves the price of a single
+flight. Find the minimum total price to travel from city $1$ to city $n$.}
+
+\begin{patternbox}
+``One special action, used at most once'' is a \textbf{layered Dijkstra}:
+double the state to $(\text{city},\ \text{coupon used?})$. The algorithm is
+unchanged; only the graph grows to two copies, with discounted edges
+crossing from the ``unused'' layer to the ``used'' layer.
+\end{patternbox}
+
+\subsection*{Two copies of the graph}
+
+Run Dijkstra over states $(u,0)$ (coupon still available) and $(u,1)$
+(coupon spent). From $(u,0)$, a normal edge $u\to v$ of price $w$ leads to
+$(v,0)$ at cost $w$, \emph{or} you spend the coupon to reach $(v,1)$ at cost
+$w/2$. From $(u,1)$, only normal edges to $(v,1)$ are allowed. The answer is
+$\textit{dist}[(n,1)]$ -- reaching $n$ having used the coupon (using it on
+the cheapest beneficial edge is handled automatically by taking the
+minimum).
+
+\begin{ideabox}[Encode ``Coupon Used'' in the Node]
+Rather than special-casing which edge to discount, expand the state space so
+the coupon status is part of the node. Dijkstra then explores all
+possibilities and the shortest path to $(n,1)$ is optimal by construction.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item States $(u,0)$ and $(u,1)$; start $(1,0)$ at cost $0$.
+  \item Relax: $(u,0)\to(v,0)$ cost $w$; $(u,0)\to(v,1)$ cost $w/2$;
+        $(u,1)\to(v,1)$ cost $w$.
+  \item Answer $\textit{dist}[(n,1)]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2(10)$, $2\!\to\!3(6)$; $n=3$.}
+
+\begin{itemize}
+  \item Discount the pricier edge $1\!\to\!2$: $5+6=11$. Discount
+        $2\!\to\!3$: $10+3=13$.
+  \item Minimum is $11$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<pair<int,long long>>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int a, b; long long w; cin >> a >> b >> w;
+        adj[a].push_back({b, w});
+    }
+
+    // dist[u][0/1] : 0 = coupon unused, 1 = coupon used
+    vector<array<long long,2>> dist(n + 1, {LLONG_MAX, LLONG_MAX});
+    dist[1][0] = 0;
+    priority_queue<tuple<long long,int,int>,
+                   vector<tuple<long long,int,int>>, greater<>> pq;
+    pq.push({0, 1, 0});
+    while (!pq.empty()) {
+        auto [d, u, used] = pq.top(); pq.pop();
+        if (d > dist[u][used]) continue;
+        for (auto& [v, w] : adj[u]) {
+            if (d + w < dist[v][used]) {              // normal edge, same layer
+                dist[v][used] = d + w; pq.push({dist[v][used], v, used});
+            }
+            if (used == 0 && d + w / 2 < dist[v][1]) { // spend coupon here
+                dist[v][1] = d + w / 2; pq.push({dist[v][1], v, 1});
+            }
+        }
+    }
+    cout << dist[n][1] << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O((n+m)\log n)$ -- Dijkstra on a graph of double
+size. \textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A single one-time special move becomes an extra boolean in the state, and
+plain Dijkstra on the layered graph solves it. This state-augmentation
+trick generalises to ``at most $k$ specials'' (a $k+1$-layer graph) and is
+one of the most reusable shortest-path patterns.
+\end{takeawaybox}

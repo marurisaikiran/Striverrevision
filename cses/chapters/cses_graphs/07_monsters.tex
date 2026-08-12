@@ -1,0 +1,134 @@
+\section{Monsters}
+\label{sec:cses-monsters}
+
+\problemstatement{On a grid with your start \texttt{A}, monsters
+\texttt{M}, walls \texttt{\#}, and floor \texttt{.}, you and all monsters
+move one step per turn (four directions). Escape by reaching any boundary
+cell before a monster occupies it. Output \texttt{YES} and a path, or
+\texttt{NO}.}
+
+\begin{patternbox}
+This is a race modelled with \textbf{multi-source BFS}. First compute, for
+every cell, the earliest time a monster can arrive (BFS from all monsters
+at once). Then BFS from \texttt{A}, only allowed to enter a cell
+\emph{strictly before} any monster could -- reaching the boundary means
+escape.
+\end{patternbox}
+
+\subsection*{Two BFS passes: monsters first, then you}
+
+Run a BFS seeded with \emph{all} monster cells simultaneously; this labels
+each cell with the minimum monster arrival time. Then BFS from \texttt{A}
+with your own time counter, stepping into a neighbour only if your arrival
+time there is strictly less than the monster time (so a monster cannot be
+there yet). Track parents to print the path. If your BFS reaches any
+boundary cell, you escape; otherwise output \texttt{NO}.
+
+\begin{ideabox}[Multi-Source BFS Gives Simultaneous Spread]
+Seeding a BFS queue with every monster at once yields, in one pass, the
+soonest a monster reaches each cell -- as if all monsters spread in
+parallel. Comparing your arrival time against that field decides which
+cells are safe to enter.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Multi-source BFS from all \texttt{M} cells to get
+        $\textit{monsterTime}[\,]$.
+  \item BFS from \texttt{A} tracking $\textit{myTime}$ and parents;
+        enter a cell only if $\textit{myTime}<\textit{monsterTime}$.
+  \item If a boundary cell is reached, reconstruct and print the path
+        (\texttt{YES}); else \texttt{NO}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{A} near the centre with one distant \texttt{M}.}
+
+\begin{itemize}
+  \item Monster BFS marks cells near \texttt{M} with small times, cells
+        near \texttt{A} with large times.
+  \item Your BFS heads to the nearest boundary, reaching it before the
+        monster's time there -- escape with a printed path.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<string> g(n);
+    for (auto& row : g) cin >> row;
+
+    const int INF = 1e9;
+    vector<vector<int>> mt(n, vector<int>(m, INF));   // monster arrival time
+    queue<pair<int,int>> q;
+    int sr = 0, sc = 0;
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++) {
+            if (g[i][j] == 'M') { mt[i][j] = 0; q.push({i, j}); }
+            if (g[i][j] == 'A') { sr = i; sc = j; }
+        }
+    int dr[] = {-1,1,0,0}, dc[] = {0,0,-1,1};
+    char mvc[] = {'U','D','L','R'};
+
+    while (!q.empty()) {                              // multi-source BFS
+        auto [r, c] = q.front(); q.pop();
+        for (int k = 0; k < 4; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m) continue;
+            if (g[nr][nc] == '#' || mt[nr][nc] != INF) continue;
+            mt[nr][nc] = mt[r][c] + 1;
+            q.push({nr, nc});
+        }
+    }
+
+    vector<vector<int>> myt(n, vector<int>(m, INF));
+    vector<vector<char>> mv(n, vector<char>(m, 0));
+    myt[sr][sc] = 0;
+    q.push({sr, sc});
+    int er = -1, ec = -1;
+    while (!q.empty()) {
+        auto [r, c] = q.front(); q.pop();
+        if (r == 0 || r == n - 1 || c == 0 || c == m - 1) { er = r; ec = c; break; }
+        for (int k = 0; k < 4; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m) continue;
+            if (g[nr][nc] == '#' || myt[nr][nc] != INF) continue;
+            if (myt[r][c] + 1 >= mt[nr][nc]) continue;    // monster reaches first
+            myt[nr][nc] = myt[r][c] + 1;
+            mv[nr][nc] = mvc[k];
+            q.push({nr, nc});
+        }
+    }
+
+    if (er == -1) { cout << "NO\n"; return 0; }
+    string path;
+    int r = er, c = ec;
+    while (!(r == sr && c == sc)) {
+        char ch = mv[r][c]; path += ch;
+        if (ch == 'U') r++; else if (ch == 'D') r--;
+        else if (ch == 'L') c++; else c--;
+    }
+    reverse(path.begin(), path.end());
+    cout << "YES\n" << path.size() << "\n" << path << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(nm)$ -- two BFS passes over the grid.
+\textbf{Space Complexity.} $O(nm)$ for the time and move grids.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Races against spreading hazards are multi-source BFS (the hazard field)
+plus a guarded single-source BFS (your moves), entering a cell only when
+you strictly beat the hazard. This two-field comparison is the template for
+fire/flood-escape problems.
+\end{takeawaybox}

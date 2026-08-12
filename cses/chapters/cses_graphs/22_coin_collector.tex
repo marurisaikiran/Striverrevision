@@ -1,0 +1,121 @@
+\section{Coin Collector}
+\label{sec:cses-coin-collector}
+
+\problemstatement{Given a directed graph of $n$ rooms (each holding some
+coins) and $m$ corridors, you may start anywhere and walk along corridors
+(reusing rooms and corridors freely), collecting each room's coins once.
+Find the maximum coins collectible on a single walk.}
+
+\begin{patternbox}
+Inside a strongly connected component you can visit every room (cycle
+freely), so collect all its coins. \textbf{Condense each SCC into one
+super-node} carrying the component's total coins; the result is a DAG, and
+the answer is the maximum-weight path in it.
+\end{patternbox}
+
+\subsection*{Condense, then longest path on the DAG}
+
+Find SCCs (Tarjan). Give each component a weight equal to the sum of its
+rooms' coins. Build the condensation: an edge $\textit{comp}[u]\to
+\textit{comp}[v]$ for every original edge crossing components. This graph is
+acyclic, so a longest-path DP applies: $\textit{dp}[c]=\textit{weight}[c]+
+\max(0,\max_{c\to c'}\textit{dp}[c'])$. Because Tarjan numbers components in
+reverse topological order, condensation edges go from higher to lower ids,
+so processing components in increasing id order finalises successors first.
+The answer is the maximum $\textit{dp}$ over all components.
+
+\begin{ideabox}[An SCC Is Free to Fully Explore]
+Once inside a cycle you can tour the whole SCC and grab every coin, so an
+SCC behaves like a single node worth its total coins. Condensation turns the
+messy cyclic graph into a DAG where longest path is easy.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Tarjan SCC; sum coins per component.
+  \item Build condensation edges (deduplication optional).
+  \item DP in increasing component id: $\textit{dp}[c]=\textit{weight}[c]+
+        \max(0,\max\textit{dp}[\text{successor}])$; answer is the maximum.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\!\to\!2$, $2\!\to\!1$ (coins $2,3$), $2\!\to\!3$ (coins $5$).}
+
+\begin{itemize}
+  \item SCC $\{1,2\}$ worth $5$; SCC $\{3\}$ worth $5$; edge between them.
+  \item Best walk collects $5+5=10$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, m, timer_ = 0, sccCount = 0;
+vector<vector<int>> adj;
+vector<long long> coin;
+vector<int> disc, low, comp;
+vector<bool> onStack;
+stack<int> stk;
+
+void tarjan(int u) {
+    disc[u] = low[u] = ++timer_;
+    stk.push(u); onStack[u] = true;
+    for (int v : adj[u]) {
+        if (!disc[v]) { tarjan(v); low[u] = min(low[u], low[v]); }
+        else if (onStack[v]) low[u] = min(low[u], disc[v]);
+    }
+    if (low[u] == disc[u]) {
+        sccCount++;
+        while (true) {
+            int x = stk.top(); stk.pop(); onStack[x] = false;
+            comp[x] = sccCount;
+            if (x == u) break;
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+    adj.assign(n + 1, {});
+    coin.assign(n + 1, 0);
+    for (int i = 1; i <= n; i++) cin >> coin[i];
+    vector<pair<int,int>> edges(m);
+    for (auto& [a, b] : edges) { cin >> a >> b; adj[a].push_back(b); }
+
+    disc.assign(n + 1, 0); low.assign(n + 1, 0);
+    comp.assign(n + 1, 0); onStack.assign(n + 1, false);
+    for (int i = 1; i <= n; i++) if (!disc[i]) tarjan(i);
+
+    vector<long long> weight(sccCount + 1, 0), dp(sccCount + 1, 0);
+    for (int i = 1; i <= n; i++) weight[comp[i]] += coin[i];
+    vector<vector<int>> cadj(sccCount + 1);
+    for (auto& [a, b] : edges)
+        if (comp[a] != comp[b]) cadj[comp[a]].push_back(comp[b]);
+
+    long long ans = 0;
+    for (int c = 1; c <= sccCount; c++) {          // successors have smaller id
+        long long best = 0;
+        for (int nc : cadj[c]) best = max(best, dp[nc]);
+        dp[c] = weight[c] + best;
+        ans = max(ans, dp[c]);
+    }
+    cout << ans << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- SCC plus a DAG DP. \textbf{Space
+Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When cycles let you gather everything in a region, condense SCCs into
+weighted super-nodes and solve the resulting DAG. The ``find SCCs $\to$
+condense $\to$ DP on the DAG'' pipeline is the standard way cyclic
+optimisation problems are made tractable.
+\end{takeawaybox}
