@@ -1,0 +1,92 @@
+\section{Remove the Nth Node from the End}
+\label{sec:ll-remove-nth}
+
+\problemstatement{Given the head of a linked list and an integer $n$, remove
+the $n$-th node counting from the end and return the head, in one pass.}
+
+\begin{patternbox}
+\emph{``$n$-th from the end in one pass''} is a \textbf{two-pointer gap}:
+advance a lead pointer $n$ nodes ahead, then move both until the lead
+reaches the end -- the trailing pointer now sits just before the node to
+delete. A dummy head handles removing the first node cleanly.
+\end{patternbox}
+
+\subsection*{Fix the gap, then slide it}
+
+Place a dummy node before the head. Advance a \texttt{fast} pointer $n$ steps
+from the dummy. Then move \texttt{fast} and a \texttt{slow} pointer (starting
+at the dummy) together until \texttt{fast} reaches the last node. Because the
+gap between them is exactly $n$, \texttt{slow} ends up just before the target;
+unlink it with \texttt{slow->next = slow->next->next}. Return
+\texttt{dummy.next}.
+
+\begin{ideabox}[A Fixed Gap Finds the Position from the End]
+The distance from the end is converted into a fixed lead of $n$ nodes.
+Sliding both pointers until the lead hits the tail leaves the trailing
+pointer at the predecessor of the $n$-th-from-last node -- all in a single
+traversal.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Dummy before head; \texttt{fast = dummy}, advance it $n$ steps.
+  \item Move \texttt{fast} and \texttt{slow} (from dummy) together until
+        \texttt{fast->next} is null.
+  \item \texttt{slow->next = slow->next->next}; return \texttt{dummy.next}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to3\to4\to5$, $n=2$.}
+
+\begin{itemize}
+  \item fast advances $2$ to node $2$; then both slide until fast at $5$.
+  \item slow at $3$; remove $3->next$ (node $4$). Result $1\to2\to3\to5$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* removeNthFromEnd(ListNode* head, int n) {
+    ListNode dummy(0); dummy.next = head;
+    ListNode* fast = &dummy;
+    for (int i = 0; i < n; i++) fast = fast->next;   // lead by n
+    ListNode* slow = &dummy;
+    while (fast->next) { fast = fast->next; slow = slow->next; }
+    slow->next = slow->next->next;                   // unlink target
+    return dummy.next;
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(removeNthFromEnd(build({1, 2, 3, 4, 5}), 2));   // 1 2 3 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- a single pass. \textbf{Space
+Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A fixed two-pointer gap of $n$ turns ``from the end'' into a one-pass
+position. The dummy node makes deleting the head uniform with any other
+node -- the recurring reason to prepend a dummy.
+\end{takeawaybox}

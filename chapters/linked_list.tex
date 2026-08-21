@@ -1,0 +1,82 @@
+\chapter{Linked Lists}
+\chapterepigraph{A linked list trades the array's random access for
+something arrays cannot do cheaply: rearranging elements by rewiring
+pointers instead of shifting memory. Almost every linked-list problem is
+won or lost on two techniques -- the two-pointer (slow/fast) trick and the
+disciplined manipulation of \texttt{next} pointers -- plus the habit of
+using a dummy head node so the ``first element'' is never a special case.}
+
+\section{Pointers, Two Pointers, and the Dummy Node}
+\label{sec:ll-intro}
+
+A node holds a value and a pointer to the next node; the list is a chain
+ending in \texttt{nullptr}. There is no index, so everything is done by
+walking pointers -- which is why a handful of pointer patterns solve the
+whole chapter.
+
+\begin{ideabox}[Three Habits That Solve Most List Problems]
+\begin{itemize}
+  \item \textbf{Slow/fast (tortoise--hare):} advance one pointer by one and
+        another by two. This finds the middle, detects a cycle, and locates
+        the $n$-th node from the end in a single pass.
+  \item \textbf{Rewire, don't copy:} to reverse, reorder, or remove nodes,
+        change \texttt{next} pointers; keep a \texttt{prev} and a
+        \texttt{next} handle so you never lose the rest of the list.
+  \item \textbf{Dummy head:} allocate a throwaway node before the real head
+        so insertion/deletion at the front is not a special case -- return
+        \texttt{dummy.next} at the end.
+\end{itemize}
+\end{ideabox}
+
+\subsection*{How to Recognise the Technique}
+
+\begin{patternbox}[Linked-List Keywords]
+\begin{itemize}
+  \item \textbf{``Middle,'' ``cycle,'' ``$n$-th from end,'' ``loop
+        length''} -- slow/fast two pointers.
+  \item \textbf{``Reverse,'' ``reorder,'' ``swap in groups,'' ``rotate''}
+        -- pointer rewiring, often with a dummy node.
+  \item \textbf{``Palindrome,'' ``add two numbers,'' ``intersection''} --
+        reverse or align sub-lists, then walk in step.
+  \item \textbf{``Sort,'' ``0s/1s/2s''} -- merge sort on the list, or
+        pointer partitioning.
+  \item \textbf{``Flatten,'' ``clone with random pointer''} -- recursion or
+        an interleaving trick that reuses the list's own structure.
+  \item \textbf{Doubly linked list} -- an extra \texttt{prev} pointer makes
+        backward traversal and $O(1)$ deletion possible.
+\end{itemize}
+\end{patternbox}
+
+Throughout, a singly linked node is
+\texttt{struct ListNode \{ int val; ListNode* next; \}} and a doubly linked
+node additionally carries \texttt{ListNode* prev}. Every listing is a
+complete, compilable program that builds a small list, runs the operation,
+and prints the result.
+
+\newpage
+
+\input{chapters/linked_list/01_singly_basics.tex}
+\input{chapters/linked_list/02_doubly_basics.tex}
+\input{chapters/linked_list/03_reverse_dll.tex}
+\input{chapters/linked_list/04_middle.tex}
+\input{chapters/linked_list/05_reverse_iterative.tex}
+\input{chapters/linked_list/06_reverse_recursive.tex}
+\input{chapters/linked_list/07_detect_loop.tex}
+\input{chapters/linked_list/08_loop_start.tex}
+\input{chapters/linked_list/09_loop_length.tex}
+\input{chapters/linked_list/10_palindrome.tex}
+\input{chapters/linked_list/11_odd_even.tex}
+\input{chapters/linked_list/12_remove_nth.tex}
+\input{chapters/linked_list/13_delete_middle.tex}
+\input{chapters/linked_list/14_sort_list.tex}
+\input{chapters/linked_list/15_sort_012.tex}
+\input{chapters/linked_list/16_intersection.tex}
+\input{chapters/linked_list/17_add_one.tex}
+\input{chapters/linked_list/18_add_two_numbers.tex}
+\input{chapters/linked_list/19_delete_occurrences_dll.tex}
+\input{chapters/linked_list/20_pairs_sum_dll.tex}
+\input{chapters/linked_list/21_remove_duplicates_dll.tex}
+\input{chapters/linked_list/22_reverse_k_group.tex}
+\input{chapters/linked_list/23_rotate.tex}
+\input{chapters/linked_list/24_flatten.tex}
+\input{chapters/linked_list/25_clone_random.tex}

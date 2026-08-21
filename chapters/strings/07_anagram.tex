@@ -1,0 +1,79 @@
+\section{Check if Two Strings are Anagrams}
+\label{sec:str-anagram}
+
+\problemstatement{Two strings are anagrams if one is a rearrangement of the
+other -- the same characters with the same frequencies. Determine whether
+two strings are anagrams.}
+
+\begin{patternbox}
+Anagram checking is \textbf{frequency counting}: two strings are anagrams
+iff every character occurs the same number of times in both. A single
+count array (increment for one string, decrement for the other) that ends
+all zeros confirms it.
+\end{patternbox}
+
+\subsection*{One count array, up then down}
+
+If the lengths differ, they cannot be anagrams. Otherwise keep a count
+array over the alphabet: increment for each character of the first string
+and decrement for each character of the second. If the strings are
+anagrams, every increment is matched by a decrement, so all counts return to
+zero. Any nonzero entry means a character mismatch in frequency.
+
+\begin{ideabox}[Anagram iff All Frequency Differences Are Zero]
+Rearrangement preserves multiset membership, so the per-character counts
+must match exactly. Folding both strings into one signed count array reduces
+the test to ``are all counts zero,'' in one pass and constant space.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If lengths differ, return false.
+  \item Increment counts for the first string, decrement for the second.
+  \item Return true iff every count is zero.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"anagram"} and \texttt{"nagaram"}.}
+
+\begin{itemize}
+  \item Both have three \texttt{a}, one \texttt{n}, one \texttt{g}, one
+        \texttt{r}, one \texttt{m}.
+  \item All counts cancel to zero -- anagrams.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isAnagram(const string& s, const string& t) {
+    if (s.size() != t.size()) return false;
+    int cnt[26] = {0};
+    for (char c : s) cnt[c - 'a']++;
+    for (char c : t) cnt[c - 'a']--;
+    for (int x : cnt) if (x != 0) return false;
+    return true;
+}
+
+int main() {
+    cout << isAnagram("anagram", "nagaram") << "\n";   // 1
+    cout << isAnagram("rat", "car") << "\n";           // 0
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$ -- a
+fixed alphabet-sized array (sorting both strings is an $O(n\log n)$
+alternative).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Anagram detection is a signed frequency count that must zero out. The
+increment-then-decrement pattern is the cleanest way to compare two
+multisets of characters in linear time and constant space.
+\end{takeawaybox}

@@ -1,0 +1,77 @@
+\section{Longest Happy Prefix}
+\label{sec:str-longest-happy-prefix}
+
+\problemstatement{A ``happy prefix'' is a non-empty prefix of a string that
+is also a suffix (excluding the whole string). Return the longest happy
+prefix.}
+
+\begin{patternbox}
+The longest happy prefix is precisely the longest proper border of the
+string -- which is the \textbf{last value of the KMP prefix function}. No
+extra work beyond building the LPS array is needed.
+\end{patternbox}
+
+\subsection*{The border is the answer}
+
+The prefix function $\pi[i]$ gives the longest proper border of the prefix
+ending at $i$. For the whole string, $\pi[n-1]$ is the length of its longest
+proper prefix that is also a suffix -- the definition of the longest happy
+prefix. So compute the LPS array and return the prefix of that length.
+
+\begin{ideabox}[{Longest Happy Prefix = Longest Border = $\pi[n-1]$}]
+Prefix-that-is-also-suffix is exactly ``border,'' and the prefix function's
+final entry stores the longest border of the entire string. The whole
+problem is a single LPS computation and a substring.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute the prefix function $\pi$ of the string.
+  \item Return the prefix of length $\pi[n-1]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"ababab"}.}
+
+\begin{itemize}
+  \item $\pi=[0,0,1,2,3,4]$; $\pi[5]=4$.
+  \item Longest happy prefix is \texttt{"abab"} (length $4$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string longestPrefix(const string& s) {
+    int n = s.size();
+    vector<int> pi(n, 0);
+    for (int i = 1; i < n; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && s[i] != s[j]) j = pi[j - 1];
+        if (s[i] == s[j]) j++;
+        pi[i] = j;
+    }
+    return s.substr(0, pi[n - 1]);                 // longest border
+}
+
+int main() {
+    cout << "[" << longestPrefix("ababab") << "]\n";   // [abab]
+    cout << "[" << longestPrefix("leetcode") << "]\n"; // []
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(n)$ for the
+prefix-function array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The longest happy prefix is just the last value of the KMP prefix function
+-- the longest border of the whole string. Recognising ``prefix that is also
+a suffix'' as a border collapses the problem to one LPS computation.
+\end{takeawaybox}

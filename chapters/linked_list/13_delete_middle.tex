@@ -1,0 +1,95 @@
+\section{Delete the Middle Node}
+\label{sec:ll-delete-middle}
+
+\problemstatement{Given the head of a linked list, delete the middle node
+(for even length, the second middle) and return the head. If the list has
+one node, return null.}
+
+\begin{patternbox}
+Deleting the middle combines the slow/fast middle-finder with the need for
+the node \emph{before} the middle. Advance \texttt{fast} by two but start it
+one step ahead (or track \texttt{prev}) so that when \texttt{fast} reaches
+the end, \texttt{slow} stops just before the middle, ready to unlink it.
+\end{patternbox}
+
+\subsection*{Stop slow one node early}
+
+Run the tortoise--hare, but arrange the offsets so \texttt{slow} lands on the
+\emph{predecessor} of the middle rather than the middle itself -- for
+instance by giving \texttt{fast} a two-node head start. Then
+\texttt{slow->next = slow->next->next} removes the middle node. Handle the
+single-node list as a special case (return null).
+
+\begin{ideabox}[Delete Needs the Predecessor]
+Finding the middle is not enough to delete it in a singly linked list; you
+need its predecessor to rewire \texttt{next}. Offsetting the fast pointer so
+slow halts one node early yields that predecessor directly, avoiding a
+second pass.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the list has one node, return null.
+  \item \texttt{slow = head}, \texttt{fast = head->next->next}.
+  \item While \texttt{fast} and \texttt{fast->next}: advance \texttt{slow}
+        by one, \texttt{fast} by two.
+  \item \texttt{slow->next = slow->next->next}; return the head.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to3\to4$ (delete second middle, node $3$).}
+
+\begin{itemize}
+  \item slow$=1$, fast$=3$. Step: slow$=2$, fast$=$null.
+  \item Remove $2->next$ (node $3$). Result $1\to2\to4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* deleteMiddle(ListNode* head) {
+    if (!head->next) return nullptr;              // single node
+    ListNode* slow = head;
+    ListNode* fast = head->next->next;            // two-node head start
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    slow->next = slow->next->next;                // unlink the middle
+    return head;
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(deleteMiddle(build({1, 2, 3, 4, 5})));   // 1 2 4 5
+    print(deleteMiddle(build({1, 2, 3, 4})));      // 1 2 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+To delete the middle, offset the fast pointer so slow halts at the middle's
+predecessor -- then a single rewire removes it. Adjusting the two-pointer
+offset to land on the predecessor is a common tweak to the middle-finder.
+\end{takeawaybox}

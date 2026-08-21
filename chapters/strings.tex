@@ -1,0 +1,60 @@
+\chapter{Strings}
+\chapterepigraph{A string is an array of characters, so array techniques --
+two pointers, frequency counts, prefix sums -- carry straight over. What is
+special is the family of pattern-matching algorithms (KMP, Z, Rabin--Karp)
+built on one idea: a string's own borders (prefixes that are also
+suffixes) let you skip re-comparison. This chapter runs from parsing
+puzzles to those linear-time matchers.}
+
+\section{From Character Counting to Border Theory}
+\label{sec:strings-intro}
+
+Most easy string problems are careful scanning or counting; the harder ones
+are exact pattern matching, where naive comparison is $O(nm)$ and the
+prefix/Z functions bring it to $O(n+m)$.
+
+\begin{patternbox}[String Technique Map]
+\begin{itemize}
+  \item \textbf{Parsing / building strings} -- a single scan with a
+        counter or stack: Remove Outermost Parentheses, Maximum Nesting
+        Depth, Roman to Integer, Atoi, Count and Say.
+  \item \textbf{Two pointers / reversal} -- Reverse Words, Largest Odd
+        Number, Longest Common Prefix.
+  \item \textbf{Frequency counting / hashing} -- Anagram Check, Isomorphic
+        Strings, Sort by Frequency, Sum of Beauty.
+  \item \textbf{Expand around centre} -- Longest Palindromic Substring in
+        $O(n^2)$ without DP.
+  \item \textbf{Border-based matching (prefix/Z function)} -- Rabin--Karp,
+        Z-Function, KMP/LPS, Shortest Palindrome, Longest Happy Prefix.
+  \end{itemize}
+\end{patternbox}
+
+\begin{ideabox}[The One Idea Behind Fast Matching]
+A \emph{border} is a proper prefix that is also a suffix. The prefix
+function (KMP) and Z-function both compute, in linear time, how much of the
+pattern reappears -- so after a mismatch you resume from the longest border
+instead of restarting. Every hard problem here is an application of that.
+\end{ideabox}
+
+\newpage
+
+\input{chapters/strings/01_remove_outer_parentheses.tex}
+\input{chapters/strings/02_reverse_words.tex}
+\input{chapters/strings/03_largest_odd_number.tex}
+\input{chapters/strings/04_longest_common_prefix.tex}
+\input{chapters/strings/05_isomorphic.tex}
+\input{chapters/strings/06_rotate_string.tex}
+\input{chapters/strings/07_anagram.tex}
+\input{chapters/strings/08_sort_by_frequency.tex}
+\input{chapters/strings/09_max_nesting_depth.tex}
+\input{chapters/strings/10_roman_to_integer.tex}
+\input{chapters/strings/11_atoi.tex}
+\input{chapters/strings/12_longest_palindromic_substring.tex}
+\input{chapters/strings/13_sum_of_beauty.tex}
+\input{chapters/strings/14_count_and_say.tex}
+\input{chapters/strings/15_min_bracket_reversals.tex}
+\input{chapters/strings/16_rabin_karp.tex}
+\input{chapters/strings/17_z_function.tex}
+\input{chapters/strings/18_kmp_lps.tex}
+\input{chapters/strings/19_shortest_palindrome.tex}
+\input{chapters/strings/20_longest_happy_prefix.tex}

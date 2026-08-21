@@ -1,0 +1,95 @@
+\section{Delete All Occurrences of a Key in a Doubly Linked List}
+\label{sec:ll-delete-occurrences-dll}
+
+\problemstatement{Given a doubly linked list and a key, delete every node
+whose value equals the key, returning the (possibly new) head.}
+
+\begin{patternbox}
+The DLL's \texttt{prev} pointer makes this a single-pass sweep: at each
+matching node, splice its neighbours together in $O(1)$ using both links,
+handling head and tail as the only edge cases.
+\end{patternbox}
+
+\subsection*{Splice out each match in place}
+
+Walk the list. When a node's value equals the key, connect its predecessor's
+\texttt{next} to its successor and its successor's \texttt{prev} to its
+predecessor. If the deleted node was the head, advance the head. Because a
+DLL node knows both neighbours, each deletion is constant time with no
+re-walk -- the exact advantage over a singly linked list.
+
+\begin{ideabox}[Both Links Make Deletion Local]
+Removing a node requires rewiring the links on \emph{both} sides. The
+\texttt{prev} pointer supplies the left neighbour instantly, so an arbitrary
+node -- including several in one pass -- is removed in $O(1)$ each.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Walk from the head. For each node equal to the key: rewire
+        \texttt{prev} and \texttt{next} of its neighbours; if it was the
+        head, move the head forward.
+  \item Continue to the next node.
+  \item Return the head.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{DLL $1\leftrightarrow2\leftrightarrow2\leftrightarrow3$, key $2$.}
+
+\begin{itemize}
+  \item Delete both $2$s by splicing neighbours.
+  \item Result $1\leftrightarrow3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int val; Node* prev; Node* next;
+    Node(int v) : val(v), prev(nullptr), next(nullptr) {}
+};
+
+Node* build(const vector<int>& a) {
+    Node dummy(0), *t = &dummy;
+    for (int x : a) { Node* n = new Node(x); t->next = n; n->prev = t; t = n; }
+    Node* head = dummy.next; if (head) head->prev = nullptr;
+    return head;
+}
+
+Node* deleteAll(Node* head, int key) {
+    Node* cur = head;
+    while (cur) {
+        Node* nxt = cur->next;
+        if (cur->val == key) {
+            if (cur->prev) cur->prev->next = cur->next;
+            else head = cur->next;                // deleting the head
+            if (cur->next) cur->next->prev = cur->prev;
+        }
+        cur = nxt;
+    }
+    return head;
+}
+
+void print(Node* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(deleteAll(build({1, 2, 2, 3, 2}), 2));   // 1 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass. \textbf{Space Complexity.}
+$O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Deleting all matches in a DLL is a single-pass splice using both links,
+with head/tail as the only special cases. This is the everyday DLL deletion
+skill that LRU/LFU caches rely on.
+\end{takeawaybox}

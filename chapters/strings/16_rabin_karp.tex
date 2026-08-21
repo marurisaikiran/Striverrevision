@@ -1,0 +1,96 @@
+\section{Rabin--Karp Pattern Matching}
+\label{sec:str-rabin-karp}
+
+\problemstatement{Given a text and a pattern, find all positions where the
+pattern occurs in the text, using hashing.}
+
+\begin{patternbox}
+Rabin--Karp compares a \textbf{rolling hash} of each text window against the
+pattern's hash. Sliding the window updates the hash in $O(1)$ (remove the
+leaving character, add the entering one), so all windows are hashed in
+linear time; only hash matches are verified character by character.
+\end{patternbox}
+
+\subsection*{Rolling hash over windows}
+
+Treat a length-$m$ string as a base-$B$ number modulo a large prime. Compute
+the pattern's hash and the first window's hash. To slide the window one
+step, subtract the contribution of the outgoing character (times $B^{m-1}$),
+multiply by $B$, and add the incoming character -- an $O(1)$ update. When a
+window's hash equals the pattern's, confirm with a direct comparison to rule
+out the rare hash collision.
+
+\begin{ideabox}[Slide the Hash Instead of Recomputing It]
+Because a window hash differs from the next only in its first and last
+characters, it updates in constant time. This turns naive $O(nm)$ matching
+into $O(n+m)$ expected time, with verification guarding against collisions.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Compute the pattern hash and the first text-window hash; precompute
+        $B^{m-1}$.
+  \item Slide across the text, updating the hash in $O(1)$; on a hash
+        match, verify the substring.
+  \item Report all confirmed positions.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{text \texttt{"abcabc"}, pattern \texttt{"bc"}.}
+
+\begin{itemize}
+  \item Window hashes for \texttt{ab},\texttt{bc},\texttt{ca},\texttt{ab},
+        \texttt{bc}; matches at indices $1$ and $4$.
+  \item Occurrences: positions $1$ and $4$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+typedef unsigned long long ull;
+const ull B = 257, MOD = 1000000007ULL;
+
+vector<int> rabinKarp(const string& text, const string& pat) {
+    int n = text.size(), m = pat.size();
+    vector<int> res;
+    if (m > n) return res;
+
+    ull patHash = 0, winHash = 0, power = 1;
+    for (int i = 0; i < m; i++) {
+        patHash = (patHash * B + pat[i]) % MOD;
+        winHash = (winHash * B + text[i]) % MOD;
+        if (i) power = (power * B) % MOD;          // B^(m-1)
+    }
+
+    for (int i = 0; i + m <= n; i++) {
+        if (winHash == patHash && text.compare(i, m, pat) == 0)
+            res.push_back(i);                      // verify to avoid collision
+        if (i + m < n) {                           // roll the window
+            winHash = (winHash + MOD - text[i] * power % MOD) % MOD;
+            winHash = (winHash * B + text[i + m]) % MOD;
+        }
+    }
+    return res;
+}
+
+int main() {
+    for (int p : rabinKarp("abcabc", "bc")) cout << p << " ";
+    cout << "\n";                                  // 1 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ expected; $O(nm)$ worst case if many hash
+collisions force verification. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Rabin--Karp slides a rolling hash to compare windows in constant time,
+verifying only on hash equality. Choosing a good base and prime keeps
+collisions rare; it shines for multi-pattern search and 2D matching.
+\end{takeawaybox}

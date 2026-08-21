@@ -1,0 +1,95 @@
+\section{Rotate a Linked List}
+\label{sec:ll-rotate}
+
+\problemstatement{Given the head of a linked list and an integer $k$, rotate
+the list to the right by $k$ places and return the new head.}
+
+\begin{patternbox}
+Rotating right by $k$ is a \textbf{relink}, not a shift: make the list
+circular, then break it at the right spot. Since rotating by the length
+gives the same list, first reduce $k$ modulo the length.
+\end{patternbox}
+
+\subsection*{Circularise, then cut}
+
+Walk to the tail, counting the length $n$, and connect the tail to the head
+to form a ring. Reduce $k$ to $k \bmod n$. The new tail is the node at
+position $n-k$ from the start; the node after it is the new head. Walk to
+that new tail, set its \texttt{next} to null (breaking the ring), and return
+the new head. This performs any rotation with a single relink, avoiding
+$k$ separate moves.
+
+\begin{ideabox}[Rotation Is One Cut on a Ring]
+Joining the list into a circle makes every rotation just a choice of where
+to break it. Reducing $k$ modulo $n$ handles $k\ge n$, and the break point
+$n-k$ places the last $k$ nodes at the front.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Find the length $n$ and the tail; connect tail to head (ring).
+  \item $k \gets k \bmod n$; the new tail is $n-k$ steps from the head.
+  \item Break after the new tail; return the node following it.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to3\to4\to5$, $k=2$.}
+
+\begin{itemize}
+  \item $n=5$, $k=2$; new tail at position $5-2=3$ (node $3$).
+  \item Break after $3$; new head $4$. Result $4\to5\to1\to2\to3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* rotateRight(ListNode* head, int k) {
+    if (!head || !head->next || k == 0) return head;
+    int n = 1;
+    ListNode* tail = head;
+    while (tail->next) { tail = tail->next; n++; }
+    tail->next = head;                            // make it circular
+
+    k %= n;
+    int stepsToNewTail = n - k;
+    ListNode* newTail = head;
+    for (int i = 1; i < stepsToNewTail; i++) newTail = newTail->next;
+    ListNode* newHead = newTail->next;
+    newTail->next = nullptr;                       // break the ring
+    return newHead;
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(rotateRight(build({1, 2, 3, 4, 5}), 2));   // 4 5 1 2 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass to measure, one to reach the
+new tail. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Rotation is circularise-then-cut: one relink instead of $k$ moves, with
+$k \bmod n$ collapsing large rotations. Turning a list into a ring to
+simplify positional surgery is a handy general trick.
+\end{takeawaybox}

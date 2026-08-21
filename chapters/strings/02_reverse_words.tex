@@ -1,0 +1,79 @@
+\section{Reverse Words in a String}
+\label{sec:str-reverse-words}
+
+\problemstatement{Given a string of words separated by spaces (possibly with
+leading, trailing, or multiple spaces), return the words in reverse order,
+separated by single spaces.}
+
+\begin{patternbox}
+\emph{``Reverse the order of words''} is a parse-and-rebuild: extract words
+by scanning, then emit them back-to-front. Handling stray spaces is the only
+subtlety, cleanly solved with a string stream or a manual scan.
+\end{patternbox}
+
+\subsection*{Split, then join in reverse}
+
+Scan the string, collecting maximal non-space runs as words while skipping
+any spaces. Store the words, then output them from last to first joined by a
+single space. This normalises whitespace automatically -- extra and edge
+spaces vanish because only actual words are collected.
+
+\begin{ideabox}[Collect Words, Ignore the Spaces]
+Treating the string as a sequence of words rather than characters sidesteps
+messy space handling: gather each word once, discard the gaps, and reorder.
+The single-space join produces clean output regardless of the input's
+spacing.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Read words one at a time (a stream skips runs of spaces).
+  \item Push each word; then emit them in reverse with single-space
+        separators.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"  the sky\ \ is  blue "}.}
+
+\begin{itemize}
+  \item Words: \texttt{the}, \texttt{sky}, \texttt{is}, \texttt{blue}.
+  \item Reversed and joined: \texttt{"blue is sky the"}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string reverseWords(const string& s) {
+    stringstream ss(s);
+    string word;
+    vector<string> words;
+    while (ss >> word) words.push_back(word);      // skips extra spaces
+    string res;
+    for (int i = (int)words.size() - 1; i >= 0; i--) {
+        res += words[i];
+        if (i) res += ' ';
+    }
+    return res;
+}
+
+int main() {
+    cout << "[" << reverseWords("  the sky is  blue ") << "]\n";  // [blue is sky the]
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(n)$ for the
+words and output.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Word-level problems become easy when you tokenise first and treat words as
+units; a stringstream handles arbitrary whitespace for free. In-place
+$O(1)$-space variants reverse the whole string then each word.
+\end{takeawaybox}

@@ -1,0 +1,82 @@
+\section{Longest Common Prefix}
+\label{sec:str-longest-common-prefix}
+
+\problemstatement{Given an array of strings, find the longest common prefix
+shared by all of them. Return the empty string if there is none.}
+
+\begin{patternbox}
+\emph{``Common prefix of all strings''} is a \textbf{vertical scan}: compare
+the characters at each position across all strings simultaneously; the first
+column where they disagree (or where any string ends) marks the end of the
+common prefix.
+\end{patternbox}
+
+\subsection*{Compare column by column}
+
+Take the first string as a reference. For each character position $j$,
+check that every other string has the same character at $j$ and is long
+enough. The moment a mismatch or a too-short string appears, the common
+prefix is everything before position $j$. This stops as early as possible,
+touching only the characters within the eventual prefix plus one mismatch
+column.
+
+\begin{ideabox}[The Shortest String Bounds the Prefix]
+The common prefix cannot exceed the shortest string, and any single
+mismatch in a column ends it. A vertical (position-by-position) scan finds
+that stopping point directly, without sorting or full pairwise comparison.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For each position $j$ of the first string: let $c$ be its
+        character.
+  \item If any other string is shorter than $j+1$ or differs at $j$, return
+        the prefix $[0,j)$.
+  \item If the loop completes, the whole first string is the prefix.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{["flower","flow","flight"]}.}
+
+\begin{itemize}
+  \item Column $0$: all \texttt{f}. Column $1$: all \texttt{l}. Column $2$:
+        \texttt{o},\texttt{o},\texttt{i} -- mismatch.
+  \item Common prefix \texttt{"fl"}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string longestCommonPrefix(const vector<string>& strs) {
+    if (strs.empty()) return "";
+    for (int j = 0; j < (int)strs[0].size(); j++) {
+        char c = strs[0][j];
+        for (const string& s : strs)
+            if (j >= (int)s.size() || s[j] != c)
+                return strs[0].substr(0, j);       // first disagreement
+    }
+    return strs[0];
+}
+
+int main() {
+    cout << "[" << longestCommonPrefix({"flower", "flow", "flight"}) << "]\n";  // [fl]
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\sum|s_i|)$ worst case; typically far less,
+stopping at the first mismatch. \textbf{Space Complexity.} $O(1)$ beyond the
+result.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The longest common prefix is a vertical scan that halts at the first
+mismatching column. Comparing position-by-position across all strings is
+simpler and often faster than sorting or divide-and-conquer alternatives.
+\end{takeawaybox}

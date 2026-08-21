@@ -1,0 +1,87 @@
+\section{Isomorphic Strings}
+\label{sec:str-isomorphic}
+
+\problemstatement{Two strings are isomorphic if the characters of one can be
+mapped to the characters of the other so that the mapping is a consistent
+one-to-one correspondence preserving order. Determine whether two strings
+are isomorphic.}
+
+\begin{patternbox}
+Isomorphism is a \textbf{bijective character mapping}: each character of $s$
+must map to a single character of $t$ \emph{and} vice versa. Two mapping
+tables (forward and backward) enforce the one-to-one requirement in one
+pass.
+\end{patternbox}
+
+\subsection*{Two consistent maps}
+
+Walk both strings together. For each position, check the forward map
+$s[i]\to t[i]$: if $s[i]$ was seen before, its recorded image must equal
+$t[i]$; likewise the backward map $t[i]\to s[i]$ must be consistent.
+Requiring \emph{both} directions prevents two different source characters
+from mapping to the same target (e.g.\ ``\texttt{ab}''$\to$``\texttt{aa}''
+is rejected). Any inconsistency means not isomorphic.
+
+\begin{ideabox}[One-to-One Needs Both Directions Checked]
+A single forward map allows collisions (many-to-one). Enforcing the
+backward map too makes the correspondence bijective, which is what
+``isomorphic'' demands. Both maps updated in lockstep catch every
+violation.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If lengths differ, return false.
+  \item For each $i$: verify and record $s[i]\to t[i]$ and $t[i]\to s[i]$;
+        on any conflict return false.
+  \item Return true.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"egg"} and \texttt{"add"}.}
+
+\begin{itemize}
+  \item $e\to a$, $g\to d$, $g\to d$ consistent; backward $a\to e$,
+        $d\to g$ consistent.
+  \item Isomorphic. (\texttt{"foo"}$\to$\texttt{"bar"} fails: $o\to a$ then
+        $o\to r$.)
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isIsomorphic(const string& s, const string& t) {
+    if (s.size() != t.size()) return false;
+    unordered_map<char,char> fwd, bwd;
+    for (int i = 0; i < (int)s.size(); i++) {
+        char a = s[i], b = t[i];
+        if (fwd.count(a) && fwd[a] != b) return false;
+        if (bwd.count(b) && bwd[b] != a) return false;
+        fwd[a] = b;
+        bwd[b] = a;
+    }
+    return true;
+}
+
+int main() {
+    cout << isIsomorphic("egg", "add") << "\n";    // 1
+    cout << isIsomorphic("foo", "bar") << "\n";    // 0
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$ (at most
+$256$ character keys).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Isomorphism is a bijection check, requiring \emph{both} forward and backward
+consistency to rule out many-to-one collisions. Whenever a problem says
+``one-to-one correspondence,'' remember to guard both directions.
+\end{takeawaybox}

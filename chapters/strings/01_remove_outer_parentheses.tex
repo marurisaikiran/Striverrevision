@@ -1,0 +1,85 @@
+\section{Remove Outermost Parentheses}
+\label{sec:str-remove-outer-parens}
+
+\problemstatement{A valid parentheses string decomposes into primitive
+groups. Remove the outermost pair of parentheses of every primitive group
+and return the result. For example \texttt{(()())(())} becomes
+\texttt{()()()}.}
+
+\begin{patternbox}
+Tracking parenthesis nesting is a \textbf{depth counter}: an open bracket
+raises the depth, a close lowers it. A bracket is ``outermost'' exactly when
+it sits at depth transitioning to/from $0$ -- keep every other bracket.
+\end{patternbox}
+
+\subsection*{Keep brackets that are not at the outer layer}
+
+Scan left to right maintaining a depth counter. For an open bracket, it is
+outermost iff the current depth is $0$ (before incrementing); increment
+after. For a close bracket, decrement first, and it is outermost iff the
+depth returns to $0$. Append every bracket \emph{except} those outermost
+ones. This peels exactly one layer off each primitive group.
+
+\begin{ideabox}[Depth Zero Marks the Outer Layer]
+A primitive group starts when depth goes $0\to1$ and ends when it returns
+$1\to0$; those two brackets are its outermost pair. Everything strictly
+inside has depth $\ge1$, so a simple counter distinguishes what to keep.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \texttt{depth = 0}, empty result.
+  \item For each char: if \texttt{'('}, append it only when \texttt{depth
+        > 0}, then increment; if \texttt{')'}, decrement, then append only
+        when \texttt{depth > 0}.
+  \item Return the result.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{(()())(())}.}
+
+\begin{itemize}
+  \item First group \texttt{(()())}: drop the outer pair, keep
+        \texttt{()()}. Second \texttt{(())}: keep \texttt{()}.
+  \item Result \texttt{()()()}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string removeOuterParentheses(const string& s) {
+    string res;
+    int depth = 0;
+    for (char c : s) {
+        if (c == '(') {
+            if (depth > 0) res += c;              // not outermost
+            depth++;
+        } else {
+            depth--;
+            if (depth > 0) res += c;
+        }
+    }
+    return res;
+}
+
+int main() {
+    cout << removeOuterParentheses("(()())(())") << "\n";   // ()()()
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one scan. \textbf{Space Complexity.}
+$O(n)$ for the output.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Parenthesis-structure problems are usually a depth counter, not a stack:
+depth $0$ marks group boundaries. This counter idea reappears in maximum
+nesting depth and bracket-validity checks.
+\end{takeawaybox}

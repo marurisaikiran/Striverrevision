@@ -1,0 +1,109 @@
+\section{Clone a Linked List with Random Pointers}
+\label{sec:ll-clone-random}
+
+\problemstatement{Each node has a \texttt{next} pointer and a
+\texttt{random} pointer to any node (or null). Produce a deep copy of the
+list -- new nodes with correctly wired \texttt{next} and \texttt{random}
+pointers -- in $O(1)$ extra space.}
+
+\begin{patternbox}
+The clever $O(1)$-space method \textbf{interleaves} each copy right after
+its original. Then a copy's \texttt{random} is just the original's random's
+\texttt{next}. A final pass unweaves the two lists apart.
+\end{patternbox}
+
+\subsection*{Interleave, wire randoms, unweave}
+
+\textbf{Pass 1:} for each original node $x$, create a copy $x'$ and insert it
+between $x$ and $x.\texttt{next}$, forming
+$x\to x'\to x.\texttt{next}\to\ldots$ \textbf{Pass 2:} set each copy's random
+via $x'.\texttt{random}=x.\texttt{random}.\texttt{next}$ -- because every
+original is immediately followed by its copy, the copy of any target is one
+\texttt{next} away. \textbf{Pass 3:} separate the interleaved list back into
+the original and the cloned list, restoring \texttt{next} pointers.
+
+\begin{ideabox}[The Copy Sits Next to Its Original]
+Interleaving means ``the clone of node $x$'' is always \texttt{x->next}. So
+the random pointer of a clone is \texttt{x->random->next} -- computable
+without a hash map, which is what removes the $O(n)$ auxiliary space a map-
+based clone would use.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Insert each node's copy immediately after it.
+  \item For each copy, set \texttt{copy->random = orig->random->next} (guard
+        null).
+  \item Detach the copies into a separate list, restoring the originals'
+        \texttt{next}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$A\to B$ with $A.\texttt{random}=B$, $B.\texttt{random}=B$.}
+
+\begin{itemize}
+  \item Interleave: $A\to A'\to B\to B'$. Set $A'.\texttt{random}=
+        A.\texttt{random}.\texttt{next}=B'$; $B'.\texttt{random}=B'$.
+  \item Unweave: clone is $A'\to B'$ with correct randoms.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int val;
+    Node* next;
+    Node* random;
+    Node(int v) : val(v), next(nullptr), random(nullptr) {}
+};
+
+Node* copyRandomList(Node* head) {
+    if (!head) return nullptr;
+    // Pass 1: interleave copies
+    for (Node* c = head; c; c = c->next->next) {
+        Node* copy = new Node(c->val);
+        copy->next = c->next;
+        c->next = copy;
+    }
+    // Pass 2: wire random pointers
+    for (Node* c = head; c; c = c->next->next)
+        if (c->random) c->next->random = c->random->next;
+    // Pass 3: unweave
+    Node dummy(0), *t = &dummy;
+    for (Node* c = head; c; c = c->next) {
+        t->next = c->next;                        // pick the copy
+        t = t->next;
+        c->next = c->next->next;                  // restore original
+    }
+    return dummy.next;
+}
+
+int main() {
+    Node* a = new Node(1);
+    Node* b = new Node(2);
+    a->next = b;
+    a->random = b; b->random = b;
+    Node* cl = copyRandomList(a);
+    for (Node* c = cl; c; c = c->next)
+        cout << c->val << "(rand " << (c->random ? c->random->val : -1) << ") ";
+    cout << "\n";                                  // 1(rand 2) 2(rand 2)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- three linear passes. \textbf{Space
+Complexity.} $O(1)$ extra (versus $O(n)$ for a hash-map clone).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Cloning with random pointers in $O(1)$ space uses interleaving so each
+clone sits beside its original, making random wiring a local
+\texttt{->next} lookup. It is the standout example of exploiting the list's
+own structure instead of an auxiliary map.
+\end{takeawaybox}

@@ -1,0 +1,102 @@
+\section{Find Pairs with a Given Sum in a Sorted DLL}
+\label{sec:ll-pairs-sum-dll}
+
+\problemstatement{Given a doubly linked list sorted in ascending order and a
+target, find all pairs of nodes whose values sum to the target, using $O(1)$
+extra space.}
+
+\begin{patternbox}
+A sorted DLL supports the array \textbf{two-pointer} technique directly: one
+pointer at the head (smallest), one at the tail (largest). The
+\texttt{prev} pointer lets the right pointer move backward, which a singly
+linked list cannot do.
+\end{patternbox}
+
+\subsection*{Converge from both ends}
+
+Place \texttt{left} at the head and \texttt{right} at the tail. Compare
+their sum to the target: if equal, record the pair and move both inward; if
+too small, advance \texttt{left} (via \texttt{next}) to increase the sum; if
+too large, retreat \texttt{right} (via \texttt{prev}) to decrease it. Stop
+when the pointers meet or cross. Sortedness guarantees this monotonic
+convergence finds every pair without revisiting.
+
+\begin{ideabox}[The prev Pointer Enables Backward Two Pointers]
+The classic two-sum-on-sorted-array needs a right pointer that moves left.
+A DLL's \texttt{prev} provides exactly that, so the linear two-pointer sweep
+transfers unchanged from arrays to sorted doubly linked lists.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \texttt{left = head}; \texttt{right =} last node.
+  \item While \texttt{left != right} and not crossed: compare
+        \texttt{left->val + right->val} to the target; record on equality
+        and move both, else move the appropriate pointer.
+  \item Output all recorded pairs.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Sorted DLL $1,2,3,4,6$; target $6$.}
+
+\begin{itemize}
+  \item $(1,6)$? $7>6$, move right to $4$. $(1,4)$? $5<6$, move left to
+        $2$. $(2,4)=6$ -- record.
+  \item Move both; pointers cross. Pair found: $(2,4)$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int val; Node* prev; Node* next;
+    Node(int v) : val(v), prev(nullptr), next(nullptr) {}
+};
+
+Node* build(const vector<int>& a) {
+    Node dummy(0), *t = &dummy;
+    for (int x : a) { Node* n = new Node(x); t->next = n; n->prev = t; t = n; }
+    Node* head = dummy.next; if (head) head->prev = nullptr;
+    return head;
+}
+
+vector<pair<int,int>> pairsWithSum(Node* head, int target) {
+    vector<pair<int,int>> res;
+    if (!head) return res;
+    Node* left = head;
+    Node* right = head;
+    while (right->next) right = right->next;       // go to tail
+    while (left != right && right->next != left) {
+        int sum = left->val + right->val;
+        if (sum == target) {
+            res.push_back({left->val, right->val});
+            left = left->next; right = right->prev;
+        } else if (sum < target) left = left->next;
+        else right = right->prev;
+    }
+    return res;
+}
+
+int main() {
+    for (auto& [a, b] : pairsWithSum(build({1, 2, 3, 4, 6}), 6))
+        cout << "(" << a << "," << b << ") ";
+    cout << "\n";                                  // (2,4)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ after reaching the tail (also $O(n)$).
+\textbf{Space Complexity.} $O(1)$ beyond the output.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Sorted-DLL pair-sum is the two-pointer two-sum with the right pointer moving
+backward via \texttt{prev}. The DLL's backward link is precisely what lets
+this array technique work on a list.
+\end{takeawaybox}

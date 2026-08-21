@@ -1,0 +1,103 @@
+\section{Add One to a Number Represented by a Linked List}
+\label{sec:ll-add-one}
+
+\problemstatement{A non-negative integer is stored as a linked list, most
+significant digit first (head). Add one to the number and return the head of
+the resulting list.}
+
+\begin{patternbox}
+The carry propagates from the \emph{least} significant digit, but the list
+is stored most-significant first -- so either \textbf{reverse, add, reverse
+back}, or use recursion to reach the last node and carry upward on the
+return trip. Both avoid needing backward pointers.
+\end{patternbox}
+
+\subsection*{Carry from the back via recursion}
+
+Recurse to the tail; the deepest call adds one and returns any carry. Each
+frame adds the incoming carry to its digit, updates the digit modulo $10$,
+and returns the new carry ($1$ if the digit was $9$, else $0$). If the head
+still produces a carry after processing, prepend a new leading $1$ node.
+This treats the recursion stack as the ``reversed'' traversal, so no
+explicit reversal is required.
+
+\begin{ideabox}[The Return Trip Is the Least-Significant-First Pass]
+Recursion reaches the last (least significant) digit first on the way down,
+then processes digits back-to-front on the way up -- exactly the order
+addition needs. A leftover carry at the very top means a new most-
+significant digit.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Recurse to the last node; add $1$ there, return the carry.
+  \item Each frame: \texttt{sum = digit + carry}; set digit to
+        \texttt{sum \% 10}; return \texttt{sum / 10}.
+  \item If the top-level carry is $1$, prepend a new node with value $1$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{List $1\to2\to9$ (number $129$).}
+
+\begin{itemize}
+  \item Last digit $9+1=10$: digit $0$, carry $1$. Next $2+1=3$, carry $0$.
+  \item Head $1$ unchanged. Result $1\to3\to0$ ($130$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+int addHelper(ListNode* node) {
+    if (!node) return 1;                          // seed the +1 at the end
+    int carry = addHelper(node->next);
+    int sum = node->val + carry;
+    node->val = sum % 10;
+    return sum / 10;
+}
+
+ListNode* addOne(ListNode* head) {
+    int carry = addHelper(head);
+    if (carry) {                                  // new leading digit
+        ListNode* node = new ListNode(carry);
+        node->next = head;
+        return node;
+    }
+    return head;
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val; cout << "\n"; }
+
+int main() {
+    print(addOne(build({1, 2, 9})));              // 130
+    print(addOne(build({9, 9, 9})));              // 1000
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(n)$
+recursion stack (or $O(1)$ with the reverse--add--reverse approach).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Arithmetic on a most-significant-first list needs a back-to-front pass,
+supplied for free by recursion's return trip (or by reversing). A leftover
+carry at the head becomes a new leading digit -- the one edge case to
+remember.
+\end{takeawaybox}

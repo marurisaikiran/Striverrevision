@@ -1,0 +1,96 @@
+\section{Doubly Linked List: Construction and Operations}
+\label{sec:ll-doubly-basics}
+
+\problemstatement{Implement a doubly linked list (DLL): build it, insert
+before or after a node, and delete a node -- all in $O(1)$ once the node is
+in hand, thanks to the backward \texttt{prev} pointer.}
+
+\begin{patternbox}
+A DLL adds a \texttt{prev} pointer to each node. The pay-off is $O(1)$
+deletion of a known node (no need to walk to find its predecessor) and easy
+backward traversal -- which is exactly why LRU caches and browser-history
+structures use it.
+\end{patternbox}
+
+\subsection*{Two pointers per node}
+
+Each node stores \texttt{prev} and \texttt{next}. Inserting a node $x$
+between $a$ and $b$ rewires four pointers: $a.\texttt{next}=x$,
+$x.\texttt{prev}=a$, $x.\texttt{next}=b$, $b.\texttt{prev}=x$. Deleting a
+node $x$ splices its neighbours together: $x.\texttt{prev}.\texttt{next}=
+x.\texttt{next}$ and $x.\texttt{next}.\texttt{prev}=x.\texttt{prev}$, with
+null checks at the ends. Because a node knows its own predecessor, deletion
+needs only the node itself.
+
+\begin{ideabox}[The prev Pointer Buys O(1) Deletion]
+In a singly linked list, deleting a node requires its predecessor, found by
+an $O(n)$ walk. The \texttt{prev} pointer stores that predecessor, so any
+node can be removed in constant time -- the feature that makes DLLs the
+backbone of caches.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int val;
+    Node* prev;
+    Node* next;
+    Node(int v) : val(v), prev(nullptr), next(nullptr) {}
+};
+
+Node* build(const vector<int>& a) {
+    Node dummy(0), *tail = &dummy;
+    for (int x : a) {
+        Node* node = new Node(x);
+        tail->next = node; node->prev = tail;
+        tail = node;
+    }
+    Node* head = dummy.next;
+    if (head) head->prev = nullptr;
+    return head;
+}
+
+Node* deleteNode(Node* head, Node* x) {           // O(1) unlink
+    if (x->prev) x->prev->next = x->next;
+    else head = x->next;                          // x was the head
+    if (x->next) x->next->prev = x->prev;
+    return head;
+}
+
+void insertAfter(Node* a, int v) {                // splice x between a and a->next
+    Node* x = new Node(v);
+    x->next = a->next; x->prev = a;
+    if (a->next) a->next->prev = x;
+    a->next = x;
+}
+
+void print(Node* head) {
+    for (Node* c = head; c; c = c->next) cout << c->val << " ";
+    cout << "\n";
+}
+
+int main() {
+    Node* head = build({1, 2, 3});
+    insertAfter(head, 9);                          // 1 9 2 3
+    print(head);
+    head = deleteNode(head, head->next);           // remove the 9
+    print(head);                                   // 1 2 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ per insert/delete of a known node; $O(n)$
+to build. \textbf{Space Complexity.} $O(1)$ extra per operation.
+\end{complexitybox}
+
+\begin{takeawaybox}
+A doubly linked list is a singly linked list with a backward pointer,
+trading a little memory for $O(1)$ deletion and two-way traversal. Keep the
+four-pointer insert and two-pointer delete rewiring precise -- off-by-one
+null handling at the ends is the usual bug.
+\end{takeawaybox}

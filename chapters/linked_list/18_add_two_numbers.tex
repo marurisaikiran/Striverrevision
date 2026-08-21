@@ -1,0 +1,98 @@
+\section{Add Two Numbers Represented by Linked Lists}
+\label{sec:ll-add-two-numbers}
+
+\problemstatement{Two non-negative integers are stored as linked lists with
+the \emph{least} significant digit first. Add them and return the sum as a
+linked list in the same order.}
+
+\begin{patternbox}
+Because the digits are stored least-significant first, addition proceeds
+head-to-tail with a running \textbf{carry} -- a straightforward simultaneous
+walk of both lists, building the result node by node, exactly like grade-
+school addition.
+\end{patternbox}
+
+\subsection*{Walk both lists with a carry}
+
+Traverse both lists together. At each step add the two current digits (or
+$0$ if a list is exhausted) plus the carry; the new digit is the sum modulo
+$10$ and the new carry is the sum divided by $10$. Append the digit to the
+result via a dummy-headed builder. Continue until both lists end and the
+carry is zero -- a final carry produces one more leading node.
+
+\begin{ideabox}[Least-Significant-First Makes Addition a Forward Walk]
+Storing digits reversed means the carry flows in the same direction as
+traversal, so no reversal or recursion is needed -- just a single forward
+pass summing aligned digits with a carry, the most natural form of the
+problem.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Dummy-headed result; \texttt{carry = 0}.
+  \item While either list has nodes or \texttt{carry} is nonzero: sum the
+        available digits and carry; append \texttt{sum \% 10}; set
+        \texttt{carry = sum / 10}.
+  \item Return \texttt{dummy.next}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$2\to4\to3$ ($342$) and $5\to6\to4$ ($465$).}
+
+\begin{itemize}
+  \item $2{+}5{=}7$; $4{+}6{=}10\to0$ carry $1$; $3{+}4{+}1{=}8$.
+  \item Result $7\to0\to8$ ($807$).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* addTwoNumbers(ListNode* a, ListNode* b) {
+    ListNode dummy(0), *t = &dummy;
+    int carry = 0;
+    while (a || b || carry) {
+        int sum = carry;
+        if (a) { sum += a->val; a = a->next; }
+        if (b) { sum += b->val; b = b->next; }
+        carry = sum / 10;
+        t->next = new ListNode(sum % 10);
+        t = t->next;
+    }
+    return dummy.next;
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(addTwoNumbers(build({2, 4, 3}), build({5, 6, 4})));   // 7 0 8
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(\max(a,b))$ -- one pass over the longer list.
+\textbf{Space Complexity.} $O(\max(a,b))$ for the result list.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Least-significant-first storage turns list addition into a single forward
+carry walk -- the cleanest arithmetic setup. Contrast with Add One's most-
+significant-first order, which needs recursion or reversal to reach the
+low digit first.
+\end{takeawaybox}

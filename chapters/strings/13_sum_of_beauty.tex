@@ -1,0 +1,90 @@
+\section{Sum of Beauty of All Substrings}
+\label{sec:str-sum-of-beauty}
+
+\problemstatement{The beauty of a string is the difference between the
+highest and lowest character frequencies in it (considering only characters
+that appear). Compute the sum of the beauty of all substrings.}
+
+\begin{patternbox}
+There are $O(n^2)$ substrings, so an $O(n^2)$ approach is expected: fix each
+start, then \textbf{extend the end one character at a time, maintaining a
+frequency array}. After each extension, the beauty (max minus min nonzero
+frequency) is computed and added.
+\end{patternbox}
+
+\subsection*{Grow substrings, update frequencies incrementally}
+
+For each starting index $i$, reset a frequency array and extend the end $j$
+from $i$ to the end. Adding $s[j]$ updates one frequency in $O(1)$. The
+beauty of substring $[i,j]$ is the maximum frequency minus the minimum
+\emph{nonzero} frequency. Scanning the 26 counts to find those extremes is
+$O(26)$ per substring, giving $O(26n^2)$ overall -- fast enough for the
+constraints.
+
+\begin{ideabox}[Reuse the Frequency Array as the Window Grows]
+Fixing the start and extending the end lets each new substring's frequencies
+be obtained by a single increment, avoiding a recount. Only the max/min scan
+over the fixed 26-letter alphabet is repeated, keeping the inner cost
+constant.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For each start $i$: clear a $26$-count array.
+  \item For each end $j\ge i$: increment \texttt{count[s[j]]}; compute
+        beauty $=\max - \min_{\text{nonzero}}$ over the counts; add to the
+        total.
+  \item Output the total.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"aabcb"}.}
+
+\begin{itemize}
+  \item Most substrings have beauty $0$ (uniform or single char);
+        \texttt{"aabcb"} and \texttt{"aab"} contribute positive beauty.
+  \item Summing all substrings' beauties gives $5$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int beautySum(const string& s) {
+    int n = s.size(), total = 0;
+    for (int i = 0; i < n; i++) {
+        int cnt[26] = {0};
+        for (int j = i; j < n; j++) {
+            cnt[s[j] - 'a']++;
+            int mx = 0, mn = INT_MAX;
+            for (int k = 0; k < 26; k++) if (cnt[k]) {
+                mx = max(mx, cnt[k]);
+                mn = min(mn, cnt[k]);
+            }
+            total += mx - mn;
+        }
+    }
+    return total;
+}
+
+int main() {
+    cout << beautySum("aabcb") << "\n";            // 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(26\,n^2)$ -- all substrings, each an $O(26)$
+extreme scan. \textbf{Space Complexity.} $O(1)$ (a fixed count array).
+\end{complexitybox}
+
+\begin{takeawaybox}
+When all $O(n^2)$ substrings must be examined, fix the start and extend the
+end while maintaining an incremental frequency array -- only the small
+fixed-alphabet extreme scan repeats. This ``grow the window, update counts''
+pattern recurs in substring-statistic problems.
+\end{takeawaybox}

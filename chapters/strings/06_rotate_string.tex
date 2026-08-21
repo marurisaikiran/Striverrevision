@@ -1,0 +1,72 @@
+\section{Check if One String is a Rotation of Another}
+\label{sec:str-rotate-string}
+
+\problemstatement{Given two strings $s$ and $goal$, return true if $s$ can
+become $goal$ after some number of left (or right) rotations.}
+
+\begin{patternbox}
+The one-line trick: $goal$ is a rotation of $s$ iff they have the same
+length and $goal$ is a \textbf{substring of $s+s$}. Doubling $s$ contains
+every rotation of $s$ as a window.
+\end{patternbox}
+
+\subsection*{Every rotation lives inside $s+s$}
+
+Concatenating $s$ with itself produces a string in which every cyclic
+rotation of $s$ appears as a contiguous length-$|s|$ substring. So if
+$goal$ has the same length as $s$ and occurs somewhere in $s+s$, it is a
+rotation; otherwise it is not. A single substring search decides it.
+
+\begin{ideabox}[Doubling Exposes All Rotations]
+Rotating $s$ moves a prefix to the back; $s+s$ contains all such
+prefix--suffix recombinations as windows. Checking membership in $s+s$
+therefore tests all rotations at once, avoiding generating each one.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If $|s|\ne|goal|$, return false.
+  \item Return whether $goal$ is a substring of $s+s$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$\texttt{"abcde"}, $goal=$\texttt{"cdeab"}.}
+
+\begin{itemize}
+  \item $s+s=$\texttt{"abcdeabcde"} contains \texttt{"cdeab"} starting at
+        index $2$.
+  \item Same length and found $\Rightarrow$ rotation.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+bool rotateString(const string& s, const string& goal) {
+    if (s.size() != goal.size()) return false;
+    return (s + s).find(goal) != string::npos;     // goal is a window of s+s
+}
+
+int main() {
+    cout << rotateString("abcde", "cdeab") << "\n";   // 1
+    cout << rotateString("abcde", "abced") << "\n";   // 0
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ with naive \texttt{find}, or $O(n)$ using
+a linear substring search (KMP). \textbf{Space Complexity.} $O(n)$ for
+$s+s$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Rotation testing reduces to substring search in the doubled string -- a
+recurring ``concatenate to expose cyclic structure'' idea also seen in
+minimal-rotation and circular-array problems. Pair it with KMP for linear
+time.
+\end{takeawaybox}

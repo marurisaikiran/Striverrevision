@@ -1,0 +1,108 @@
+\section{Reverse Nodes in Groups of K}
+\label{sec:ll-reverse-k-group}
+
+\problemstatement{Given a linked list and an integer $k$, reverse the nodes
+in consecutive groups of $k$. If the final group has fewer than $k$ nodes,
+leave it as is. Return the head.}
+
+\begin{patternbox}
+This is the iterative reversal applied \textbf{block by block}: for each
+group of $k$ nodes, check that $k$ nodes remain, reverse that block in
+place, and stitch it between the already-processed part and the rest. A
+dummy node anchors the stitching.
+\end{patternbox}
+
+\subsection*{Count, reverse a block, reconnect}
+
+Maintain a pointer to the node before the current group. First verify $k$
+nodes remain (walk ahead $k$ steps); if not, stop. Reverse the $k$ nodes
+with the standard save--flip--advance loop. Then reconnect: the previous
+group's tail points to the new (reversed) block head, and the block's tail
+points to the following node. Move the ``previous group tail'' pointer to
+the block's tail and repeat.
+
+\begin{ideabox}[Reverse in Place, Then Re-stitch the Seams]
+The only complexity beyond plain reversal is bookkeeping at the two seams of
+each block -- linking the prior tail to the new head and the new tail to the
+remainder. A dummy node removes the special case for the very first block.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Dummy before head; \texttt{groupPrev = dummy}.
+  \item Loop: check $k$ nodes remain; if not, break. Reverse the next $k$
+        nodes; reconnect the seams; advance \texttt{groupPrev} to the
+        block's (new) tail.
+  \item Return \texttt{dummy.next}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to3\to4\to5$, $k=2$.}
+
+\begin{itemize}
+  \item Reverse $[1,2]\to2\to1$; reverse $[3,4]\to4\to3$; $[5]$ left as is.
+  \item Result $2\to1\to4\to3\to5$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* reverseKGroup(ListNode* head, int k) {
+    ListNode dummy(0); dummy.next = head;
+    ListNode* groupPrev = &dummy;
+
+    while (true) {
+        ListNode* kth = groupPrev;
+        for (int i = 0; i < k && kth; i++) kth = kth->next;   // k-th node
+        if (!kth) break;                                       // fewer than k left
+
+        ListNode* groupNext = kth->next;
+        ListNode* prev = groupNext;
+        ListNode* curr = groupPrev->next;
+        while (curr != groupNext) {                            // reverse the block
+            ListNode* nx = curr->next;
+            curr->next = prev;
+            prev = curr;
+            curr = nx;
+        }
+        ListNode* newTail = groupPrev->next;                   // old head -> new tail
+        groupPrev->next = kth;                                 // stitch to new head
+        groupPrev = newTail;
+    }
+    return dummy.next;
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(reverseKGroup(build({1, 2, 3, 4, 5}), 2));   // 2 1 4 3 5
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- each node is reversed once.
+\textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Reverse-in-$k$-groups is block-wise iterative reversal with careful seam
+stitching. The ``check $k$ remain, reverse, reconnect'' loop is the hard-
+problem culmination of the plain reversal skill built earlier.
+\end{takeawaybox}

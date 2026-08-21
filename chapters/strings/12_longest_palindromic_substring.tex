@@ -1,0 +1,86 @@
+\section{Longest Palindromic Substring (Expand Around Centre)}
+\label{sec:str-longest-palindromic-substring}
+
+\problemstatement{Given a string, find its longest substring that is a
+palindrome, without dynamic programming.}
+
+\begin{patternbox}
+\emph{``Longest palindromic substring''} is solved by \textbf{expand around
+centre}: every palindrome has a centre, so try each of the $2n-1$ possible
+centres (each character and each gap) and expand outward while the
+characters match, tracking the longest.
+\end{patternbox}
+
+\subsection*{Grow palindromes from each centre}
+
+A palindrome is symmetric about its centre, which is either a single
+character (odd length) or the gap between two characters (even length). For
+each of the $2n-1$ centres, expand two pointers outward while they stay in
+bounds and the characters are equal; the span they reach is the longest
+palindrome centred there. Keep the overall longest across all centres. This
+$O(n^2)$ method needs no DP table.
+
+\begin{ideabox}[Try Every Centre, Odd and Even]
+Because a palindrome is determined by its centre and radius, enumerating all
+centres and expanding greedily finds the maximum. Remember the even case
+(centre between two characters), which the odd-only expansion would miss.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item For each index $i$: expand around centre $(i,i)$ (odd) and
+        $(i,i+1)$ (even).
+  \item Each expansion returns the palindrome length; keep the longest and
+        its start.
+  \item Return the best substring.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"babad"}.}
+
+\begin{itemize}
+  \item Centre at \texttt{a} (index $1$) expands to \texttt{"bab"}; centre
+        at \texttt{a} (index $3$) expands to \texttt{"aba"}.
+  \item Longest length $3$ (\texttt{"bab"} or \texttt{"aba"}).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string longestPalindrome(const string& s) {
+    if (s.empty()) return "";
+    int start = 0, maxLen = 1;
+    auto expand = [&](int l, int r) {
+        while (l >= 0 && r < (int)s.size() && s[l] == s[r]) { l--; r++; }
+        if (r - l - 1 > maxLen) { maxLen = r - l - 1; start = l + 1; }
+    };
+    for (int i = 0; i < (int)s.size(); i++) {
+        expand(i, i);        // odd length
+        expand(i, i + 1);    // even length
+    }
+    return s.substr(start, maxLen);
+}
+
+int main() {
+    cout << longestPalindrome("babad") << "\n";    // bab (or aba)
+    cout << longestPalindrome("cbbd") << "\n";     // bb
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n^2)$ -- $2n-1$ centres, each expanding up to
+$O(n)$. \textbf{Space Complexity.} $O(1)$ (Manacher's algorithm achieves
+$O(n)$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Expand-around-centre solves longest palindromic substring in $O(n^2)$ with
+no DP table, handling odd and even centres. When linear time is required,
+Manacher's algorithm computes all palindromic radii in $O(n)$.
+\end{takeawaybox}

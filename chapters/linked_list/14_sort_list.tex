@@ -1,0 +1,101 @@
+\section{Sort a Linked List}
+\label{sec:ll-sort-list}
+
+\problemstatement{Given the head of a linked list, sort it in ascending
+order and return the new head, ideally in $O(n\log n)$ time and $O(1)$
+auxiliary space.}
+
+\begin{patternbox}
+\textbf{Merge sort} is the natural sort for linked lists: splitting by the
+middle (slow/fast) and merging two sorted lists are both cheap pointer
+operations, and unlike arrays no random access is needed. Quicksort's
+partition is awkward on lists, so merge sort is the standard choice.
+\end{patternbox}
+
+\subsection*{Split, sort halves, merge}
+
+Find the middle with the tortoise--hare and cut the list into two halves.
+Recursively sort each half. Then merge the two sorted halves by repeatedly
+appending the smaller current node -- exactly the merge step of array merge
+sort, but relinking nodes instead of copying values. The recursion bottoms
+out at single-node (already sorted) lists.
+
+\begin{ideabox}[Lists Merge and Split Without Extra Arrays]
+Splitting a list is just severing it at the middle; merging is relinking
+nodes in order. Both are $O(1)$-space pointer work, so merge sort on a list
+needs no auxiliary array -- its recursion stack is the only extra space.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the list has $0$ or $1$ nodes, return it.
+  \item Split at the middle into two halves.
+  \item Recursively sort both halves; merge them into one sorted list.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$3\to1\to2$.}
+
+\begin{itemize}
+  \item Split into $3\to1$ and $2$. Sort $3\to1$ into $1\to3$.
+  \item Merge $1\to3$ with $2$: $1\to2\to3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* merge(ListNode* a, ListNode* b) {
+    ListNode dummy(0), *t = &dummy;
+    while (a && b) {
+        if (a->val <= b->val) { t->next = a; a = a->next; }
+        else                  { t->next = b; b = b->next; }
+        t = t->next;
+    }
+    t->next = a ? a : b;                          // attach the remainder
+    return dummy.next;
+}
+
+ListNode* sortList(ListNode* head) {
+    if (!head || !head->next) return head;
+    ListNode* slow = head; ListNode* fast = head->next;
+    while (fast && fast->next) { slow = slow->next; fast = fast->next->next; }
+    ListNode* mid = slow->next;
+    slow->next = nullptr;                         // cut into two halves
+    return merge(sortList(head), sortList(mid));
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(sortList(build({4, 2, 1, 3})));         // 1 2 3 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n\log n)$ -- $\log n$ split levels, $O(n)$
+merge per level. \textbf{Space Complexity.} $O(\log n)$ recursion stack.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Merge sort suits linked lists because split and merge are pointer
+operations needing no random access or extra array. It is the default
+answer to ``sort a list'' and reuses the middle-finder and merge routines
+seen elsewhere.
+\end{takeawaybox}

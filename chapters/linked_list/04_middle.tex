@@ -1,0 +1,94 @@
+\section{Middle of a Linked List}
+\label{sec:ll-middle}
+
+\problemstatement{Given the head of a singly linked list, return its middle
+node in a single pass. For even length, return the second of the two middle
+nodes.}
+
+\begin{patternbox}
+\emph{``Find the middle in one pass''} is the \textbf{slow/fast two-pointer}
+(tortoise--hare) technique: move one pointer one step and another two steps;
+when the fast pointer reaches the end, the slow pointer is at the middle.
+\end{patternbox}
+
+\subsection*{Two speeds, one pass}
+
+Start both pointers at the head. Each iteration advances \texttt{slow} by
+one node and \texttt{fast} by two. When \texttt{fast} (or
+\texttt{fast->next}) runs off the end, \texttt{slow} has travelled exactly
+half as far -- it sits at the middle. This avoids first computing the length
+and then re-walking, doing everything in one traversal.
+
+\begin{ideabox}[Half Speed Lands on the Middle]
+Because \texttt{fast} covers twice the distance of \texttt{slow}, by the
+time \texttt{fast} finishes the list \texttt{slow} has covered half of it.
+The loop condition (\texttt{fast \&\& fast->next}) chooses the second middle
+for even lengths.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \texttt{slow = fast = head}.
+  \item While \texttt{fast} and \texttt{fast->next} are non-null: advance
+        \texttt{slow} by one, \texttt{fast} by two.
+  \item Return \texttt{slow}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{List $1\to2\to3\to4\to5$.}
+
+\begin{itemize}
+  \item slow$=1$,fast$=1$. Step: slow$=2$,fast$=3$. Step: slow$=3$,
+        fast$=5$.
+  \item fast->next is null, stop. Middle $=3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* middleNode(ListNode* head) {
+    ListNode* slow = head;
+    ListNode* fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    return slow;
+}
+
+int main() {
+    ListNode* head = build({1, 2, 3, 4, 5});
+    cout << middleNode(head)->val << "\n";        // 3
+    ListNode* even = build({1, 2, 3, 4});
+    cout << middleNode(even)->val << "\n";         // 3 (second middle)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass. \textbf{Space Complexity.}
+$O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The slow/fast two-pointer finds the middle in one pass and is the single
+most reused linked-list trick: cycle detection, $n$-th-from-end, and
+palindrome checks all start from it. Learn its even/odd termination
+precisely.
+\end{takeawaybox}

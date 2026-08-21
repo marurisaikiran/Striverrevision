@@ -1,0 +1,103 @@
+\section{Check if a Linked List is a Palindrome}
+\label{sec:ll-palindrome}
+
+\problemstatement{Given the head of a singly linked list, determine whether
+the sequence of values reads the same forwards and backwards, using $O(1)$
+extra space.}
+
+\begin{patternbox}
+Without random access, comparing front to back means \textbf{finding the
+middle (slow/fast), reversing the second half, then walking both halves in
+step}. Equality of the two halves proves a palindrome. This combines two
+earlier techniques into one.
+\end{patternbox}
+
+\subsection*{Middle, reverse, compare}
+
+Use the tortoise--hare to reach the middle. Reverse the second half in place
+(the iterative reversal). Now walk one pointer from the head and another
+from the reversed second half, comparing values; if all match, the list is a
+palindrome. Optionally restore the list by reversing the second half back.
+This achieves $O(1)$ space, versus copying values into an array ($O(n)$).
+
+\begin{ideabox}[Reverse Half to Compare Without Extra Memory]
+A palindrome check needs to read the list backward, which a singly linked
+list cannot do -- so reverse the back half physically. Comparing the
+untouched front half against the reversed back half is exactly the
+front-to-back comparison, in constant space.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Find the middle with slow/fast.
+  \item Reverse the second half.
+  \item Compare the first half and the reversed second half node by node.
+  \item Return whether all comparisons matched.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{List $1\to2\to2\to1$.}
+
+\begin{itemize}
+  \item Middle after node $2$ (second); reverse back half $\to1\to2$.
+  \item Compare $1{=}1$, $2{=}2$ -- palindrome.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* reverse(ListNode* head) {
+    ListNode* prev = nullptr;
+    while (head) { ListNode* nx = head->next; head->next = prev; prev = head; head = nx; }
+    return prev;
+}
+
+bool isPalindrome(ListNode* head) {
+    ListNode* slow = head;
+    ListNode* fast = head;
+    while (fast && fast->next) { slow = slow->next; fast = fast->next->next; }
+    ListNode* second = reverse(slow);             // reverse back half
+
+    ListNode* p1 = head;
+    ListNode* p2 = second;
+    while (p2) {
+        if (p1->val != p2->val) return false;
+        p1 = p1->next; p2 = p2->next;
+    }
+    return true;
+}
+
+int main() {
+    cout << isPalindrome(build({1, 2, 2, 1})) << "\n";   // 1
+    cout << isPalindrome(build({1, 2, 3})) << "\n";      // 0
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- find middle, reverse, compare, each
+linear. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Palindrome checking composes slow/fast (middle) with in-place reversal
+(back half) to compare front and back in constant space. It is the classic
+demonstration that combining two basic list techniques beats the $O(n)$-
+memory array copy.
+\end{takeawaybox}

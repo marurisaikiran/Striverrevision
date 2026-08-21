@@ -1,0 +1,98 @@
+\section{Singly Linked List: Construction and Basic Operations}
+\label{sec:ll-singly-basics}
+
+\problemstatement{Implement the foundational operations on a singly linked
+list: build from an array, traverse, find the length, search for a value,
+insert at the head or tail, and delete a value.}
+
+\begin{patternbox}
+No pattern recognition is needed here -- this is the machinery every later
+section rests on. The one habit to internalise is keeping a \texttt{prev}
+handle while walking, so a node can be unlinked or a new node spliced in
+without losing the rest of the chain.
+\end{patternbox}
+
+\subsection*{Walking with a pointer}
+
+Each node stores a value and a pointer to the next node; the last node
+points to \texttt{nullptr}. Traversal is a loop that follows \texttt{next}
+until null. Insertion at the head is $O(1)$ (point the new node at the old
+head). Insertion at the tail and deletion require walking to the right spot,
+keeping the previous node so its \texttt{next} can be rewired.
+
+\begin{ideabox}[Keep the Previous Node When You Might Rewire]
+Deletion and mid-list insertion both need to change the \texttt{next} of the
+node \emph{before} the target. Tracking \texttt{prev} as you traverse makes
+these $O(1)$ once the position is found, with no re-walk.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {           // build from array
+    ListNode dummy(0), *tail = &dummy;
+    for (int x : a) { tail->next = new ListNode(x); tail = tail->next; }
+    return dummy.next;
+}
+
+int length(ListNode* head) {
+    int n = 0;
+    for (ListNode* c = head; c; c = c->next) n++;
+    return n;
+}
+
+bool search(ListNode* head, int key) {
+    for (ListNode* c = head; c; c = c->next) if (c->val == key) return true;
+    return false;
+}
+
+ListNode* insertHead(ListNode* head, int v) {
+    ListNode* node = new ListNode(v);
+    node->next = head;
+    return node;                                  // new head
+}
+
+ListNode* deleteValue(ListNode* head, int key) {
+    ListNode dummy(0); dummy.next = head;
+    ListNode* prev = &dummy;
+    while (prev->next && prev->next->val != key) prev = prev->next;
+    if (prev->next) prev->next = prev->next->next;   // unlink
+    return dummy.next;
+}
+
+void print(ListNode* head) {
+    for (ListNode* c = head; c; c = c->next) cout << c->val << " ";
+    cout << "\n";
+}
+
+int main() {
+    ListNode* head = build({1, 2, 3, 4});
+    print(head);                                  // 1 2 3 4
+    cout << "length " << length(head) << ", search 3? " << search(head, 3) << "\n";
+    head = insertHead(head, 0);
+    head = deleteValue(head, 3);
+    print(head);                                  // 0 1 2 4
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(1)$ head insert; $O(n)$ for length, search,
+tail insert, and delete. \textbf{Space Complexity.} $O(1)$ extra (plus the
+list itself).
+\end{complexitybox}
+
+\begin{takeawaybox}
+The dummy node plus a \texttt{prev} handle removes the ``deleting the head''
+special case and is the scaffolding for nearly every operation in this
+chapter. Master this template before the pointer-heavy problems ahead.
+\end{takeawaybox}

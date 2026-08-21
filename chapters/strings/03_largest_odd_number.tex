@@ -1,0 +1,77 @@
+\section{Largest Odd Number in a String}
+\label{sec:str-largest-odd}
+
+\problemstatement{Given a string of digits, return the largest odd number
+that is a non-empty prefix substring (a prefix of the string), or the empty
+string if none exists.}
+
+\begin{patternbox}
+A number is odd iff its \emph{last} digit is odd. Since we may only take a
+prefix, the largest odd prefix ends at the \textbf{rightmost odd digit} --
+so scan from the right for the first odd digit and return everything up to
+it.
+\end{patternbox}
+
+\subsection*{Find the rightmost odd digit}
+
+Any prefix of the string is a candidate number. To be odd it must end in an
+odd digit, and to be largest it should be as long as possible. So scan from
+the right end leftward for the first odd digit; the prefix ending there is
+the answer. If no digit is odd, no odd prefix exists and the answer is
+empty.
+
+\begin{ideabox}[Oddness Depends Only on the Last Digit]
+Because parity is decided by the final digit, the longest odd prefix is the
+one ending at the rightmost odd digit. A single right-to-left scan finds it;
+leading digits never change oddness, so length is maximised automatically.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Scan from the last index leftward.
+  \item At the first odd digit (index $i$), return the substring
+        $[0,i]$.
+  \item If none found, return the empty string.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"35427"} and \texttt{"5468"}.}
+
+\begin{itemize}
+  \item \texttt{"35427"}: last digit $7$ is odd $\to$ whole string
+        \texttt{"35427"}.
+  \item \texttt{"5468"}: rightmost odd is $5$ at index $0$ $\to$
+        \texttt{"5"}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string largestOddNumber(const string& s) {
+    for (int i = (int)s.size() - 1; i >= 0; i--)
+        if ((s[i] - '0') % 2 == 1) return s.substr(0, i + 1);   // odd prefix
+    return "";
+}
+
+int main() {
+    cout << "[" << largestOddNumber("35427") << "]\n";   // [35427]
+    cout << "[" << largestOddNumber("5468") << "]\n";     // [5]
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one scan. \textbf{Space Complexity.}
+$O(1)$ beyond the returned substring.
+\end{complexitybox}
+
+\begin{takeawaybox}
+When a property depends only on a boundary character (here, oddness on the
+last digit), scan toward that boundary rather than evaluating every prefix.
+The rightmost-odd-digit observation collapses the problem to one pass.
+\end{takeawaybox}

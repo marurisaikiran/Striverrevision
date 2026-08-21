@@ -1,0 +1,81 @@
+\section{Sort Characters by Frequency}
+\label{sec:str-sort-by-frequency}
+
+\problemstatement{Given a string, rearrange its characters so that they
+appear in decreasing order of frequency. Characters with the same frequency
+may be in any order; each character is repeated as many times as it occurs.}
+
+\begin{patternbox}
+\emph{``Order by how often each appears''} is \textbf{count then sort}: tally
+each character's frequency, sort the distinct characters by descending
+count, and rebuild the string by repeating each character its frequency
+times.
+\end{patternbox}
+
+\subsection*{Tally, sort, rebuild}
+
+First count occurrences of each character with a hash map or array. Collect
+the (character, count) pairs and sort them by count in descending order.
+Finally, construct the result by appending each character \texttt{count}
+times in that order. The heavy-hitters come first, exactly as required.
+
+\begin{ideabox}[Frequency Is the Sort Key]
+The problem is a sort where the key is a character's frequency, not its
+value. Computing all frequencies up front turns it into a standard
+comparison sort over a small set of distinct characters.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Count each character's frequency.
+  \item Sort distinct characters by descending frequency.
+  \item Append each character \texttt{frequency} times to the output.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"tree"}.}
+
+\begin{itemize}
+  \item Counts: \texttt{e}$\times2$, \texttt{t}$\times1$, \texttt{r}
+        $\times1$.
+  \item Sorted by count: \texttt{e} first $\to$ \texttt{"eetr"} (or
+        \texttt{"eert"}).
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+string frequencySort(const string& s) {
+    unordered_map<char,int> freq;
+    for (char c : s) freq[c]++;
+    vector<pair<int,char>> v;                     // {count, char}
+    for (auto& [c, f] : freq) v.push_back({f, c});
+    sort(v.rbegin(), v.rend());                    // descending by count
+
+    string res;
+    for (auto& [f, c] : v) res.append(f, c);
+    return res;
+}
+
+int main() {
+    cout << frequencySort("tree") << "\n";         // eetr (e's first)
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n + k\log k)$ where $k$ is the number of
+distinct characters. \textbf{Space Complexity.} $O(n)$ for counts and
+output.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Frequency ordering is count-then-sort with frequency as the key. A
+bucket-by-count approach avoids the sort for $O(n)$, but the tally-and-sort
+form is the simplest and generalises to top-$k$ frequent element problems.
+\end{takeawaybox}

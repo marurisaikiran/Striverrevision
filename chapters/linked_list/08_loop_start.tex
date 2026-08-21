@@ -1,0 +1,97 @@
+\section{Starting Point of a Loop}
+\label{sec:ll-loop-start}
+
+\problemstatement{If a linked list has a cycle, return the node where the
+cycle begins; otherwise return null. Use $O(1)$ extra space.}
+
+\begin{patternbox}
+After Floyd's slow/fast pointers meet inside the loop, a beautiful fact
+kicks in: \textbf{resetting one pointer to the head and advancing both one
+step at a time, they meet exactly at the loop's start}. It follows from the
+distance arithmetic of the tortoise--hare.
+\end{patternbox}
+
+\subsection*{The distance argument}
+
+Let the distance from head to the loop start be $L$, and let the slow and
+fast pointers meet $k$ nodes into the loop. When they meet, the fast
+pointer has travelled twice the slow pointer's distance; working through the
+algebra shows that $L$ equals the remaining distance from the meeting point
+around to the loop start. So if you place one pointer at the head and leave
+the other at the meeting point, and move both one step at a time, they
+converge precisely at the loop's entrance.
+
+\begin{ideabox}[Head to Start Equals Meeting Point to Start]
+The tortoise--hare meeting point is positioned so that the number of steps
+from the head to the loop start equals the number of steps from the meeting
+point (going forward around the loop) to the loop start. Two synchronized
+one-step walks therefore collide at the start.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Run slow/fast until they meet; if fast reaches null, return null (no
+        loop).
+  \item Move \texttt{slow} to the head. Advance \texttt{slow} and
+        \texttt{fast} one step each until they are equal.
+  \item That node is the loop's start.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to3\to4\to2$ (loop starts at $2$).}
+
+\begin{itemize}
+  \item Slow/fast meet inside the loop; reset slow to head ($1$).
+  \item One step each: they converge at node $2$ -- the loop start.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* detectCycle(ListNode* head) {
+    ListNode* slow = head;
+    ListNode* fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) {                       // meeting point
+            slow = head;
+            while (slow != fast) { slow = slow->next; fast = fast->next; }
+            return slow;                          // loop start
+        }
+    }
+    return nullptr;
+}
+
+int main() {
+    ListNode* a = new ListNode(1);
+    a->next = new ListNode(2);
+    a->next->next = new ListNode(3);
+    a->next->next->next = new ListNode(4);
+    a->next->next->next->next = a->next;          // 4 -> 2
+    ListNode* start = detectCycle(a);
+    cout << (start ? start->val : -1) << "\n";     // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The loop's start is found by resetting one pointer to the head after the
+tortoise--hare collision and walking both one step at a time. The
+underlying ``$L$ equals meeting-to-start'' identity is worth remembering --
+it is asked as a follow-up to cycle detection constantly.
+\end{takeawaybox}

@@ -1,0 +1,84 @@
+\section{Minimum Bracket Reversals to Balance}
+\label{sec:str-min-bracket-reversals}
+
+\problemstatement{Given a string of only \texttt{'\{'} and \texttt{'\}'},
+find the minimum number of bracket reversals needed to make it balanced, or
+$-1$ if it is impossible.}
+
+\begin{patternbox}
+Cancel matched pairs first; what remains is always of the form
+\texttt{\}\}...\{\{...} -- some unmatched closes followed by some unmatched
+opens. The answer is a simple formula over those two counts. An odd-length
+string can never balance.
+\end{patternbox}
+
+\subsection*{Reduce, then count the leftovers}
+
+Scan the string like bracket matching: a \texttt{'\}'} that has a preceding
+unmatched \texttt{'\{'} cancels it; otherwise it is an unmatched close.
+After the scan you are left with $c$ unmatched closes and $o$ unmatched
+opens. To fix them, each pair of same-direction unmatched brackets needs one
+reversal, plus a possible extra when a count is odd:
+$\lceil c/2\rceil+\lceil o/2\rceil$. If the total length is odd, balancing is
+impossible ($-1$).
+
+\begin{ideabox}[The Residue Is Always \}\}...\{\{...]
+Matching cancels every properly nested pair, leaving unmatched closes on the
+left and unmatched opens on the right. Reversing brackets in pairs fixes
+them, with a ceiling to handle a single leftover of each kind.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If the length is odd, return $-1$.
+  \item Scan, cancelling each \texttt{'\}'} against a pending \texttt{'\{'};
+        count unmatched opens $o$ and closes $c$.
+  \item Return $\lceil c/2\rceil+\lceil o/2\rceil$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"\}\{\{\}\}\{\{\{"}.}
+
+\begin{itemize}
+  \item After cancelling matched pairs, $c=1$ unmatched close, $o=3$
+        unmatched opens.
+  \item Answer $\lceil1/2\rceil+\lceil3/2\rceil=1+2=3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int minReversals(const string& s) {
+    if (s.size() % 2 != 0) return -1;
+    int open = 0, close = 0;                       // unmatched counts
+    for (char c : s) {
+        if (c == '{') open++;
+        else {                                     // '}'
+            if (open > 0) open--;                  // cancel a pending '{'
+            else close++;                          // unmatched close
+        }
+    }
+    return (open + 1) / 2 + (close + 1) / 2;        // ceilings
+}
+
+int main() {
+    cout << minReversals("}{{}}{{{") << "\n";       // 3
+    cout << minReversals("{{{{") << "\n";           // 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Bracket balancing reduces to counting unmatched opens and closes after
+cancellation, then a ceiling formula. The insight that the residue is always
+\texttt{\}...\{...} turns the problem into simple arithmetic.
+\end{takeawaybox}

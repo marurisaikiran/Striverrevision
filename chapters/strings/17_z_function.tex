@@ -1,0 +1,87 @@
+\section{Z-Function and Pattern Matching}
+\label{sec:str-z-function}
+
+\problemstatement{Compute the Z-function of a string -- for each index, the
+length of the longest substring starting there that matches a prefix of the
+whole string -- and use it to find all occurrences of a pattern in a text.}
+
+\begin{patternbox}
+The \textbf{Z-function} measures self-similarity in linear time using a
+maintained ``Z-box'' (the rightmost prefix-match interval). For pattern
+matching, run it on $\textit{pattern}+\#+\textit{text}$: positions in the
+text part with $Z=|\textit{pattern}|$ are matches.
+\end{patternbox}
+
+\subsection*{The Z-box makes it linear}
+
+$Z[i]$ is how far the substring at $i$ agrees with the prefix. Maintain the
+interval $[l,r]$ of the rightmost prefix match found so far. If $i$ lies
+inside $[l,r]$, the mirror value $Z[i-l]$ gives a free lower bound for
+$Z[i]$ (capped by $r-i$); then extend by direct comparison, moving $r$
+forward. Each character is compared a constant number of times amortised, so
+the whole array is $O(n)$.
+
+\begin{ideabox}[Reuse the Rightmost Match to Skip Comparisons]
+Inside the current Z-box, a position mirrors an earlier one whose Z-value is
+known, so most of $Z[i]$ is free. Only growth past the box costs
+comparisons, and those advance the box -- bounding total work linearly.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Form $w=\textit{pattern}+\#+\textit{text}$; compute its Z-array
+        with the Z-box recurrence.
+  \item Every index $i$ in the text region with $Z[i]=|\textit{pattern}|$
+        is an occurrence.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{pattern \texttt{"ab"}, text \texttt{"abcab"}; $w=$\texttt{"ab\#abcab"}.}
+
+\begin{itemize}
+  \item $Z=2$ at the two positions where \texttt{"ab"} begins in the text.
+  \item Matches at text indices $0$ and $3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> zFunction(const string& w) {
+    int n = w.size();
+    vector<int> z(n, 0);
+    z[0] = n;
+    int l = 0, r = 0;
+    for (int i = 1; i < n; i++) {
+        if (i < r) z[i] = min(r - i, z[i - l]);    // mirror inside the Z-box
+        while (i + z[i] < n && w[z[i]] == w[i + z[i]]) z[i]++;
+        if (i + z[i] > r) { l = i; r = i + z[i]; }
+    }
+    return z;
+}
+
+int main() {
+    string pat = "ab", text = "abcab";
+    string w = pat + "#" + text;
+    vector<int> z = zFunction(w);
+    int m = pat.size();
+    for (int i = m + 1; i < (int)w.size(); i++)
+        if (z[i] == m) cout << i - m - 1 << " ";   // text index
+    cout << "\n";                                  // 0 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$. \textbf{Space Complexity.} $O(n+m)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+The Z-function computes prefix self-matches in linear time via the Z-box,
+and pattern matching drops out by prepending the pattern with a separator.
+It is interchangeable with KMP; keep both as linear matchers.
+\end{takeawaybox}

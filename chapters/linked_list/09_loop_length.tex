@@ -1,0 +1,93 @@
+\section{Length of a Loop}
+\label{sec:ll-loop-length}
+
+\problemstatement{If a linked list contains a cycle, return the number of
+nodes in the cycle; otherwise return $0$.}
+
+\begin{patternbox}
+Once Floyd's pointers meet inside the loop, \textbf{keep one pointer fixed
+at the meeting node and walk the other around until it returns} -- the
+number of steps is the loop length. The collision guarantees both pointers
+are on the cycle.
+\end{patternbox}
+
+\subsection*{Walk once around from the meeting point}
+
+Run the tortoise--hare until \texttt{slow} and \texttt{fast} coincide; that
+node lies on the cycle. Now advance a single pointer from that node,
+counting steps, until it comes back to the same node. Since it started on
+the cycle, it traverses exactly the cycle once, and the count is the loop's
+length. If the pointers never meet (fast reaches null), the length is $0$.
+
+\begin{ideabox}[A Full Lap from Any Cycle Node Measures It]
+Any node known to be on the cycle can measure the cycle's size: leave it in
+place and count steps until a moving pointer returns to it. The Floyd
+meeting point conveniently provides such a node.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Run slow/fast until they meet; if no meeting, return $0$.
+  \item From the meeting node, advance a pointer counting steps until it
+        returns to the meeting node.
+  \item Return the count.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to3\to4\to2$ (loop $2\to3\to4\to2$, length $3$).}
+
+\begin{itemize}
+  \item Pointers meet inside $\{2,3,4\}$. From the meeting node, count a
+        lap: $3$ steps back to it.
+  \item Length $=3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+int loopLength(ListNode* head) {
+    ListNode* slow = head;
+    ListNode* fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) {                       // on the cycle
+            int len = 1;
+            ListNode* p = slow->next;
+            while (p != slow) { p = p->next; len++; }
+            return len;
+        }
+    }
+    return 0;
+}
+
+int main() {
+    ListNode* a = new ListNode(1);
+    a->next = new ListNode(2);
+    a->next->next = new ListNode(3);
+    a->next->next->next = new ListNode(4);
+    a->next->next->next->next = a->next;          // 4 -> 2
+    cout << loopLength(a) << "\n";                 // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Loop length is one lap counted from the tortoise--hare meeting node. Cycle
+detection, its start, and its length are three questions answered by the
+same slow/fast collision -- keep the trio together in memory.
+\end{takeawaybox}

@@ -1,0 +1,94 @@
+\section{Reverse a Linked List (Recursive)}
+\label{sec:ll-reverse-recursive}
+
+\problemstatement{Reverse a singly linked list using recursion, returning
+the new head.}
+
+\begin{patternbox}
+The recursive reversal expresses the same rewiring differently: reverse the
+rest of the list first, then fix the link between the current node and its
+successor on the way back up. The new head bubbles up unchanged from the
+deepest call.
+\end{patternbox}
+
+\subsection*{Reverse the tail, then flip one link}
+
+Recurse to the end: the base case (empty or single node) returns itself as
+the new head. On the way back, the current node's successor
+(\texttt{head->next}) should now point back at the current node, so set
+\texttt{head->next->next = head} and \texttt{head->next = null}. The deepest
+call's return value -- the original last node -- is the new head and is
+passed up unchanged through every frame.
+
+\begin{ideabox}[Fix the Link on the Return Trip]
+Going down, we only recurse; coming up, each frame flips exactly one link
+between \texttt{head} and \texttt{head->next}. Because the new head is
+determined at the very bottom, it is threaded back up untouched while the
+per-frame flips reverse the pointers.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item If \texttt{head} is null or \texttt{head->next} is null, return
+        \texttt{head}.
+  \item \texttt{newHead = reverse(head->next)}.
+  \item \texttt{head->next->next = head}; \texttt{head->next = null}.
+  \item Return \texttt{newHead}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{List $1\to2\to3$.}
+
+\begin{itemize}
+  \item Recurse to $3$ (base) $\to$ newHead $=3$.
+  \item At $2$: $3\to2$, $2\to$null. At $1$: $2\to1$, $1\to$null.
+  \item Result $3\to2\to1$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* reverse(ListNode* head) {
+    if (!head || !head->next) return head;        // base case
+    ListNode* newHead = reverse(head->next);
+    head->next->next = head;                      // flip one link
+    head->next = nullptr;
+    return newHead;                               // threaded up unchanged
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    ListNode* head = build({1, 2, 3, 4});
+    head = reverse(head);
+    print(head);                                  // 4 3 2 1
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(n)$ for the
+recursion stack (versus $O(1)$ for the iterative form).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Recursive reversal reverses the tail then flips one link per return frame,
+carrying the new head up from the base case. It is more elegant but uses
+$O(n)$ stack; prefer the iterative version when depth could overflow.
+\end{takeawaybox}

@@ -1,0 +1,73 @@
+\section{Maximum Nesting Depth of Parentheses}
+\label{sec:str-max-nesting-depth}
+
+\problemstatement{Given a valid parentheses expression (possibly with digits
+and operators), return the maximum nesting depth of the parentheses.}
+
+\begin{patternbox}
+Nesting depth is a \textbf{running counter}: increment on \texttt{'('},
+decrement on \texttt{')'}, and track the maximum value the counter reaches.
+Non-bracket characters are ignored.
+\end{patternbox}
+
+\subsection*{Track the counter's peak}
+
+Scan the string once. Each open bracket deepens the nesting (increment the
+counter); each close bracket exits one level (decrement). The answer is the
+highest value the counter attains during the scan. Because the expression is
+valid, the counter never goes negative and ends at zero.
+
+\begin{ideabox}[Depth Is the Counter, Answer Is Its Maximum]
+The current nesting level is exactly the number of unmatched open brackets
+so far -- the counter. The deepest nesting is that counter's peak, captured
+by a single \texttt{max} update per open bracket.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \texttt{depth = 0}, \texttt{best = 0}.
+  \item For each char: \texttt{'('} increments \texttt{depth} and updates
+        \texttt{best}; \texttt{')'} decrements \texttt{depth}.
+  \item Return \texttt{best}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"(1+(2*3)+((8)/4))+1"}.}
+
+\begin{itemize}
+  \item Depth rises to $3$ at the innermost \texttt{((8))} region.
+  \item Maximum depth $=3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int maxDepth(const string& s) {
+    int depth = 0, best = 0;
+    for (char c : s) {
+        if (c == '(') best = max(best, ++depth);
+        else if (c == ')') depth--;
+    }
+    return best;
+}
+
+int main() {
+    cout << maxDepth("(1+(2*3)+((8)/4))+1") << "\n";   // 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Maximum nesting depth is the peak of a bracket counter -- no stack needed
+for a guaranteed-valid expression. This counter idea is the same one behind
+removing outermost parentheses; both track unmatched-open count.
+\end{takeawaybox}

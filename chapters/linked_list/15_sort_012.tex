@@ -1,0 +1,95 @@
+\section{Sort a Linked List of 0s, 1s, and 2s}
+\label{sec:ll-sort-012}
+
+\problemstatement{Given a linked list whose values are only $0$, $1$, or
+$2$, sort it in a single pass without swapping data, returning the head.}
+
+\begin{patternbox}
+With just three distinct values, sorting is a \textbf{three-chain
+partition}: build separate chains for $0$s, $1$s, and $2$s in one pass, then
+concatenate them. No comparisons or $O(n\log n)$ sort are needed -- this is
+the linked-list Dutch-national-flag.
+\end{patternbox}
+
+\subsection*{Three dummy heads, then join}
+
+Create three dummy-headed chains, one per value. Walk the list once,
+appending each node to the chain matching its value. Then link the $0$-chain
+to the $1$-chain to the $2$-chain, terminating the last with null. Because
+you distribute nodes by value and reassemble in order, the result is sorted.
+Using dummy heads avoids special-casing empty chains.
+
+\begin{ideabox}[Bucket by Value, Then Concatenate]
+When the number of distinct keys is a small constant, a counting/bucketing
+pass beats comparison sorting. Three chains bucket the nodes; concatenation
+orders them -- linear time, no data movement, just relinking.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Three dummy-headed chains for $0$, $1$, $2$; keep their tails.
+  \item Walk the list, appending each node to its value's chain.
+  \item Join $0\to1\to2$ (skipping empty chains via the dummy links); null-
+        terminate; return the combined head.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to0\to1\to2\to0$.}
+
+\begin{itemize}
+  \item Chains: $0$s $=0\to0$, $1$s $=1\to1$, $2$s $=2\to2$.
+  \item Join: $0\to0\to1\to1\to2\to2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* build(const vector<int>& a) {
+    ListNode dummy(0), *t = &dummy;
+    for (int x : a) { t->next = new ListNode(x); t = t->next; }
+    return dummy.next;
+}
+
+ListNode* sortColors(ListNode* head) {
+    ListNode d0(0), d1(0), d2(0);                 // dummy heads
+    ListNode *t0 = &d0, *t1 = &d1, *t2 = &d2;
+    for (ListNode* c = head; c; c = c->next) {
+        if (c->val == 0)      { t0->next = c; t0 = c; }
+        else if (c->val == 1) { t1->next = c; t1 = c; }
+        else                  { t2->next = c; t2 = c; }
+    }
+    t2->next = nullptr;                           // terminate
+    t1->next = d2.next;                           // join 1s -> 2s
+    t0->next = d1.next ? d1.next : d2.next;       // join 0s -> (1s or 2s)
+    return d0.next;
+}
+
+void print(ListNode* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(sortColors(build({1, 2, 0, 1, 2, 0})));  // 0 0 1 1 2 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass. \textbf{Space Complexity.}
+$O(1)$ (three dummy nodes).
+\end{complexitybox}
+
+\begin{takeawaybox}
+A constant number of distinct values makes bucketing beat comparison
+sorting: three chains, one pass, then concatenate. The dummy-headed chain
+pattern -- collect into groups, then splice -- reappears in partitioning and
+stable-reordering problems.
+\end{takeawaybox}

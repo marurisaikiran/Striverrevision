@@ -1,0 +1,98 @@
+\section{KMP Algorithm and the LPS Array}
+\label{sec:str-kmp-lps}
+
+\problemstatement{Compute the longest-proper-prefix-which-is-also-suffix
+(LPS/prefix-function) array of a pattern, and use it to find all occurrences
+of the pattern in a text in linear time.}
+
+\begin{patternbox}
+\textbf{KMP} avoids re-comparing characters after a mismatch by precomputing
+the \textbf{LPS array}: for each pattern prefix, the length of its longest
+border. On a mismatch, the pattern shifts so the matched border aligns,
+never moving the text pointer backward.
+\end{patternbox}
+
+\subsection*{Borders let you resume, not restart}
+
+The LPS array $\pi[i]$ is the longest proper prefix of
+$\textit{pattern}[0..i]$ that is also a suffix. Build it by extending or
+falling back along previously computed borders. During matching, when a
+mismatch occurs after matching $j$ characters, instead of restarting you set
+$j=\pi[j-1]$ -- the next-longest border already matched -- and try again. The
+text pointer only moves forward, giving $O(n+m)$.
+
+\begin{ideabox}[The LPS Says Where to Resume After a Mismatch]
+A border of the matched portion is guaranteed to align with the text, so
+after a mismatch KMP jumps the pattern to that border rather than
+re-examining text characters. Precomputing all borders makes each jump
+$O(1)$ amortised.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build $\pi$ for the pattern: extend on match, fall back via
+        $\pi[j-1]$ on mismatch.
+  \item Scan the text with a pointer $j$ into the pattern; on match advance
+        both, on mismatch set $j=\pi[j-1]$.
+  \item When $j$ reaches $|\textit{pattern}|$, record an occurrence and set
+        $j=\pi[j-1]$.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{pattern \texttt{"aba"}, text \texttt{"ababa"}.}
+
+\begin{itemize}
+  \item $\pi=[0,0,1]$. Matching finds \texttt{"aba"} at index $0$; after a
+        match, fall back to reuse the overlap and match again at index $2$.
+  \item Occurrences at $0$ and $2$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> buildLPS(const string& p) {
+    int m = p.size();
+    vector<int> pi(m, 0);
+    for (int i = 1; i < m; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && p[i] != p[j]) j = pi[j - 1];   // fall back on mismatch
+        if (p[i] == p[j]) j++;
+        pi[i] = j;
+    }
+    return pi;
+}
+
+vector<int> kmp(const string& text, const string& pat) {
+    vector<int> pi = buildLPS(pat), res;
+    int n = text.size(), m = pat.size(), j = 0;
+    for (int i = 0; i < n; i++) {
+        while (j > 0 && text[i] != pat[j]) j = pi[j - 1];
+        if (text[i] == pat[j]) j++;
+        if (j == m) { res.push_back(i - m + 1); j = pi[j - 1]; }
+    }
+    return res;
+}
+
+int main() {
+    for (int p : kmp("ababa", "aba")) cout << p << " ";
+    cout << "\n";                                  // 0 2
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n+m)$ -- LPS build and matching are each
+linear. \textbf{Space Complexity.} $O(m)$ for the LPS array.
+\end{complexitybox}
+
+\begin{takeawaybox}
+KMP precomputes borders (the LPS array) so a mismatch resumes from the
+longest overlap instead of restarting, keeping the text pointer moving
+forward. The LPS array itself answers border/period questions and powers the
+next two problems.
+\end{takeawaybox}

@@ -1,0 +1,81 @@
+\section{Roman Numeral to Integer}
+\label{sec:str-roman-to-integer}
+
+\problemstatement{Convert a Roman numeral string (using symbols
+I, V, X, L, C, D, M) to its integer value.}
+
+\begin{patternbox}
+Roman numerals are almost additive, with a \textbf{subtractive exception}:
+a smaller symbol before a larger one is subtracted (IV $=4$). So scan
+left to right and, at each symbol, \emph{subtract} its value if the next
+symbol is larger, otherwise add it.
+\end{patternbox}
+
+\subsection*{Add, unless the next is larger}
+
+Map each symbol to its value. Walk the string; for each symbol, compare its
+value to the next symbol's value. If the current value is smaller than the
+next, it is part of a subtractive pair (like IX), so subtract it; otherwise
+add it. The last symbol is always added. This one pass handles both additive
+and subtractive forms without special-casing each pair.
+
+\begin{ideabox}[A Smaller Symbol Before a Larger One Subtracts]
+The only irregularity in Roman numerals is the subtractive pair. Detecting
+it locally -- ``current value $<$ next value'' -- converts the whole numeral
+in a single left-to-right pass.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Map symbols to values.
+  \item For each position $i$: if \texttt{val[i] < val[i+1]}, subtract
+        \texttt{val[i]}, else add it.
+  \item Return the accumulated total.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"MCMXCIV"} ($1994$).}
+
+\begin{itemize}
+  \item M$+1000$; C$<$M so $-100$; M$+1000$; X$<$C so $-10$; C$+100$;
+        I$<$V so $-1$; V$+5$.
+  \item Total $=1000-100+1000-10+100-1+5=1994$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int romanToInt(const string& s) {
+    unordered_map<char,int> val = {
+        {'I',1},{'V',5},{'X',10},{'L',50},{'C',100},{'D',500},{'M',1000}
+    };
+    int total = 0, n = s.size();
+    for (int i = 0; i < n; i++) {
+        if (i + 1 < n && val[s[i]] < val[s[i + 1]]) total -= val[s[i]];
+        else total += val[s[i]];
+    }
+    return total;
+}
+
+int main() {
+    cout << romanToInt("MCMXCIV") << "\n";         // 1994
+    cout << romanToInt("LVIII") << "\n";           // 58
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$ (a
+fixed symbol table).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Roman-to-integer is additive with one subtractive rule, detected by
+comparing each symbol to its successor. Handling the exception locally
+avoids enumerating every subtractive pair -- a clean parsing pattern.
+\end{takeawaybox}

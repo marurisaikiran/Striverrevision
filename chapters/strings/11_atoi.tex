@@ -1,0 +1,87 @@
+\section{Implement Atoi}
+\label{sec:str-atoi}
+
+\problemstatement{Implement \texttt{atoi}: convert a string to a 32-bit
+signed integer. Skip leading whitespace, read an optional sign, then read
+digits until a non-digit; clamp the result to the 32-bit signed range on
+overflow.}
+
+\begin{patternbox}
+This is a careful \textbf{state-by-state parse}: whitespace, then optional
+sign, then digits. The one algorithmic subtlety is detecting overflow
+\emph{before} it happens, by comparing against the limit divided by ten.
+\end{patternbox}
+
+\subsection*{Parse in stages, guard overflow}
+
+Advance past leading spaces. Read an optional \texttt{'+'} or \texttt{'-'}
+to fix the sign. Then accumulate digits: for each digit $d$, the new value
+would be $10\cdot\textit{value}+d$. Before doing this, check whether it
+would exceed the 32-bit limit; if so, return the clamped extreme
+($\text{INT\_MAX}$ or $\text{INT\_MIN}$). Stop at the first non-digit.
+
+\begin{ideabox}[Check Overflow Against LIMIT/10 First]
+Rather than overflowing and then detecting it, test whether
+$\textit{value} > \text{INT\_MAX}/10$ (or equal with a large next digit)
+\emph{before} multiplying. This pre-check keeps the arithmetic within range
+and clamps correctly at the boundary.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Skip spaces; read optional sign.
+  \item For each digit: if appending it would overflow, return the clamped
+        limit; else update \texttt{value}.
+  \item Return \texttt{sign * value}.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{\texttt{"   -42abc"} and \texttt{"2147483648"}.}
+
+\begin{itemize}
+  \item \texttt{"   -42abc"}: skip spaces, sign $-$, digits $42$, stop at
+        \texttt{a} $\to -42$.
+  \item \texttt{"2147483648"} exceeds INT\_MAX $\to$ clamp to
+        $2147483647$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+int myAtoi(const string& s) {
+    int i = 0, n = s.size();
+    while (i < n && s[i] == ' ') i++;              // skip whitespace
+    int sign = 1;
+    if (i < n && (s[i] == '+' || s[i] == '-')) sign = (s[i++] == '-') ? -1 : 1;
+
+    long long value = 0;
+    while (i < n && isdigit(s[i])) {
+        value = value * 10 + (s[i] - '0');
+        if (sign == 1 && value > INT_MAX) return INT_MAX;    // clamp
+        if (sign == -1 && -value < INT_MIN) return INT_MIN;
+        i++;
+    }
+    return (int)(sign * value);
+}
+
+int main() {
+    cout << myAtoi("   -42abc") << "\n";           // -42
+    cout << myAtoi("2147483648") << "\n";          // 2147483647
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Atoi is a staged parse -- spaces, sign, digits -- with an overflow guard
+checked before each multiply. Using a wider accumulator (\texttt{long long})
+and clamping at the boundary is the robust way to handle 32-bit overflow.
+\end{takeawaybox}

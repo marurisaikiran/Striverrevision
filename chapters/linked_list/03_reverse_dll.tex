@@ -1,0 +1,83 @@
+\section{Reverse a Doubly Linked List}
+\label{sec:ll-reverse-dll}
+
+\problemstatement{Reverse a doubly linked list in place so its head becomes
+the tail and vice versa, returning the new head.}
+
+\begin{patternbox}
+Because each DLL node already knows both neighbours, reversing is just
+\textbf{swapping every node's \texttt{prev} and \texttt{next}} pointers.
+After swapping all of them, the old tail -- whose \texttt{next} is now null
+-- is the new head.
+\end{patternbox}
+
+\subsection*{Swap the two pointers at every node}
+
+Walk the list; at each node exchange its \texttt{prev} and \texttt{next}.
+Once swapped, to advance you must follow the \emph{old} \texttt{next}, which
+is now stored in \texttt{prev} -- so move via the just-swapped
+\texttt{prev}. When you fall off the end, the last node you swapped is the
+new head. No new nodes are created; only pointers are flipped.
+
+\begin{ideabox}[Reversal Is Local Pointer Swapping]
+In a DLL, the global reversal decomposes into an identical local operation
+at each node: swap its two links. Because the links are symmetric, doing
+this everywhere reverses the whole list without tracking a running
+\texttt{prev} as a singly linked reversal must.
+\end{ideabox}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int val;
+    Node* prev;
+    Node* next;
+    Node(int v) : val(v), prev(nullptr), next(nullptr) {}
+};
+
+Node* build(const vector<int>& a) {
+    Node dummy(0), *tail = &dummy;
+    for (int x : a) { Node* n = new Node(x); tail->next = n; n->prev = tail; tail = n; }
+    Node* head = dummy.next; if (head) head->prev = nullptr;
+    return head;
+}
+
+Node* reverse(Node* head) {
+    Node* curr = head;
+    Node* last = head;
+    while (curr) {
+        last = curr;
+        swap(curr->prev, curr->next);             // flip both links
+        curr = curr->prev;                        // old next is now in prev
+    }
+    return last;                                  // old tail = new head
+}
+
+void print(Node* head) {
+    for (Node* c = head; c; c = c->next) cout << c->val << " ";
+    cout << "\n";
+}
+
+int main() {
+    Node* head = build({1, 2, 3, 4});
+    head = reverse(head);
+    print(head);                                  // 4 3 2 1
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass. \textbf{Space Complexity.}
+$O(1)$ -- only pointer swaps.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Reversing a DLL is swapping \texttt{prev} and \texttt{next} at every node --
+the symmetric structure makes global reversal a local operation. Contrast
+with the singly linked reversal (next section) which must thread a running
+\texttt{prev} because there is no backward pointer.
+\end{takeawaybox}

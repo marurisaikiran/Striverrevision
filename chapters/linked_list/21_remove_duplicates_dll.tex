@@ -1,0 +1,97 @@
+\section{Remove Duplicates from a Sorted DLL}
+\label{sec:ll-remove-duplicates-dll}
+
+\problemstatement{Given a doubly linked list sorted in ascending order,
+remove nodes with duplicate values so each value appears once, returning the
+head.}
+
+\begin{patternbox}
+In a sorted list, duplicates are \textbf{adjacent}, so a single pass
+comparing each node to the next -- and splicing out equal successors --
+removes all duplicates. The \texttt{prev} pointer keeps the deletions
+$O(1)$.
+\end{patternbox}
+
+\subsection*{Skip equal neighbours}
+
+Walk from the head. While the current node's value equals its successor's,
+unlink the successor (rewire the current node's \texttt{next} and the
+node-after's \texttt{prev}). Only advance to the next distinct value once no
+more equal successors remain. Sortedness guarantees all copies of a value
+are consecutive, so this local check suffices.
+
+\begin{ideabox}[Sorted Means Duplicates Are Adjacent]
+Because equal values sit next to each other in a sorted list, comparing
+only neighbours catches every duplicate -- no hashing or full scan needed.
+The DLL links make each removal constant time.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \texttt{cur = head}.
+  \item While \texttt{cur} and \texttt{cur->next}: if equal, splice out
+        \texttt{cur->next}; else advance \texttt{cur}.
+  \item Return the head.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{Sorted DLL $1,1,2,3,3$.}
+
+\begin{itemize}
+  \item At first $1$: remove the second $1$. At $2$: no dup. At first $3$:
+        remove the second $3$.
+  \item Result $1,2,3$.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int val; Node* prev; Node* next;
+    Node(int v) : val(v), prev(nullptr), next(nullptr) {}
+};
+
+Node* build(const vector<int>& a) {
+    Node dummy(0), *t = &dummy;
+    for (int x : a) { Node* n = new Node(x); t->next = n; n->prev = t; t = n; }
+    Node* head = dummy.next; if (head) head->prev = nullptr;
+    return head;
+}
+
+Node* removeDuplicates(Node* head) {
+    Node* cur = head;
+    while (cur && cur->next) {
+        if (cur->val == cur->next->val) {
+            Node* dup = cur->next;
+            cur->next = dup->next;                 // splice out duplicate
+            if (dup->next) dup->next->prev = cur;
+        } else {
+            cur = cur->next;
+        }
+    }
+    return head;
+}
+
+void print(Node* h) { for (; h; h = h->next) cout << h->val << " "; cout << "\n"; }
+
+int main() {
+    print(removeDuplicates(build({1, 1, 2, 3, 3})));   // 1 2 3
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one pass. \textbf{Space Complexity.}
+$O(1)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+On a sorted list, duplicates are neighbours, so a neighbour-comparison pass
+removes them all. Recognising the sorted invariant turns a potential
+hashing problem into an $O(1)$-space local sweep.
+\end{takeawaybox}

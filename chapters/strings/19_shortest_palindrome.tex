@@ -1,0 +1,93 @@
+\section{Shortest Palindrome}
+\label{sec:str-shortest-palindrome}
+
+\problemstatement{Given a string $s$, prepend the minimum number of
+characters to its front to make the whole string a palindrome. Return the
+resulting shortest palindrome.}
+
+\begin{patternbox}
+The goal is to find the \textbf{longest palindromic prefix} of $s$; whatever
+follows it must be mirrored and prepended. That longest palindromic prefix
+is found with the \textbf{KMP prefix function} applied to
+$s+\#+\textit{reverse}(s)$.
+\end{patternbox}
+
+\subsection*{KMP finds the longest palindromic prefix}
+
+Form $w=s+\#+\textit{reverse}(s)$ with a separator $\#$ not in $s$. The
+prefix function's last value, $\pi[\,\text{end}\,]$, is the length of the
+longest prefix of $s$ that matches a suffix of $\textit{reverse}(s)$ -- which
+is exactly the longest palindromic prefix of $s$. The characters of $s$
+beyond that prefix, reversed, are what must be prepended to complete the
+palindrome.
+
+\begin{ideabox}[Match s Against Its Reverse]
+A prefix of $s$ is a palindrome iff it equals the corresponding suffix of
+$\textit{reverse}(s)$. Concatenating with a separator and taking the prefix
+function's final value measures this overlap in linear time, avoiding an
+$O(n^2)$ palindrome scan.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item Build $w=s+\#+\textit{reverse}(s)$; compute its prefix function.
+  \item Let $k=\pi[\,\text{last}\,]$ be the longest palindromic prefix
+        length.
+  \item Prepend $\textit{reverse}(s[k:])$ to $s$ and return it.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$s=$\texttt{"aacecaaa"}.}
+
+\begin{itemize}
+  \item Longest palindromic prefix is \texttt{"aacecaa"} (length $7$);
+        leftover \texttt{"a"}.
+  \item Prepend reverse of \texttt{"a"} $\to$ \texttt{"aaacecaaa"}.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> prefixFunction(const string& p) {
+    int m = p.size();
+    vector<int> pi(m, 0);
+    for (int i = 1; i < m; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && p[i] != p[j]) j = pi[j - 1];
+        if (p[i] == p[j]) j++;
+        pi[i] = j;
+    }
+    return pi;
+}
+
+string shortestPalindrome(const string& s) {
+    string rev(s.rbegin(), s.rend());
+    string w = s + "#" + rev;
+    vector<int> pi = prefixFunction(w);
+    int k = pi.back();                             // longest palindromic prefix
+    return rev.substr(0, s.size() - k) + s;        // prepend the mirrored rest
+}
+
+int main() {
+    cout << shortestPalindrome("aacecaaa") << "\n";   // aaacecaaa
+    cout << shortestPalindrome("abcd") << "\n";       // dcbabcd
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$ -- one prefix-function pass. \textbf{Space
+Complexity.} $O(n)$.
+\end{complexitybox}
+
+\begin{takeawaybox}
+Shortest palindrome reduces to the longest palindromic prefix, found by
+running KMP on $s+\#+\textit{reverse}(s)$. The trick of matching a string
+against its reverse via the prefix function recurs in palindrome and
+border problems.
+\end{takeawaybox}

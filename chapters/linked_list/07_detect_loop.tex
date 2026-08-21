@@ -1,0 +1,90 @@
+\section{Detect a Loop in a Linked List}
+\label{sec:ll-detect-loop}
+
+\problemstatement{Given the head of a singly linked list, determine whether
+it contains a cycle (some node's \texttt{next} points back to an earlier
+node), using $O(1)$ extra space.}
+
+\begin{patternbox}
+\emph{``Is there a cycle?''} is \textbf{Floyd's tortoise--hare}: a slow
+pointer (one step) and a fast pointer (two steps). If there is a loop, the
+fast pointer laps the slow one and they meet inside the loop; if there is no
+loop, the fast pointer reaches null.
+\end{patternbox}
+
+\subsection*{Why the two pointers must meet}
+
+Inside a loop, each iteration the fast pointer gains one node on the slow
+pointer, so the gap shrinks by one every step and eventually hits zero --
+they collide. If the list is acyclic, the fast pointer falls off the end
+(reaches null) first. This detects a cycle in one pass with only two
+pointers, unlike a hash-set approach that needs $O(n)$ memory.
+
+\begin{ideabox}[Gaining One Node per Step Guarantees a Meeting]
+Relative to the slow pointer, the fast pointer moves one node closer each
+iteration. On a finite cycle the distance between them is bounded, so it
+must reach zero -- a collision -- proving a loop exists.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \texttt{slow = fast = head}.
+  \item While \texttt{fast} and \texttt{fast->next}: advance \texttt{slow}
+        by one, \texttt{fast} by two; if they are equal, return true.
+  \item If the loop exits, return false.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{$1\to2\to3\to4\to2$ (node $4$ links back to $2$).}
+
+\begin{itemize}
+  \item slow/fast advance; fast laps and meets slow at some node inside
+        $\{2,3,4\}$.
+  \item Meeting confirms a cycle -- return true.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+bool hasCycle(ListNode* head) {
+    ListNode* slow = head;
+    ListNode* fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) return true;            // collision inside loop
+    }
+    return false;
+}
+
+int main() {
+    ListNode* a = new ListNode(1);
+    a->next = new ListNode(2);
+    a->next->next = new ListNode(3);
+    a->next->next->next = new ListNode(4);
+    a->next->next->next->next = a->next;          // 4 -> 2, a cycle
+    cout << (hasCycle(a) ? "cycle" : "no cycle") << "\n";
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(n)$. \textbf{Space Complexity.} $O(1)$ (a hash
+set would cost $O(n)$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+Floyd's cycle detection uses two speeds and constant memory; a collision
+proves a loop. The same meeting point locates the loop's start and length
+(next two sections), so this is the gateway to all cycle problems.
+\end{takeawaybox}

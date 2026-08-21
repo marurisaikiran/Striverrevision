@@ -1,0 +1,92 @@
+\section{Intersection Point of Two Linked Lists}
+\label{sec:ll-intersection}
+
+\problemstatement{Given the heads of two singly linked lists that may merge
+at some node (forming a Y shape), return the first common node, or null if
+they never intersect. Use $O(1)$ extra space.}
+
+\begin{patternbox}
+The elegant solution is the \textbf{two-pointer switch}: walk one pointer
+along list A then list B, and another along list B then list A. They travel
+the same total distance, so they arrive at the intersection simultaneously
+(or at null together).
+\end{patternbox}
+
+\subsection*{Equalise the path lengths automatically}
+
+Let the lists have lengths $a$ and $b$ with a shared tail of length $c$.
+Pointer 1 walks $a$ then $b$; pointer 2 walks $b$ then $a$; both cover
+$a+b$ nodes. After the switch, each is exactly $c$ nodes from the end, so
+they meet at the first shared node. If there is no intersection, both reach
+null at the same time. This removes the need to measure and align lengths
+manually.
+
+\begin{ideabox}[Switching Lists Cancels the Length Difference]
+By having each pointer traverse both lists, the head-start difference $|a-b|$
+is absorbed: after the switch they are equidistant from the merge point. The
+first place they coincide is the intersection.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{enumerate}
+  \item \texttt{p = headA}, \texttt{q = headB}.
+  \item Advance both; when \texttt{p} hits null, redirect it to
+        \texttt{headB}; when \texttt{q} hits null, redirect to
+        \texttt{headA}.
+  \item Stop when \texttt{p == q}; that node (or null) is the answer.
+\end{enumerate}
+
+\subsection*{Dry run}
+
+\dryrun{A $=1\to9\to7$, B $=6\to7$, sharing the node $7$.}
+
+\begin{itemize}
+  \item p: $1,9,7,\text{(B)}6,7$. q: $6,7,\text{(A)}1,9,7$.
+  \item Both reach the shared $7$ at the same step -- the intersection.
+\end{itemize}
+
+\subsection*{C++ implementation}
+
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val; ListNode* next;
+    ListNode(int v) : val(v), next(nullptr) {}
+};
+
+ListNode* getIntersectionNode(ListNode* a, ListNode* b) {
+    if (!a || !b) return nullptr;
+    ListNode* p = a; ListNode* q = b;
+    while (p != q) {
+        p = p ? p->next : b;                      // switch to B at the end
+        q = q ? q->next : a;                      // switch to A at the end
+    }
+    return p;                                     // meeting node or null
+}
+
+int main() {
+    ListNode* shared = new ListNode(7);
+    shared->next = new ListNode(8);
+    ListNode* a = new ListNode(1);
+    a->next = new ListNode(9); a->next->next = shared;
+    ListNode* b = new ListNode(6); b->next = shared;
+
+    ListNode* r = getIntersectionNode(a, b);
+    cout << (r ? r->val : -1) << "\n";             // 7
+    return 0;
+}
+\end{lstlisting}
+
+\begin{complexitybox}
+\textbf{Time Complexity.} $O(a+b)$ -- each pointer walks both lists once.
+\textbf{Space Complexity.} $O(1)$ (a hash set would cost $O(n)$).
+\end{complexitybox}
+
+\begin{takeawaybox}
+The two-pointer list switch equalises unequal lengths automatically and
+finds the intersection in constant space. It is a favourite interview
+trick precisely because the length-cancellation is so clean.
+\end{takeawaybox}
