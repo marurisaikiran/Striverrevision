@@ -1,0 +1,56 @@
+\section{Movie Festival}
+\label{sec:g-movie}
+\source{CSES 1629 (Notion: Greedy)}{Easy}
+
+\problemstatement{$n\le2\cdot10^5$ movies are shown; movie $i$ runs from
+$a_i$ to $b_i$ ($a_i<b_i\le10^9$). What is the maximum number of movies you
+can watch completely? (A movie may start exactly when the previous ends.)}
+
+\begin{patternbox}
+Interval scheduling / activity selection: \textbf{pick the interval that
+ends first}, discard everything overlapping it, repeat.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Sort by end time. Keep \texttt{freeAt}, the end of the last chosen movie.
+Scan the movies; take a movie whenever it starts at or after
+\texttt{freeAt}.
+
+\begin{ideabox}[Exchange Argument]
+Let $g$ be the movie that ends first and $O$ an optimal schedule whose first
+movie is $o_1\ne g$. Since $b_g\le b_{o_1}$, replacing $o_1$ by $g$ keeps $O$
+feasible (everything after $o_1$ starts at or after $b_{o_1}\ge b_g$) and of
+the same size. So some optimal schedule starts with $g$; recurse on the
+movies starting after $b_g$. (See the picture in
+Section~\ref{sec:greedy-theory}.)
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State sort movies by end time
+\State $cnt\gets0$, $freeAt\gets0$
+\For{each movie $(a,b)$ in that order}
+  \If{$a\ge freeAt$} \State $cnt\gets cnt+1$, $freeAt\gets b$ \EndIf
+\EndFor
+\State \Return $cnt$
+\end{algorithmic}
+
+\dryrun{Movies $(3,5),(4,9),(5,8)$; by end: $(3,5),(5,8),(4,9)$. Take
+$(3,5)$; $(5,8)$ starts at $5\ge5$, take; $(4,9)$ starts at $4<8$, skip.
+Answer $2$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/07_movie_festival.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Sorting by \emph{start} time or by \emph{length} is wrong
+        (a long early movie, or a short movie overlapping two others).
+  \item Use $a\ge freeAt$, not $>$: back-to-back movies are allowed.
+\end{itemize}
+\end{pitfallbox}

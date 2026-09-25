@@ -1,0 +1,61 @@
+\section{Towers}
+\label{sec:g-towers}
+\source{CSES 1073 (Notion: Greedy)}{Medium}
+
+\problemstatement{Cubes of sizes $k_1,\dots,k_n$ arrive in order
+($n\le2\cdot10^5$). Each cube is placed on top of an existing tower whose top
+cube is strictly larger, or starts a new tower. Minimise the number of
+towers.}
+
+\begin{patternbox}
+``Place each item on the pile whose top is the smallest value still
+larger than it'' --- patience sorting. The number of piles equals the length
+of the longest non-decreasing subsequence.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Keep the multiset of tower tops. For a new cube $k$, put it on the tower with
+the \emph{smallest} top $>k$; if none exists, start a new tower.
+
+\begin{ideabox}[Lower Bound Meets Greedy]
+\emph{Lower bound.} If $i<j$ and $k_i\le k_j$, cubes $i$ and $j$ can never
+share a tower ($j$ would sit above $i$ but is not smaller). So a
+non-decreasing subsequence of length $L$ forces at least $L$ towers.
+
+\emph{Greedy matches it.} The greedy keeps the tops sorted. When a cube $k$
+opens tower number $m$, every existing top is $\le k$; link $k$ to the current
+top of tower $m-1$ (placed earlier, value $\le k$). Following these links
+from the cube that opened the last tower yields a non-decreasing subsequence
+whose length equals the number of towers. Hence greedy $=$ optimum.
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $tops\gets$ empty multiset
+\For{each cube $k$}
+  \State $it\gets tops.\text{upper\_bound}(k)$
+  \If{$it\ne tops.\text{end}()$} erase $it$ \EndIf
+  \State insert $k$
+\EndFor
+\State \Return $|tops|$
+\end{algorithmic}
+
+\dryrun{$3,8,2,1,5$: tops $\{3\}\to\{3,8\}\to\{2,8\}$ ($2$ on $3$)
+$\to\{1,8\}$ ($1$ on $2$) $\to\{1,5\}$ ($5$ on $8$). Two towers. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/13_towers.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The upper cube must be \emph{strictly} smaller: equal sizes need a
+        new tower, hence \texttt{upper\_bound}, not \texttt{lower\_bound}.
+  \item The tops multiset is always sorted, so a plain \texttt{vector} with
+        binary search also works (like LIS).
+\end{itemize}
+\end{pitfallbox}

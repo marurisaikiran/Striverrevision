@@ -1,0 +1,67 @@
+\section{Reduction Game}
+\label{sec:g-reduction-game}
+\source{ICPC 2018--19 Online Preliminary (PYQ, REDCGAME)}{Medium}
+
+\problemstatement{An array $a$ of $n\le50$ integers and an integer $k$
+($1\le a_i,k\le5\cdot10^4$). While there exist $i\ne j$ with
+$\min(a_i,a_j)>k$ you \emph{must} pick such a pair and decrease both by
+one. Choosing the pairs cleverly, maximise the final sum.}
+
+\begin{patternbox}
+Forced process + ``maximise what is left'' $=$ \emph{minimise the number of
+operations}. Think in terms of excesses $e_i=a_i-k$ over the threshold and a
+single survivor.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Only elements with $a_i>k$ ever change; let $e_i=a_i-k>0$ be their excesses.
+The game stops exactly when at most one excess is positive. Each operation
+lowers the sum by $2$.
+
+Pick the element with the largest excess as the \emph{survivor} $s$; all other
+excesses (total $R$, largest $m$) must reach $0$. Every one of those $R$ units
+is removed, costing $R$ from the sum. The question is how many units the
+survivor must lose as well:
+\begin{itemize}
+  \item non-survivors can cancel in pairs among themselves, unless one of
+        them dominates ($m>R-m$): then $2m-R$ of its units must be cancelled
+        against the survivor;
+  \item if $R$ is odd, one unit is left over and must pair with the survivor.
+\end{itemize}
+
+\begin{ideabox}[Result]
+\[
+  \text{answer}=\sum a_i - R - \max(2m-R,\; R\bmod 2),
+\]
+and $2m-R\le m\le e_s$, so the survivor never runs out. Choosing a smaller
+survivor can only increase $R$ by more than it saves. Verified against an
+exhaustive game search on 3000 random small arrays.
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $E\gets\{a_i-k : a_i>k\}$
+\If{$|E|\le1$} \Return $\sum a$ \EndIf
+\State remove the maximum of $E$ (survivor); $R\gets\sum E$, $m\gets\max E$
+\State \Return $\sum a-R-\max(2m-R,R\bmod2)$
+\end{algorithmic}
+
+\dryrun{$a=[2,3,2]$, $k=1$: excesses $1,2,1$. Survivor $2$; others $1,1$,
+$R=2$, $m=1$, loss $\max(0,0)=0$. Answer $7-2=5$ (final $[1,3,1]$). $a=[2,2]$,
+$k=1$: survivor $1$, $R=1$, loss $\max(1,1)=1$, answer $4-2=2$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/23_reduction_game.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$ per test. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Elements $\le k$ are frozen forever; do not include them in $E$.
+  \item Simulating with a priority queue is too slow: excesses reach
+        $5\cdot10^4$ with $5000$ tests.
+\end{itemize}
+\end{pitfallbox}

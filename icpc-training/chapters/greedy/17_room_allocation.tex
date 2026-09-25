@@ -1,0 +1,56 @@
+\section{Room Allocation}
+\label{sec:g-room}
+\source{CSES 1164 (Notion: Greedy)}{Medium}
+
+\problemstatement{$n\le2\cdot10^5$ customers stay from day $a_i$ to day
+$b_i$ inclusive. Two customers can share a room if the first leaves strictly
+before the second arrives. Find the minimum number of rooms and a valid
+assignment.}
+
+\begin{patternbox}
+Interval partitioning: process by start time; reuse the resource that becomes
+free the earliest (min-heap keyed by end time).
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Sort customers by arrival. Keep a min-heap of occupied rooms keyed by
+departure day. For the next customer, if the room with the earliest departure
+is free (departure $<$ arrival) reuse it; otherwise open a new room.
+
+\begin{ideabox}[Why This Is Optimal]
+When a new room is opened for a customer arriving on day $a$, every existing
+room is occupied by someone who arrived no later than $a$ and leaves on or
+after $a$. So at day $a$ all these guests plus the new one are present
+simultaneously: \emph{any} allocation needs at least that many rooms. The
+greedy therefore uses exactly the maximum overlap, which is a lower bound.
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State sort customers by $(a,b)$; $H\gets$ empty min-heap of $(b,room)$
+\For{each customer $(a,b,id)$}
+  \If{$H$ non-empty \textbf{and} $H.\text{top}.b<a$} \State $room[id]\gets H.\text{top}.room$; pop
+  \Else \State $room[id]\gets$ new room number \EndIf
+  \State push $(b,room[id])$
+\EndFor
+\end{algorithmic}
+
+\dryrun{$(1,2),(2,4),(4,4)$: first gets room~1; second arrives on day $2$,
+but room~1 frees after day $2$ ($2\not<2$), so room~2; third arrives on day $4$,
+room~1 ($2<4$). Output $2$ rooms, \texttt{1 2 1}. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/17_room_allocation.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The comparison is \emph{strict}: $b<a$ (a guest leaving on day $2$
+        still occupies the room on day $2$).
+  \item Remember original indices --- the output is in input order.
+\end{itemize}
+\end{pitfallbox}

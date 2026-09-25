@@ -1,0 +1,47 @@
+\section{Prime Multiples}
+\label{sec:n-prime-multiples}
+\source{CSES 2185 (Notion: Number Theory)}{Medium}
+
+\problemstatement{Given $k\le20$ distinct primes $a_i$ and $n\le10^{18}$,
+count the integers in $[1,n]$ divisible by at least one $a_i$.}
+
+\begin{patternbox}
+``At least one of'' over a small family $\Rightarrow$
+\textbf{inclusion--exclusion} over the $2^k$ subsets.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+The number of multiples of $m$ in $[1,n]$ is $\lfloor n/m\rfloor$; for distinct
+primes the lcm of a subset is its product. Inclusion--exclusion:
+\[
+  \Bigl|\bigcup_i M_{a_i}\Bigr|=\sum_{\emptyset\ne S}(-1)^{|S|+1}
+  \Bigl\lfloor\frac{n}{\prod_{i\in S}a_i}\Bigr\rfloor .
+\]
+Products larger than $n$ contribute $0$; detect them \emph{before} they
+overflow by checking $prod>n/a_i$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\For{$mask=1$ \textbf{to} $2^k-1$}
+  \State $prod\gets$ product of chosen primes (abort if $>n$)
+  \State $total\gets total\pm\lfloor n/prod\rfloor$ (sign by parity of $|S|$)
+\EndFor
+\end{algorithmic}
+
+\dryrun{$n=20$, primes $2,5$: $10+4-2=12$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/13_prime_multiples.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(k\,2^k)\approx2\cdot10^7$. \textbf{Space:} $O(k)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Overflow: $10^{18}\cdot2$ already overflows signed 64-bit; compare
+        with $n/a_i$ instead of multiplying first.
+  \item Gray-code order or DFS with pruning makes it $O(2^k)$ if needed.
+\end{itemize}
+\end{pitfallbox}

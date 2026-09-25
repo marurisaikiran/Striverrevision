@@ -1,0 +1,46 @@
+\section{Next Prime}
+\label{sec:n-next-prime}
+\source{CSES 3396 (Notion: Number Theory)}{Medium}
+
+\problemstatement{For $t\le20$ values $n\le10^{12}$ print the smallest prime
+greater than $n$.}
+
+\begin{patternbox}
+Prime gaps are tiny (below $10^{12}$ they are $<600$), so just test
+$n+1,n+2,\dots$ --- the whole problem is a fast primality test.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Trial division by all numbers up to $\sqrt n=10^6$ per candidate would cost
+$\sim10^6$ per test times hundreds of candidates. Instead use
+\textbf{Miller--Rabin}: write $n-1=d\cdot2^s$ with $d$ odd; for a base $a$,
+a prime $n$ must satisfy $a^d\equiv1$ or $a^{d2^r}\equiv-1$ for some $r<s$.
+Testing the bases $2,3,5,\dots,37$ is \emph{deterministic} for all 64-bit
+$n$. Products of two 40-bit numbers overflow \texttt{long long}, so multiply in
+\texttt{unsigned \_\_int128}.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $p\gets n+1$
+\While{\textbf{not} \textsc{MillerRabin}$(p)$} $p\gets p+1$ \EndWhile
+\State \Return $p$
+\end{algorithmic}
+
+\dryrun{$n=1\to2$, $n=2\to3$, $n=3\to5$, $n=42\to43$,
+$n=1337\to1361$ ($1338..1360$ are all composite). \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/08_next_prime.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(g\cdot12\log n)$ per test, $g$ = prime gap.
+\textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $n=1$: the answer is $2$ (the test must reject $1$).
+  \item \texttt{a * b \% m} with $a,b\approx10^{12}$ overflows 64 bits.
+\end{itemize}
+\end{pitfallbox}

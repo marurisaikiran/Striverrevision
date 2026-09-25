@@ -1,0 +1,55 @@
+\section{Tatar TV Show}
+\label{sec:g-tatar}
+\source{Codeforces 2236B (Notion: Greedy, 800)}{Easy--Medium}
+
+\problemstatement{A binary string $s$ of length $n$ and an integer $k$
+($1\le k\le n\le2\cdot10^5$) are given. One move picks $i$ with $1\le i\le
+n-k$ and flips both $s_i$ and $s_{i+k}$. Can $s$ become all zeros?}
+
+\begin{patternbox}
+An operation touching positions $i$ and $i+k$ never mixes residues modulo
+$k$ $\Rightarrow$ split into $k$ independent chains. Flipping two cells
+preserves the \textbf{parity} of the number of ones.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Positions $r, r+k, r+2k,\dots$ form a chain, and a move flips two
+\emph{adjacent} cells of one chain. Each move changes the number of ones in
+its chain by $-2$, $0$ or $+2$, so the parity of each chain is invariant:
+an odd chain can never reach zero ones. Conversely, if a chain has an even
+number of ones, sweep it left to right: whenever the current cell is $1$, flip
+it together with its successor. This pushes the ones to the end of the chain
+where, by parity, the last cell ends as $0$.
+
+\begin{ideabox}[Criterion]
+The answer is \texttt{YES} iff for every residue $r\in[0,k)$ the chain
+$\{i: i\equiv r \pmod k\}$ contains an even number of ones.
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $ones[r]\gets0$ for $r<k$
+\For{$i=0$ \textbf{to} $n-1$} \If{$s_i=1$} $ones[i\bmod k]$\texttt{++} \EndIf \EndFor
+\State \Return all $ones[r]$ even
+\end{algorithmic}
+
+\dryrun{$n=4$, $k=2$, \texttt{1010}: chain $\{1,3\}$ has two ones, chain
+$\{2,4\}$ none $\Rightarrow$ YES. $n=3$, $k=2$, \texttt{111}: chain $\{2\}$ has
+one one $\Rightarrow$ NO. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/19_tatar_tv_show.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n)$. \textbf{Space:} $O(k)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item When $k=n$ no move exists at all; the criterion still works
+        (every chain has one cell, so each must already be $0$).
+  \item Allocate the counter array per test with size $k$ (sum of $n$ is
+        bounded, sum of $k$ is too).
+\end{itemize}
+\end{pitfallbox}

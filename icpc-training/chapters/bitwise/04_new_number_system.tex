@@ -1,0 +1,51 @@
+\section{A New Number System}
+\label{sec:b-new-number}
+\source{ICPC 2010--11 Kanpur Online Round (PYQ)}{Easy}
+
+\problemstatement{A ``1-based'' number is a sequence of blocks of the digit
+\texttt{0}. A block \texttt{0} sets a flag to $1$; a block \texttt{00} sets it
+to $0$; a block of $n>2$ zeros appends $n-2$ copies of the flag to a binary
+number. Each number ends with a token \texttt{\#}; the input ends with
+\texttt{\textasciitilde}. Print each binary number in decimal (at most 30
+bits).}
+
+\begin{patternbox}
+Parsing + building a binary number bit by bit: $v\gets2v+\text{bit}$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Read whitespace-separated tokens; numbers may span several lines, which token
+reading handles automatically. Keep the current value and flag, and apply the
+rule for each block length. Appending a bit to the right of $v$ is
+$v\gets 2v+\text{bit}$ (a left shift by one).
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\For{each token $t$}
+  \If{$t=$ \texttt{\textasciitilde}} stop
+  \ElsIf{$t=$ \texttt{\#}} print $v$; reset
+  \ElsIf{$|t|=1$} $flag\gets1$
+  \ElsIf{$|t|=2$} $flag\gets0$
+  \Else\ repeat $|t|-2$ times: $v\gets2v+flag$
+  \EndIf
+\EndFor
+\end{algorithmic}
+
+\dryrun{\texttt{0 0000 00 000 0 0000 \#}: flag $1$, append \texttt{11};
+flag $0$, append \texttt{0}; flag $1$, append \texttt{11}. Binary
+\texttt{11011}$=27$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/04_new_number_system.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} linear in the input size. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The PDF prints ``$n2$'' --- a lost subscript for $n-2$.
+  \item Reset both the value and the flag between numbers.
+\end{itemize}
+\end{pitfallbox}

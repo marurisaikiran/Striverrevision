@@ -1,0 +1,57 @@
+\section{Modulo Equality}
+\label{sec:n-modulo-equality}
+\source{ICPC 2017--18 Online Preliminary, Kharagpur (PYQ, EQUALMOD)}{Medium}
+
+\problemstatement{Arrays $A$ and $B$ of length $N$ ($\sum N\le5\cdot10^5$,
+$A_i\le10^9$, $1\le B_i\le10^9$). One operation increments some $A_i$ by
+$1$. Find the minimum number of operations so that all $A_i\bmod B_i$ are
+equal.}
+
+\begin{patternbox}
+Choose a common target $r$ and pay a piecewise-linear cost; the minimum of a
+function that is increasing between breakpoints lies \textbf{at a breakpoint}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+The common remainder $r$ must satisfy $r<\min B$. With $c_i=A_i\bmod B_i$,
+reaching remainder $r$ costs $r-c_i$ if $c_i\le r$ and $r-c_i+B_i$ if $c_i>r$
+(wrap around). So
+\[
+  \text{cost}(r)=N r-\sum_i c_i+\sum_{c_i>r}B_i .
+\]
+Between consecutive values of $c$ the last sum is constant and the cost
+increases with $r$; so the optimum is $r=0$ or $r=c_i$ for some $c_i<\min B$.
+Sort the pairs by $c$ and precompute suffix sums of $B$. Sweeping the
+candidates in increasing order, the index of the first $c_i>r$ only moves
+right, so every candidate is evaluated in amortised $O(1)$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $c_i\gets A_i\bmod B_i$; sort pairs $(c_i,B_i)$; suffix sums $suf$
+\State $best\gets\text{cost}(0)$; $idx\gets$ first index with $c>0$
+\For{each $c_i<\min B$ in sorted order}
+  \State advance $idx$ past all $c\le c_i$
+  \State $best\gets\min(best,\ N c_i-\sum c+suf[idx])$
+\EndFor
+\end{algorithmic}
+
+\dryrun{$A=(4,2,2)$, $B=(5,3,4)$: $c=(4,2,2)$, $\min B=3$, candidates
+$r\in\{0,2\}$. $\text{cost}(2)=6-8+5=3$ (only $c=4>2$ wraps, $B=5$);
+$\text{cost}(0)=0-8+12=4$. Answer $3$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/09_modulo_equality.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(N\log N)$. \textbf{Space:} $O(N)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Forgetting $r<\min B$: a remainder must be smaller than \emph{every}
+        modulus.
+  \item $N\cdot r$ and the $B$ sums reach $5\cdot10^{14}$: \texttt{long long}.
+  \item Trying every $r<\min B$ is up to $10^9$ candidates --- TLE.
+\end{itemize}
+\end{pitfallbox}

@@ -1,0 +1,37 @@
+\section{Bitwise Exclusive Or}
+\label{sec:b-xor-basic}
+\source{AtCoder ABC213 A (Notion: Bitwise)}{Easy}
+
+\problemstatement{Given $0\le A,B\le255$, find the unique $C$ with
+$A\oplus C=B$.}
+
+\begin{patternbox}
+Solve an xor ``equation'' by xoring both sides: xor is its own inverse.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Xor both sides of $A\oplus C=B$ with $A$:
+$A\oplus A\oplus C=A\oplus B$, and $A\oplus A=0$, so $C=A\oplus B$. It is
+unique because $C\mapsto A\oplus C$ is a bijection (it is its own inverse).
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State \Return $A\oplus B$
+\end{algorithmic}
+
+\dryrun{$A=3=011_2$, $B=6=110_2$: $C=101_2=5$, and $3\oplus5=6$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/01_bitwise_exclusive_or.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(1)$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item In C++ \texttt{\^{}} is xor, not power. \texttt{pow(2,3)} and
+        \texttt{2\^{}3} are different things ($8$ vs $1$).
+\end{itemize}
+\end{pitfallbox}

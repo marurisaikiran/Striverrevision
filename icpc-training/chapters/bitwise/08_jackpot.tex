@@ -1,0 +1,75 @@
+\section{Jackpot}
+\label{sec:b-jackpot}
+\source{ICPC 2013--14 Kharagpur Online Round (PYQ)}{Hard}
+
+\problemstatement{A loyalty account starts with $1$ point; once per week the
+points either increase by $1$ or double. Alice and Bob each choose a
+sub-target, reach it in parallel as fast as possible, and then merge their
+points to hit exactly $N$ ($2\le N\le10^9$, $T\le1000$). Find the minimum
+number of weeks.}
+
+\begin{patternbox}
+Reaching $v$ from $1$ with $+1$/$\times2$ is reading $v$ in binary. Splitting
+$N=a+b$ with carries between bits $\Rightarrow$ a \textbf{digit DP over the
+bits}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+\textbf{One person.} Work backwards from $v$: if $v$ is even, the last step
+could have been a doubling; if odd, it was $+1$. Greedy reversal is optimal,
+giving
+\[
+  f(v)=\bigl(\text{number of bits}-1\bigr)+\bigl(\text{popcount}-1\bigr)=hb(v)+\text{popcount}(v)-1,
+\]
+where $hb(v)$ is the index of the highest set bit ($f(5)=f(101_2)=2+2-1=3$:
+$1\to2\to4\to5$). This formula matches a BFS for all $v<300$.
+
+\textbf{Two people.} They work in parallel, so the answer is
+$\min_{a+b=N,\,a,b\ge1}\max(f(a),f(b))$. $N$ is up to $10^9$, so we cannot try
+every $a$.
+
+\textbf{Digit DP.} Decide the bits of $a$ and $b$ from the top bit $30$ down
+to $0$. At bit $p$ we know which carry $c$ must leave this bit upward; we
+choose bits $x,y$ and an incoming carry $c'$ with $x+y+c'=N_p+2c$. The first
+set bit of $a$ (from the top) costs $p+1$ (it fixes $hb=p$ and is one set bit);
+every later set bit costs $1$. State: (carry $c$, $a$ started?, $b$
+started?, cost of $a$ so far) $\mapsto$ minimum cost of $b$. At the end no
+carry may enter bit $0$ and both numbers must be non-zero; the answer is
+$\min\max(\text{cost}_a,\text{cost}_b)-1$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $dp[c=0][0][0][0]\gets0$, all else $\infty$
+\For{$p=30$ \textbf{down to} $0$}
+  \For{each state $(c,s_a,s_b,c_a)\mapsto c_b$ and $x,y,c'\in\{0,1\}$ with $x+y+c'=N_p+2c$}
+    \State $c_a'\gets c_a+[x](s_a?1:p+1)$, $c_b'\gets c_b+[y](s_b?1:p+1)$
+    \State relax $nd[c'][s_a\lor x][s_b\lor y][c_a']$ with $c_b'$
+  \EndFor
+  \State $dp\gets nd$
+\EndFor
+\State \Return $\min_{c_a}\max(c_a,dp[0][1][1][c_a])-1$
+\end{algorithmic}
+
+\dryrun{$N=10$: $a=b=5$, $f(5)=3$, answer $3$. $N=55$: e.g.\ $15+40$ with
+$f(15)=3+4-1=6$, $f(40)=5+2-1=6$; no split does better. Answer $6$. $N=2$:
+$1+1$, answer $0$. \checkmark\ (DP checked against the brute-force split
+for every $N\le3000$.)}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/08_jackpot.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $31$ bits $\times$ $512$ states $\times$ $8$ choices
+$\approx1.3\cdot10^5$ steps per test, $\approx1.3\cdot10^8$ for $T=1000$.
+\textbf{Space:} $O(64)$ states per layer.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Weeks count \emph{in parallel}: it is $\max$, not $+$.
+  \item Both sub-targets must be $\ge1$ (everyone starts with one point).
+  \item Trying only $a=\lfloor N/2\rfloor$ fails: $55=27+28$ gives
+        $\max(7,6)=7$.
+\end{itemize}
+\end{pitfallbox}

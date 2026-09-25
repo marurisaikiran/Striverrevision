@@ -1,0 +1,74 @@
+\section{ISRO Digit Sum}
+\label{sec:n-isro}
+\source{ICPC 2014--15 Amritapuri Online Round (PYQ)}{Hard}
+
+\problemstatement{$N$ is given run-length encoded: $M\le10^4$ blocks $(len_i,d_i)$
+meaning digit $d_i$ repeated $len_i\le10^{18}$ times (total length $\le10^{18}$).
+Compute $\sum_{x=1}^{N}f(x)\bmod(10^9+7)$, where $f(x)$ is the digit sum of $x$.}
+
+\begin{patternbox}
+Classic ``sum of digit sums up to $N$'' by scanning $N$'s digits left to right
+--- but with $10^{18}$ digits, each run of equal digits must be summed in
+\textbf{closed form} with geometric series.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+\textbf{Per digit.} Scan $N$ from the left. At a digit $d$ with $k$ digits to
+its right and prefix digit sum $ps$, the numbers that agree with $N$ so far
+and then take a smaller digit $c<d$ are followed by all $10^k$ tails. Their
+total digit sum is
+\[
+  \sum_{c<d}\Bigl(10^k(ps+c)+45k\,10^{k-1}\Bigr)
+  = d\,10^k ps+10^k\frac{d(d-1)}2+45\,d\,k\,10^{k-1},
+\]
+using that all $k$-digit tails have digit sum $45k\,10^{k-1}$. Finally add
+$f(N)$ itself.
+
+\textbf{Per run.} Inside a run of $len$ digits $d$, the $t$-th digit has
+$k=k_{\max}-t$ and $ps=ps_0+td$. Summing over the run needs only
+\[
+  G_0=\sum_{j=k_{\min}}^{k_{\max}}10^j,\qquad G_1=\sum_{j=k_{\min}}^{k_{\max}}j\,10^j,
+\]
+because $\sum t\,10^k=k_{\max}G_0-G_1$ and $\sum k\,10^{k-1}=G_1/10$. Both have
+closed forms:
+\[
+  \sum_{i=0}^{n-1}10^i=\frac{10^n-1}{9},\qquad
+  \sum_{i=0}^{n-1}i\,10^i=\frac{10\,(1-n\,10^{n-1}+(n-1)10^n)}{81},
+\]
+shifted by $10^{k_{\min}}$. Powers with exponents up to $10^{18}$ use fast
+power; factors like $n$ and $k_{\max}$ are reduced modulo $p$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $L\gets\sum len_i$; $used\gets0$; $ps\gets0$; $ans\gets0$
+\For{each run $(n,d)$}
+  \State $k_{\max}\gets L-used-1$, $k_{\min}\gets k_{\max}-n+1$; compute $G_0,G_1$
+  \State $ans\mathrel{+}=d(ps\,G_0+d(k_{\max}G_0-G_1))+G_0\frac{d(d-1)}2+45\,d\,G_1/10$
+  \State $ps\mathrel{+}=d\cdot n$; $used\mathrel{+}=n$
+\EndFor
+\State \Return $ans+ps$
+\end{algorithmic}
+
+\dryrun{$N=10$ (runs $(1,1),(1,0)$): first run $k=1$, $G_0=G_1=10$,
+$ps=0$: contributes $0+0+45\cdot1\cdot10/10=45$ (the numbers $0..9$). Second
+run $d=0$ contributes $0$. Add $f(10)=1$: $46$. \checkmark\ (Stress-tested
+against direct summation for all RLE numbers $\le2\cdot10^5$ and against the
+closed form $45k\,10^{k-1}$ for $N=\underbrace{9\cdots9}_{10^{18}}$.)}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/20_isro_digit_sum.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(M\log L)$ per test. \textbf{Space:} $O(M)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Never expand the runs: $10^{18}$ digits.
+  \item Exponents may be reduced modulo $p-1$ only because $\gcd(10,p)=1$;
+        multiplicative factors like $n$ are reduced modulo $p$.
+  \item Division by $9$, $81$ and $10$ means multiplying by modular
+        inverses.
+\end{itemize}
+\end{pitfallbox}

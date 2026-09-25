@@ -1,0 +1,48 @@
+\section{Steel Bar Segment Durability}
+\label{sec:n-steel-bar}
+\source{ICPC 2014--15 Amritapuri Online Round (PYQ)}{Medium}
+
+\problemstatement{A digit string $S$ ($|S|\le2\cdot10^4$) and $Q\le5$ queries
+$(M,L)$ with $M<500$. Count the substrings whose decimal value is $\equiv L
+\pmod M$.}
+
+\begin{patternbox}
+Counting substrings by remainder with a small modulus $\Rightarrow$ DP over
+the right end with a \textbf{histogram of remainders}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Let $cnt[r]$ be the number of substrings ending at the current position with
+value $\equiv r$. Appending digit $d$ maps each such substring's remainder $r$
+to $(10r+d)\bmod M$, and the new single-digit substring adds remainder
+$d\bmod M$. After each position add $cnt[L]$ to the answer.
+
+(With general $M$ the prefix-value trick $W(i,j)=(P_j-P_{i-1}10^{j-i+1})$ needs
+$10$ to be invertible modulo $M$; the histogram DP works for every $M$.)
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\For{each digit $d$ of $S$}
+  \State $nxt[(10r+d)\bmod M]\mathrel{+}=cnt[r]$ for all $r$; $nxt[d\bmod M]\mathrel{+}=1$
+  \State $cnt\gets nxt$; $ans\gets ans+cnt[L]$
+\EndFor
+\end{algorithmic}
+
+\dryrun{$S=\texttt{23128765}$, $M=9$, $L=3$: the substrings $3$, $12$, $876$,
+$31287$ --- $4$ in total. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/19_steel_bar_durability.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(|S|\cdot M)$ per query $\approx10^7$. \textbf{Space:} $O(M)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Substrings with leading zeros count (``$05$'' has value $5$).
+  \item The answer is up to $|S|^2/2=2\cdot10^8$: fits in \texttt{int} but use
+        \texttt{long long} anyway.
+\end{itemize}
+\end{pitfallbox}

@@ -1,0 +1,106 @@
+\chapter{Bitwise Operations and XOR}
+\chapterepigraph{Bits are independent until a carry says otherwise. Almost
+every bitwise problem is solved by one of two moves: look at each bit
+separately, or build the answer from the highest bit down.}
+
+\section{Theory and Must-Know Patterns}
+\label{sec:bit-theory}
+
+\subsection*{The operators}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{cccccc}
+\toprule
+$x$ & $y$ & $x\,\&\,y$ & $x\mid y$ & $x\oplus y$ & C++ \\
+\midrule
+0&0&0&0&0& \texttt{\&}, \texttt{|}, \texttt{\^{}}\\
+0&1&0&1&1& \texttt{x << k} $=x\cdot2^k$\\
+1&0&0&1&1& \texttt{x >> k} $=\lfloor x/2^k\rfloor$\\
+1&1&1&1&0& \texttt{\_\_builtin\_popcountll(x)}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Identities you will use every contest}
+
+\begin{itemize}
+  \item $x\oplus x=0$, $x\oplus0=x$, $\oplus$ is associative and commutative:
+        \textbf{xor is its own inverse}. Hence $a\oplus c=b\iff c=a\oplus b$.
+  \item $x+y=(x\oplus y)+2(x\,\&\,y)$. Therefore $x\oplus y\le x+y$ with
+        equality iff $x\,\&\,y=0$ (no carries).
+  \item $x\,\&\,(x-1)$ clears the lowest set bit; $x\,\&\,(-x)$ isolates it.
+  \item Bit $b$ of $x$: \texttt{(x >> b) \& 1}. Highest set bit:
+        $63-\texttt{\_\_builtin\_clzll}(x)$.
+  \item \textbf{Prefix xor:} with $P_0=0$, $P_i=a_1\oplus\dots\oplus a_i$, the
+        xor of $a_\ell..a_r$ is $P_r\oplus P_{\ell-1}$.
+  \item $0\oplus1\oplus\dots\oplus(2^M-1)=0$ for $M\ge2$.
+  \item A number $v$ has at most $2^{\text{popcount}(v)}$ submasks; iterate
+        them with \texttt{for (s = v; s; s = (s - 1) \& v)}.
+\end{itemize}
+
+\subsection*{Pattern 1: bits are independent}
+
+AND, OR and XOR act on each bit separately. If a condition is a combination
+of these operations, decide it \emph{bit by bit} (Bitwise Reversion,
+Tatar-style parity arguments). Addition breaks independence through carries
+--- that is when you need a digit DP over bits (Jackpot).
+
+\subsection*{Pattern 2: greedy from the highest bit}
+
+Bit $b$ is worth more than all lower bits together ($2^b>2^b-1$). So to
+maximise a value, fix bits from the top: take bit $b$ whenever some completion
+still exists (largest submask $\le x$, maximum xor pair in a trie).
+
+\subsection*{Pattern 3: xor linear algebra}
+
+Treat numbers as vectors over $\mathbb{F}_2$. A \textbf{xor basis} (Gaussian
+elimination on bits) answers ``can $v$ be written as a xor of a subset?'' in
+$O(\log V)$ and has at most $\lceil\log_2 V\rceil$ elements.
+
+\begin{center}
+\begin{tikzpicture}[x=0.55cm,y=0.5cm]
+  \node[left] at (0,2) {\small basis $b_3$}; \node[left] at (0,1) {\small $b_1$};
+  \node[left] at (0,0) {\small $b_0$};
+  \foreach \i/\v in {0/1,1/0,2/1,3/1} {\node at (\i+0.5,2) {\small \v};}
+  \foreach \i/\v in {0/0,1/0,2/1,3/0} {\node at (\i+0.5,1) {\small \v};}
+  \foreach \i/\v in {0/0,1/0,2/0,3/1} {\node at (\i+0.5,0) {\small \v};}
+  \draw (0,-0.5) rectangle (4,2.5);
+  \node[right,text width=7.5cm,align=left] at (4.5,1) {\small each basis vector owns a distinct
+  leading bit; to test $v$, scan from the top bit and xor with the owner
+  whenever the bit is set --- $v$ is representable iff it becomes $0$.};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Pattern 4: tries on bits}
+
+A binary trie over the $30$ bits of each number answers ``maximum $v\oplus w$
+over stored $w$'' greedily from the top bit in $O(30)$.
+
+\begin{takeawaybox}[Bitwise Checklist]
+\begin{enumerate}
+  \item Parenthesise: \texttt{a \& b == c} parses as \texttt{a \& (b == c)}.
+  \item Use \texttt{1LL << b} when $b\ge31$.
+  \item Values up to $10^{18}$ need 60 bits --- loops over $0..30$ silently
+        miss the top.
+  \item Try $n\le3$ by hand and brute-force small ranges: bit
+        characterisations are easy to get almost right.
+\end{enumerate}
+\end{takeawaybox}
+
+\newpage
+
+\input{chapters/bitwise/01_bitwise_exclusive_or.tex}
+\input{chapters/bitwise/02_bit_strings.tex}
+\input{chapters/bitwise/03_gray_code.tex}
+\input{chapters/bitwise/04_new_number_system.tex}
+\input{chapters/bitwise/05_bitwise_reversion.tex}
+\input{chapters/bitwise/06_deletion_sort.tex}
+\input{chapters/bitwise/07_orxor.tex}
+\input{chapters/bitwise/08_jackpot.tex}
+\input{chapters/bitwise/09_express_the_number.tex}
+\input{chapters/bitwise/10_beautiful_xor.tex}
+\input{chapters/bitwise/11_the_67th_xor_problem.tex}
+\input{chapters/bitwise/12_maximize_xor_minimize_operations.tex}
+\input{chapters/bitwise/13_xor_battle.tex}
+\input{chapters/bitwise/14_xor_matching.tex}

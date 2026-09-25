@@ -1,0 +1,49 @@
+\section{Flee to Shelter}
+\label{sec:g-flee}
+\source{ICPC 2013--14 Amritapuri Online Round (PYQ)}{Easy}
+
+\problemstatement{Dr.~Stone is at the shuttle and must bring $N$
+instruments from the telescope to the shuttle. She can carry at most $M$
+instruments per trip, and a one-way walk between the two takes $T$ minutes.
+Find the minimum total time ($1\le N,M,T\le100$, up to $1000$ tests).}
+
+\begin{patternbox}
+Trips of fixed cost with a capacity limit: always fill the capacity.
+Number of trips $=\lceil N/M\rceil$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Every trip consists of walking to the telescope ($T$) and back loaded
+($T$). A trip carries at most $M$ instruments, so at least $\lceil
+N/M\rceil$ trips are needed; carrying $M$ each time (and the remainder last)
+achieves that. She starts at the shuttle and must end there, so the answer
+is
+\[
+  2T\left\lceil \frac{N}{M}\right\rceil .
+\]
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $trips\gets (N+M-1)\ \mathrm{div}\ M$ \Comment{integer ceiling}
+\State \Return $2\cdot trips\cdot T$
+\end{algorithmic}
+
+\dryrun{$N=3$, $M=2$, $T=10$: $\lceil3/2\rceil=2$ trips, $2\cdot2\cdot10=40$.
+\checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/04_flee_to_shelter.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(1)$ per test. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Use integer ceiling $(N+M-1)/M$; floating \texttt{ceil} is
+        unnecessary.
+  \item She starts at the \emph{shuttle}, so even the first trip costs
+        $2T$ (walk out, walk back).
+\end{itemize}
+\end{pitfallbox}

@@ -1,0 +1,56 @@
+\section{A Simple GCD Problem (Easy Version)}
+\label{sec:n-simple-gcd}
+\source{Codeforces 2210C1 (Notion: Number Theory, 1200)}{Medium}
+
+\problemstatement{Array $a$ of $n\le2\cdot10^5$ values ($\le10^9$). Each
+$a_i$ may be changed at most once to some $m\ne a_i$ with $1\le m\le a_i$.
+After all changes, the gcd of every subarray of length $\ge2$ must be
+unchanged. Maximise the number of changed positions.}
+
+\begin{patternbox}
+Reduce a condition on \emph{all} subarrays to a condition on
+\textbf{adjacent pairs}: the gcd of a range equals the gcd of the gcds of
+its neighbouring pairs.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+$\gcd(a_\ell,\dots,a_r)=\gcd\bigl(g_\ell,\dots,g_{r-1}\bigr)$ with
+$g_i=\gcd(a_i,a_{i+1})$, because every element appears in some pair. So the
+condition is exactly: every $g_i$ is preserved. Then $a'_i$ must be a multiple
+of $L_i=\operatorname{lcm}(g_{i-1},g_i)$ (only the existing neighbours).
+
+Setting $a'_i=L_i$ \emph{everywhere} keeps every $g_i$. Indeed, $L_i$ and
+$L_{i+1}$ are both multiples of $g_i$; and since $L_i\mid a_i$ and
+$L_{i+1}\mid a_{i+1}$, their gcd divides $\gcd(a_i,a_{i+1})=g_i$. So the gcd
+is exactly $g_i$. As $L_i\mid a_i$, a smaller valid value exists iff
+$L_i<a_i$.
+\[
+  \text{answer}=\#\{i : L_i<a_i\}.
+\]
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $g_i\gets\gcd(a_i,a_{i+1})$
+\For{each $i$} \State $L\gets\operatorname{lcm}$ of the existing $g_{i-1},g_i$; count if $L<a_i$ \EndFor
+\end{algorithmic}
+
+\dryrun{$[8,10,10,12,12,14]$: $g=(2,10,2,12,2)$, $L=(2,10,10,12,12,2)$;
+$L_1=2<8$ and $L_6=2<14$: answer $2$. $[2,4,8,\dots,256]$: only the last
+($128<256$) changes, answer $1$. \checkmark\ (Brute-forced on all small
+arrays.)}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/16_a_simple_gcd_problem.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log V)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The endpoints have only one neighbour: $L_1=g_1$, $L_n=g_{n-1}$.
+  \item $\operatorname{lcm}(g_{i-1},g_i)$ divides $a_i\le10^9$, so no
+        overflow --- but compute it as $g_{i-1}/\gcd\cdot g_i$.
+\end{itemize}
+\end{pitfallbox}

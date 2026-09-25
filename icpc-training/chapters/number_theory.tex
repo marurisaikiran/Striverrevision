@@ -1,0 +1,118 @@
+\chapter{Number Theory}
+\chapterepigraph{Number theory problems in a prelim are rarely deep --- they
+are about knowing five tools cold (Euclid, fast power, Fermat, the sieve and
+floor-division blocks) and never overflowing a 64-bit integer.}
+
+\section{Theory and Must-Know Patterns}
+\label{sec:nt-theory}
+
+\subsection*{GCD and LCM}
+
+\begin{itemize}
+  \item \textbf{Euclid:} $\gcd(a,b)=\gcd(b,a\bmod b)$, $\gcd(a,0)=a$. It takes
+        $O(\log\min(a,b))$ steps --- the worst case is consecutive Fibonacci
+        numbers.
+  \item $\operatorname{lcm}(a,b)=a/\gcd(a,b)\cdot b$ (divide first to avoid
+        overflow). C++17 has \texttt{std::gcd} and \texttt{std::lcm} in
+        \texttt{<numeric>}.
+  \item $\gcd$ is associative, $\gcd(0,x)=x$, so prefix/suffix gcd arrays
+        answer ``gcd of everything except $a_i$'' in $O(1)$.
+  \item $\gcd(a_\ell,\dots,a_r)=\gcd$ of all adjacent pair gcds in the range.
+\end{itemize}
+
+\subsection*{Modular arithmetic}
+
+Work modulo $p=10^9+7$ (prime). Addition, subtraction and multiplication
+commute with $\bmod$; keep every intermediate below $p$ and multiply in
+\texttt{long long} (or \texttt{\_\_int128} for 64-bit moduli).
+
+\begin{itemize}
+  \item \textbf{Fast power:} $a^e$ in $O(\log e)$ by squaring:
+        $a^e=(a^{\lfloor e/2\rfloor})^2\cdot a^{e\bmod2}$.
+  \item \textbf{Fermat's little theorem:} for prime $p\nmid a$,
+        $a^{p-1}\equiv1$, so $a^{-1}\equiv a^{p-2}$ and exponents can be
+        reduced modulo $p-1$: $a^e\equiv a^{e\bmod(p-1)}$.
+  \item Division by $d$ = multiplication by $d^{p-2}$ (only if $p\nmid d$).
+\end{itemize}
+
+\subsection*{Primes and divisors}
+
+\begin{itemize}
+  \item \textbf{Sieve of Eratosthenes} up to $V$: $O(V\log\log V)$.
+        A ``divisor sieve'' (add $d$ to every multiple) is $O(V\log V)$
+        because $\sum_{d\le V}V/d\approx V\ln V$.
+  \item For $n=\prod p_i^{k_i}$:
+        \[
+          \tau(n)=\prod(k_i+1),\qquad
+          \sigma(n)=\prod\frac{p_i^{k_i+1}-1}{p_i-1},\qquad
+          \prod_{d\mid n}d=n^{\tau(n)/2}.
+        \]
+  \item Trial division up to $\sqrt n$ factorises $n\le10^{12}$ with
+        $10^6$ steps; \textbf{Miller--Rabin} with bases
+        $2,3,5,\dots,37$ is exact for all 64-bit integers.
+\end{itemize}
+
+\subsection*{Counting tricks}
+
+\begin{itemize}
+  \item \textbf{Floor blocks:} $\lfloor n/d\rfloor$ takes at most
+        $2\sqrt n$ distinct values; for a block starting at $\ell$ with value
+        $q=\lfloor n/\ell\rfloor$ the block ends at $r=\lfloor n/q\rfloor$.
+  \item \textbf{Inclusion--exclusion:} the count of $x\le n$ divisible by at
+        least one of $a_1,\dots,a_k$ is
+        \[
+          \sum_{\emptyset\ne S\subseteq\{1..k\}}(-1)^{|S|+1}
+          \left\lfloor\frac{n}{\operatorname{lcm}(a_i: i\in S)}\right\rfloor .
+        \]
+  \item \textbf{Counting multiples:} ``is there a pair with gcd $\ge d$?''
+        --- count the multiples of $d$ with a frequency array:
+        $\sum_d V/d=O(V\log V)$.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[x=0.55cm,y=0.18cm]
+  \draw[->] (0,0) -- (21,0) node[right] {\small $d$};
+  \draw[->] (0,0) -- (0,22) node[above] {\small $\lfloor 20/d\rfloor$};
+  \foreach \d in {1,...,20} {
+     \pgfmathtruncatemacro{\q}{20/\d}
+     \fill[blue!50] (\d-0.35,0) rectangle (\d+0.35,\q);
+  }
+  \node[text width=6cm,align=left] at (13.5,14) {\small $n=20$: the values
+  $20,10,6,5,4,3,2,1$ --- only $8$ distinct heights for $20$ bars.};
+\end{tikzpicture}
+\end{center}
+
+\begin{takeawaybox}[Number Theory Checklist]
+\begin{enumerate}
+  \item Every product of two values below $10^9$ goes in \texttt{long long};
+        every product of two values below $10^{18}$ goes in
+        \texttt{\_\_int128}.
+  \item After subtraction modulo $p$ add $p$ before taking $\bmod$.
+  \item Exponents are reduced modulo $p-1$, \emph{not} $p$; watch the base
+        $0$.
+  \item Special-case $n=1$, $0^0$, and ``no answer'' outputs.
+\end{enumerate}
+\end{takeawaybox}
+
+\newpage
+
+\input{chapters/number_theory/01_calculate_gcd.tex}
+\input{chapters/number_theory/02_the_last_cracker.tex}
+\input{chapters/number_theory/03_sieve_of_erato67henes.tex}
+\input{chapters/number_theory/04_exponentiation.tex}
+\input{chapters/number_theory/05_exponentiation_ii.tex}
+\input{chapters/number_theory/06_counting_divisors.tex}
+\input{chapters/number_theory/07_common_divisors.tex}
+\input{chapters/number_theory/08_next_prime.tex}
+\input{chapters/number_theory/09_modulo_equality.tex}
+\input{chapters/number_theory/10_obtain_desired_std_dev.tex}
+\input{chapters/number_theory/11_euclid_sequence.tex}
+\input{chapters/number_theory/12_gcd_on_blackboard.tex}
+\input{chapters/number_theory/13_prime_multiples.tex}
+\input{chapters/number_theory/14_sum_of_divisors.tex}
+\input{chapters/number_theory/15_divisor_analysis.tex}
+\input{chapters/number_theory/16_a_simple_gcd_problem.tex}
+\input{chapters/number_theory/17_maximum_gcd_on_whiteboard.tex}
+\input{chapters/number_theory/18_substring_problem.tex}
+\input{chapters/number_theory/19_steel_bar_durability.tex}
+\input{chapters/number_theory/20_isro_digit_sum.tex}

@@ -1,0 +1,127 @@
+\chapter*{How to Use This Book}
+\addcontentsline{toc}{chapter}{How to Use This Book}
+
+This book covers the first three topics of the \emph{ICPC Training} tracker
+(prep for the ICPC India online preliminary): \textbf{Greedy},
+\textbf{Bitwise / XOR} and \textbf{Number Theory}.
+
+\subsection*{Where the problems come from}
+\begin{itemize}
+  \item \textbf{Notion tracker} (``ICPC Training'' page): every CSES,
+        Codeforces and AtCoder problem listed under the three topics.
+  \item \textbf{Past ICPC India preliminaries} (the tracker's
+        \emph{Historical Prelim Archive}, PDFs from
+        \texttt{github.com/m-e-r-l-i-n/icpc-india}): every prelim problem the
+        archive files under these three topics. Statements were taken from the
+        original contest PDFs, or from CodeChef's archive where the PDF only
+        contains an editorial.
+  \item Three 2020--21 Amritapuri problems survive only as solution slides;
+        their statements are \textbf{reconstructed} and marked with a purple
+        box. Their solutions are validated against exhaustive search under the
+        reconstructed rules.
+\end{itemize}
+No problem appears in both lists, so nothing had to be de-duplicated: the
+book has 63 distinct problems, ordered from easy to hard inside each
+chapter.
+
+\subsection*{Every section has the same shape}
+Problem statement $\to$ source and level $\to$ pattern recognition $\to$
+approach with the correctness argument $\to$ pseudocode $\to$ a dry run whose
+numbers were checked by running the code $\to$ the C++17 solution $\to$ time
+and space complexity $\to$ pitfalls.
+
+\subsection*{The code is the tested code}
+Every listing is pulled directly from \texttt{icpc-training/<topic>/*.cpp}:
+C++17, specific headers (no \texttt{bits/stdc++.h}), fast I/O, small helper
+functions. The repository contains
+\begin{itemize}
+  \item \texttt{tests/run\_tests.py}: compiles every solution with
+        \texttt{-Wall -Wextra} and runs all official samples (checkers for
+        problems with several valid outputs);
+  \item \texttt{tests/stress/*.py}: randomised stress tests against exhaustive
+        brute-force references --- tens of thousands of cases, zero mismatches.
+\end{itemize}
+Passing samples and stress tests is strong evidence, not a judge verdict:
+submit to the original judges to be certain.
+
+\subsection*{Suggested order before the prelim}
+Easy problems of all three chapters first (they are what decides Q1--Q3),
+then the PYQs, then the ``Hard'' tags. Re-read the pitfall boxes the evening
+before the contest.
+
+\newpage
+\section*{Problem Index}
+{\small
+\begin{longtable}{r >{\raggedright\arraybackslash}p{4.6cm} >{\raggedright\arraybackslash}p{5.6cm} l l}
+\toprule
+\# & \textbf{Problem} & \textbf{Source} & \textbf{Level} & \textbf{List}\\
+\midrule
+\endhead
+\multicolumn{5}{l}{\textbf{Greedy}}\\
+1 & Task Scheduling Problem (p.~\pageref{sec:g-task-scheduling}) & AtCoder ABC103 A & Easy & Notion\\
+2 & Good Contest (p.~\pageref{sec:g-good-contest}) & Codeforces 2266A & Easy & Notion\\
+3 & Boss Fight (p.~\pageref{sec:g-boss-fight}) & Codeforces 2252A & Easy & Notion\\
+4 & Flee to Shelter (p.~\pageref{sec:g-flee}) & ICPC 2013--14 Amritapuri Online Round & Easy & PYQ\\
+5 & Ordering Teams (p.~\pageref{sec:g-ordering-teams}) & ICPC 2017--18 Online Prelim., Kharagpur & Easy & PYQ\\
+6 & Stick Lengths (p.~\pageref{sec:g-stick-lengths}) & CSES 1074 & Easy & Notion\\
+7 & Movie Festival (p.~\pageref{sec:g-movie}) & CSES 1629 & Easy & Notion\\
+8 & Restaurant Customers (p.~\pageref{sec:g-restaurant}) & CSES 1619 & Easy & Notion\\
+9 & Tasks and Deadlines (p.~\pageref{sec:g-tasks-deadlines}) & CSES 1630 & Easy & Notion\\
+10 & Reading Books (p.~\pageref{sec:g-reading-books}) & CSES 1631 & Easy--Medium & Notion\\
+11 & Creating a Wormhole (p.~\pageref{sec:g-wormhole}) & ICPC 2013--14 Amritapuri Online Round & Easy--Medium & PYQ\\
+12 & Concert Tickets (p.~\pageref{sec:g-concert}) & CSES 1091 & Easy--Medium & Notion\\
+13 & Towers (p.~\pageref{sec:g-towers}) & CSES 1073 & Medium & Notion\\
+14 & Missing Coin Sum (p.~\pageref{sec:g-missing-coin}) & CSES 2183 & Medium & Notion\\
+15 & Playlist (p.~\pageref{sec:g-playlist}) & CSES 1141 & Easy--Medium & Notion\\
+16 & Traffic Lights (p.~\pageref{sec:g-traffic}) & CSES 1163 & Medium & Notion\\
+17 & Room Allocation (p.~\pageref{sec:g-room}) & CSES 1164 & Medium & Notion\\
+18 & Factory Machines (p.~\pageref{sec:g-factory}) & CSES 1620 & Medium & Notion\\
+19 & Tatar TV Show (p.~\pageref{sec:g-tatar}) & Codeforces 2236B & Easy--Medium & Notion\\
+20 & Delete and Concatenate (p.~\pageref{sec:g-delete-concat}) & Codeforces 2245B & Medium & Notion\\
+21 & Always Changing (p.~\pageref{sec:g-always-changing}) & Codeforces 2252B & Medium & Notion\\
+22 & MEX Multiset (p.~\pageref{sec:g-mex-multiset}) & Codeforces 2259D & Medium & Notion\\
+23 & Reduction Game (p.~\pageref{sec:g-reduction-game}) & ICPC 2018--19 Online Prelim. & Medium & PYQ\\
+24 & A Game of Robots (p.~\pageref{sec:g-robots}) & ICPC 2018--19 Online Prelim. & Medium & PYQ\\
+25 & Cracker Shops (p.~\pageref{sec:g-cracker-shops}) & ICPC 2014--15 Kharagpur Online Re-contest & Medium--Hard & PYQ\\
+26 & Jai Hanuman (p.~\pageref{sec:g-jai-hanuman}) & ICPC 2014--15 Kharagpur Online Re-contest & Medium--Hard & PYQ\\
+27 & Break, Merge and Sort (p.~\pageref{sec:g-break-merge}) & ICPC 2020--21 Amritapuri Prelim., problem 3 & Medium & PYQ\\
+28 & Minimum Weight Bi-Partition (p.~\pageref{sec:g-min-bipartition}) & ICPC 2020--21 Amritapuri Prelim., problem 4 & Medium & PYQ\\
+29 & Coins (p.~\pageref{sec:g-coins}) & AtCoder AGC018 C & Hard & Notion\\
+\multicolumn{5}{l}{\textbf{Bitwise}}\\
+30 & Bitwise Exclusive Or (p.~\pageref{sec:b-xor-basic}) & AtCoder ABC213 A & Easy & Notion\\
+31 & Bit Strings (p.~\pageref{sec:b-bit-strings}) & CSES 1617 & Easy & Notion\\
+32 & Gray Code (p.~\pageref{sec:b-gray}) & CSES 2205 & Easy--Medium & Notion\\
+33 & A New Number System (p.~\pageref{sec:b-new-number}) & ICPC 2010--11 Kanpur Online Round & Easy & PYQ\\
+34 & Bitwise Reversion (p.~\pageref{sec:b-reversion}) & Codeforces 2153B & Easy & Notion\\
+35 & Deletion Sort (p.~\pageref{sec:b-deletion-sort}) & Codeforces 2200B & Easy & Notion\\
+36 & ORXOR (p.~\pageref{sec:b-orxor}) & AtCoder ABC197 C & Easy--Medium & Notion\\
+37 & Jackpot (p.~\pageref{sec:b-jackpot}) & ICPC 2013--14 Kharagpur Online Round & Hard & PYQ\\
+38 & Express the Number (p.~\pageref{sec:b-express}) & ICPC 2020--21 Amritapuri Prelim., problem 2 & Easy--Medium & PYQ\\
+39 & Beautiful XOR (p.~\pageref{sec:b-beautiful-xor}) & Codeforces 2162C & Medium & Notion\\
+40 & The 67th XOR Problem (p.~\pageref{sec:b-67th}) & Codeforces 2218E & Medium & Notion\\
+41 & Maximize XOR, Minimize Operations (p.~\pageref{sec:b-maximize-xor}) & Codeforces 2260C & Medium & Notion\\
+42 & Xor Battle (p.~\pageref{sec:b-xor-battle}) & AtCoder AGC045 A & Hard & Notion\\
+43 & XOR Matching (p.~\pageref{sec:b-xor-matching}) & AtCoder ABC126 F & Hard & Notion\\
+\multicolumn{5}{l}{\textbf{Number Theory}}\\
+44 & Calculate GCD (p.~\pageref{sec:n-gcd}) & AtCoder Math \& Algorithm 015 & Easy & Notion\\
+45 & The Last Cracker (p.~\pageref{sec:n-last-cracker}) & ICPC 2014--15 Kharagpur Online Re-contest & Easy & PYQ\\
+46 & Sieve of Erato67henes (p.~\pageref{sec:n-67}) & Codeforces 2195A & Easy & Notion\\
+47 & Exponentiation (p.~\pageref{sec:n-exp}) & CSES 1095 & Easy & Notion\\
+48 & Exponentiation II (p.~\pageref{sec:n-exp2}) & CSES 1712 & Easy--Medium & Notion\\
+49 & Counting Divisors (p.~\pageref{sec:n-count-div}) & CSES 1713 & Easy--Medium & Notion\\
+50 & Common Divisors (p.~\pageref{sec:n-common-div}) & CSES 1081 & Medium & Notion\\
+51 & Next Prime (p.~\pageref{sec:n-next-prime}) & CSES 3396 & Medium & Notion\\
+52 & Modulo Equality (p.~\pageref{sec:n-modulo-equality}) & ICPC 2017--18 Online Prelim., Kharagpur & Medium & PYQ\\
+53 & Obtain Desired Standard Deviation (p.~\pageref{sec:n-stddev}) & ICPC 2017--18 Online Prelim. & Easy--Medium & PYQ\\
+54 & Euclid, Sequence and Two Numbers (p.~\pageref{sec:n-euclid-seq}) & Codeforces 2234A & Easy & Notion\\
+55 & GCD on Blackboard (p.~\pageref{sec:n-gcd-blackboard}) & AtCoder ABC125 C & Medium & Notion\\
+56 & Prime Multiples (p.~\pageref{sec:n-prime-multiples}) & CSES 2185 & Medium & Notion\\
+57 & Sum of Divisors (p.~\pageref{sec:n-sum-div}) & CSES 1082 & Medium & Notion\\
+58 & Divisor Analysis (p.~\pageref{sec:n-div-analysis}) & CSES 2182 & Medium--Hard & Notion\\
+59 & A Simple GCD Problem (Easy Version) (p.~\pageref{sec:n-simple-gcd}) & Codeforces 2210C1 & Medium & Notion\\
+60 & Maximum GCD on Whiteboard (p.~\pageref{sec:n-whiteboard}) & Codeforces 2156C & Medium--Hard & Notion\\
+61 & Substring Problem (p.~\pageref{sec:n-substring}) & ICPC 2013--14 Kharagpur Online Round & Medium & PYQ\\
+62 & Steel Bar Segment Durability (p.~\pageref{sec:n-steel-bar}) & ICPC 2014--15 Amritapuri Online Round & Medium & PYQ\\
+63 & ISRO Digit Sum (p.~\pageref{sec:n-isro}) & ICPC 2014--15 Amritapuri Online Round & Hard & PYQ\\
+\bottomrule
+\end{longtable}}

@@ -1,0 +1,60 @@
+\section{Divisor Analysis}
+\label{sec:n-div-analysis}
+\source{CSES 2182 (Notion: Number Theory)}{Medium--Hard}
+
+\problemstatement{$n=\prod_{i=1}^{m}x_i^{k_i}$ is given by $m\le10^5$ distinct
+primes $x_i\le10^6$ with exponents $k_i\le10^9$. Print the number, sum and
+product of the divisors of $n$ modulo $p=10^9+7$.}
+
+\begin{patternbox}
+Multiplicative functions from a factorisation; exponents go modulo $p-1$.
+The product needs the divisor count \emph{before} the current prime --- build
+it incrementally.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+\begin{itemize}
+  \item Count: $\tau=\prod(k_i+1)$.
+  \item Sum: $\sigma=\prod\bigl(1+x_i+\dots+x_i^{k_i}\bigr)=\prod\frac{x_i^{k_i+1}-1}{x_i-1}$.
+  \item Product: suppose the primes processed so far give $c$ divisors with
+        product $P$. Adding $x^k$ turns each old divisor $d$ into
+        $d,dx,\dots,dx^k$, so the new product is
+        \[
+          P^{\,k+1}\cdot\bigl(x^{0+1+\dots+k}\bigr)^{c}=P^{\,k+1}\cdot\bigl(x^{k(k+1)/2}\bigr)^{c}.
+        \]
+        Here $c$ is an exponent, so it is kept modulo $p-1$ (Fermat), not $p$.
+\end{itemize}
+(The formula $n^{\tau/2}$ is awkward because $\tau$ may be odd and $n$ is
+astronomically large.)
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $c\gets1$, $c'\gets1$ ($c$ mod $p$, $c'$ mod $p-1$), $S\gets1$, $P\gets1$
+\For{each $(x,k)$}
+  \State $P\gets P^{(k+1)\bmod(p-1)}\cdot\bigl(x^{k(k+1)/2\bmod(p-1)}\bigr)^{c'}$
+  \State $c\gets c(k+1)$, $c'\gets c'(k+1)\bmod(p-1)$
+  \State $S\gets S\cdot(x^{k+1}-1)(x-1)^{-1}$
+\EndFor
+\end{algorithmic}
+
+\dryrun{$n=2^2\cdot3$: after $2^2$: $c=3$, $P=2^{3}=8$ ($1\cdot2\cdot4$), $S=7$.
+After $3^1$: $P=8^2\cdot3^{3}=1728$, $c=6$, $S=7\cdot4=28$. Output
+\texttt{6 28 1728}. \checkmark\ (Stress-tested against explicit divisor lists.)}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/15_divisor_analysis.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(m\log p)$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $k(k+1)/2$ with $k=10^9$ is $5\cdot10^{17}$ --- compute in
+        \texttt{\_\_int128} (or divide the even factor first), then reduce.
+  \item Using $c\bmod p$ as an exponent is wrong; the exponent lives modulo
+        $p-1$.
+  \item $x-1$ is never divisible by $p$ since $x\le10^6$.
+\end{itemize}
+\end{pitfallbox}

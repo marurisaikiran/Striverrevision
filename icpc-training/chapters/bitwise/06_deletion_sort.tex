@@ -1,0 +1,43 @@
+\section{Deletion Sort}
+\label{sec:b-deletion-sort}
+\source{Codeforces 2200B (Notion: Bitwise, 800)}{Easy}
+
+\problemstatement{An array of $n\le10$ positive integers. While it is not
+non-decreasing, you must delete one element of your choice. Minimise the
+number of elements left when the game ends.}
+
+\begin{patternbox}
+The tags say bitmask brute force ($2^{10}$ subsets), but a one-line
+invariant solves it: \emph{keep an inversion alive}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+If the array is already sorted, the game ends at once: answer $n$. Otherwise
+there is an inversion $a_i>a_j$ with $i<j$. As long as more than two elements
+remain, delete an element other than $a_i$ and $a_j$: the inversion survives,
+so the array is still unsorted and the game continues. With two elements left
+(exactly the inversion), delete one; a single element is sorted. Answer $1$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State \Return ($a$ non-decreasing) ? $n$ : $1$
+\end{algorithmic}
+
+\dryrun{$[1,4,2,3]$: unsorted, answer $1$. $[6,7]$: sorted, answer $2$.
+\checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/06_deletion_sort.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Equal neighbours are allowed (``non-decreasing'').
+  \item If you do write the bitmask brute force, remember the game stops as
+        soon as the array is sorted --- you cannot keep deleting.
+\end{itemize}
+\end{pitfallbox}

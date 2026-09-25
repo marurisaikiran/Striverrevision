@@ -1,0 +1,63 @@
+\section{Jai Hanuman}
+\label{sec:g-jai-hanuman}
+\source{ICPC 2014--15 Kharagpur Online Re-contest (PYQ, ACM14KG4)}{Medium--Hard}
+
+\problemstatement{$N$ people and $5N$ crackers numbered $1..5N$; person $i$
+starts with crackers $3i-2,3i-1,3i$. In order $1,2,\dots,N$ each person may
+make up to $3$ swaps with anyone (swaps cannot be refused, Hanuman's spare
+crackers included). Everyone wants three \emph{consecutive} crackers; among
+those, the least one should be $\ge P_i$ and as small as possible; if that is
+impossible, the least one should be as small as possible. Everybody plays
+optimally and knows everything. Print each person's least cracker.}
+
+\begin{patternbox}
+Sequential moves where the \emph{last} mover cannot be disturbed
+$\Rightarrow$ \textbf{backward induction}: fix the last player's outcome,
+then the second last's among what is left, and so on.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Three swaps are enough to collect any three crackers, so person $N$, who moves
+last, always ends with exactly the triple they want. Person $N-1$ knows this,
+so anything they take from $N$'s target set will be taken away again; their
+best achievable triple is the best one \emph{avoiding} $N$'s triple. Inductively,
+person $i$ gets their preferred triple among crackers not wanted by
+$i+1,\dots,N$.
+
+Implementation: a start $s$ is \emph{available} while $s,s+1,s+2$ are all
+free. Keep all available starts in a \texttt{set}. For person $i$ (from $N$
+down to $1$) take \texttt{lower\_bound}$(P_i)$, or the smallest start if none
+exists. Taking $[s,s+2]$ kills starts $s-2,\dots,s+2$. At most $5$ starts die
+per person and there are $5N-2$ initially, so a start always remains.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $S\gets\{1,\dots,5N-2\}$
+\For{$i=N$ \textbf{down to} $1$}
+  \State $s\gets$ smallest element of $S$ that is $\ge P_i$, else $\min S$
+  \State $ans_i\gets s$; remove $s-2..s+2$ from $S$
+\EndFor
+\end{algorithmic}
+
+\dryrun{$N=2$, $P=(4,9)$, crackers $1..10$. Person~2: starts $\ge9$ need
+$s\le8$, none, so $s=1$ (crackers $1,2,3$). Person~1: smallest free start $\ge4$
+is $4$. Output \texttt{4 1}. With $P=(1,5)$: person~2 takes $5$, person~1 takes
+$1$: \texttt{1 5}. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/26_jai_hanuman.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(N\log N)$ per test. \textbf{Space:} $O(N)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Processing people from $1$ to $N$ (forward) is the natural but
+        wrong reading --- earlier players do not get to keep contested
+        crackers.
+  \item Consecutive means \emph{any} three consecutive numbers, not aligned
+        blocks $\{3i-2,3i-1,3i\}$.
+\end{itemize}
+\end{pitfallbox}

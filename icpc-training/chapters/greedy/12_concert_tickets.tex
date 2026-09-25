@@ -1,0 +1,49 @@
+\section{Concert Tickets}
+\label{sec:g-concert}
+\source{CSES 1091 (Notion: Greedy)}{Easy--Medium}
+
+\problemstatement{There are $n$ tickets with prices $h_i$. Customers arrive
+one by one; customer $j$ buys the most expensive remaining ticket whose price
+does not exceed $t_j$, or gets nothing ($-1$). Print what each customer pays
+($n,m\le2\cdot10^5$).}
+
+\begin{patternbox}
+``Largest remaining element $\le x$, then delete it'' $\Rightarrow$
+\texttt{multiset} with \texttt{upper\_bound} and one step back.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+The rule is given by the statement, so the whole task is choosing a data
+structure supporting \emph{predecessor query} and \emph{delete} in
+$O(\log n)$ with duplicates: a \texttt{std::multiset}.
+\texttt{upper\_bound(t)} returns the first price $>t$; the element just
+before it (if any) is the largest price $\le t$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State insert all prices into multiset $S$
+\For{each budget $t$}
+  \State $it\gets S.\text{upper\_bound}(t)$
+  \If{$it=S.\text{begin}()$} \State print $-1$
+  \Else \State $it\gets it-1$; print $*it$; erase $it$ \EndIf
+\EndFor
+\end{algorithmic}
+
+\dryrun{Prices $\{3,5,5,7,8\}$. $t=4$: pays $3$. $t=8$: pays $8$. $t=3$:
+nothing $\le3$ left, $-1$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/12_concert_tickets.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O((n+m)\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item \texttt{S.erase(value)} would delete \emph{all} copies of that
+        price; erase the iterator.
+  \item \texttt{lower\_bound(t)} is off by one for equal prices.
+\end{itemize}
+\end{pitfallbox}

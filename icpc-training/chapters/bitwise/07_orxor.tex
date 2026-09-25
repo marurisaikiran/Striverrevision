@@ -1,0 +1,48 @@
+\section{ORXOR}
+\label{sec:b-orxor}
+\source{AtCoder ABC197 C (Notion: Bitwise)}{Easy--Medium}
+
+\problemstatement{Split an array of $N\le20$ numbers ($<2^{30}$) into
+contiguous non-empty blocks; take the OR of each block and the XOR of those
+ORs. Minimise the result.}
+
+\begin{patternbox}
+$N\le20$ and a ``cut or not'' decision between neighbours $\Rightarrow$
+enumerate the $2^{N-1}$ cut masks.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+There are $N-1$ gaps; each is cut or not, so a bitmask of $N-1$ bits
+describes a partition. For each mask sweep the array, OR-ing into the current
+block and closing the block at a cut (or at the end) by xoring its OR into the
+total. $2^{19}\cdot20\approx10^7$ steps.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\For{$mask=0$ \textbf{to} $2^{N-1}-1$}
+  \State $x\gets0$, $o\gets0$
+  \For{$i=0$ \textbf{to} $N-1$}
+    \State $o\gets o\mid a_i$
+    \If{$i=N-1$ \textbf{or} bit $i$ of $mask$} $x\gets x\oplus o$; $o\gets0$ \EndIf
+  \EndFor
+  \State $best\gets\min(best,x)$
+\EndFor
+\end{algorithmic}
+
+\dryrun{$[1,5,7]$: $[1,5][7]$ gives $5\oplus7=2$; $[1][5][7]$ gives $3$;
+$[1][5,7]$ gives $1\oplus7=6$; $[1,5,7]$ gives $7$. Minimum $2$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/07_orxor.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(N\,2^{N-1})$. \textbf{Space:} $O(N)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $N=1$: there is one mask ($0$) and the answer is $a_1$.
+  \item Initialise the best with something $\ge2^{30}$, not $0$.
+\end{itemize}
+\end{pitfallbox}

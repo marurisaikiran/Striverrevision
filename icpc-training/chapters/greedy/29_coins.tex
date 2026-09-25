@@ -1,0 +1,58 @@
+\section{Coins}
+\label{sec:g-coins}
+\source{AtCoder AGC018 C (Notion: Greedy, stretch goal)}{Hard}
+
+\problemstatement{$X+Y+Z\le10^5$ people; person $i$ has $A_i$ gold, $B_i$
+silver and $C_i$ bronze coins. Take gold from exactly $X$ people, silver from
+$Y$ others and bronze from the remaining $Z$. Maximise the total number of
+coins.}
+
+\begin{patternbox}
+Three-way assignment $\to$ subtract one option to get a two-way problem, then
+an \textbf{exchange argument} shows the two groups are separated by one sort
+order. Try every split point with prefix/suffix \textbf{top-$k$ heaps}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Everyone gives bronze by default: start from $\sum C_i$ and let $a_i=A_i-C_i$,
+$b_i=B_i-C_i$. Now choose $X$ people for $a$ and $Y$ other people for $b$.
+
+\begin{ideabox}[Exchange Argument]
+If $p$ is gold and $q$ is silver with $a_p-b_p<a_q-b_q$, swapping their roles
+changes the total by $(a_q+b_p)-(a_p+b_q)=(a_q-b_q)-(a_p-b_p)>0$. So in an
+optimal solution, after sorting by $a_i-b_i$ descending, every gold person
+comes before every silver person: there is a split $k$ with gold chosen among
+the first $k$ people and silver among the last $n-k$.
+\end{ideabox}
+
+For each $k$, the best gold choice is the $X$ largest $a$ in the prefix and
+the best silver choice the $Y$ largest $b$ in the suffix. Both are maintained
+incrementally with a min-heap of size $X$ (resp.\ $Y$).
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $base\gets\sum C_i$; sort people by $a_i-b_i$ descending
+\State $L[k]\gets$ sum of $X$ largest $a$ among the first $k$ (min-heap)
+\State $R[k]\gets$ sum of $Y$ largest $b$ among people $k..n-1$ (min-heap)
+\State \Return $base+\max_{X\le k\le n-Y}(L[k]+R[k])$
+\end{algorithmic}
+
+\dryrun{Sample 1 ($X=1,Y=2,Z=1$): $\sum C=15$; $(a,b)=(-2,0),(2,1),(0,-1),(2,-1)$.
+Sorted by $a-b$: $(2,-1),(0,-1),(2,1),(-2,0)$. At $k=1$: gold $a=2$, best two $b$
+among the rest $=1+0$; total $15+3=18$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/29_coins.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Greedy ``give each person their best colour'' ignores the exact
+        quotas $X,Y,Z$.
+  \item Sums reach $3\cdot10^{14}$: \texttt{long long}.
+\end{itemize}
+\end{pitfallbox}

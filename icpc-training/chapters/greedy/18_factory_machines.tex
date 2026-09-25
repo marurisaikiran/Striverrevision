@@ -1,0 +1,49 @@
+\section{Factory Machines}
+\label{sec:g-factory}
+\source{CSES 1620 (Notion: Greedy)}{Medium}
+
+\problemstatement{$n\le2\cdot10^5$ machines work in parallel; machine $i$
+needs $k_i$ seconds per product. Find the minimum time to make $t\le10^9$
+products.}
+
+\begin{patternbox}
+``Minimum time such that we can finish'' with a monotone feasibility test
+$\Rightarrow$ \textbf{binary search on the answer}. The greedy part is the
+test: in time $T$ each machine simply works non-stop.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+In time $T$, machine $i$ makes $\lfloor T/k_i\rfloor$ products; running every
+machine all the time is clearly best, so $f(T)=\sum_i\lfloor T/k_i\rfloor$
+products are possible. $f$ is non-decreasing, so find the smallest $T$ with
+$f(T)\ge t$. An upper bound is $T=t\cdot\min k_i$ (the fastest machine alone).
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $lo\gets0$, $hi\gets t\cdot\min k$
+\While{$lo<hi$}
+  \State $mid\gets\lfloor(lo+hi)/2\rfloor$
+  \If{$\sum\lfloor mid/k_i\rfloor\ge t$} $hi\gets mid$ \Else\ $lo\gets mid+1$ \EndIf
+\EndWhile
+\State \Return $lo$
+\end{algorithmic}
+
+\dryrun{$k=(3,2,5)$, $t=7$: $f(7)=2+3+1=6<7$, $f(8)=2+4+1=7\ge7$. Answer $8$.
+\checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/18_factory_machines.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log(t\cdot\min k))\approx n\cdot 60$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $\sum\lfloor T/k_i\rfloor$ can overflow even \texttt{long long}
+        when $T\approx10^{18}$ and $k_i=1$: stop summing as soon as the
+        total reaches $t$.
+  \item $hi=t\cdot\min k\le10^{18}$ fits in \texttt{long long}.
+\end{itemize}
+\end{pitfallbox}

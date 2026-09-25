@@ -1,0 +1,40 @@
+\section{Calculate GCD}
+\label{sec:n-gcd}
+\source{AtCoder Math \& Algorithm 015 (Notion: Number Theory)}{Easy}
+
+\problemstatement{Given $1\le A,B\le10^9$, print $\gcd(A,B)$.}
+
+\begin{patternbox}
+The Euclidean algorithm --- the first tool of every number theory problem.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Any common divisor of $a$ and $b$ also divides $a-qb=a\bmod b$, and vice
+versa, so $\gcd(a,b)=\gcd(b,a\bmod b)$. The second argument strictly
+decreases and reaches $0$, where $\gcd(a,0)=a$. Every two steps the larger
+number at least halves, so there are $O(\log\min(a,b))$ steps.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\While{$b\ne0$} \State $(a,b)\gets(b,a\bmod b)$ \EndWhile
+\State \Return $a$
+\end{algorithmic}
+
+\dryrun{$(33,88)\to(88,33)\to(33,22)\to(22,11)\to(11,0)$: $11$.
+$(123,777)\to(777,123)\to(123,39)\to(39,6)\to(6,3)\to(3,0)$: $3$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/01_calculate_gcd.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(\log\min(A,B))$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item In contests just use \texttt{std::gcd} (C++17, \texttt{<numeric>}).
+  \item The subtraction-only version (\texttt{a -= b}) is $O(\max)$ ---
+        TLE for $(10^9,1)$.
+\end{itemize}
+\end{pitfallbox}

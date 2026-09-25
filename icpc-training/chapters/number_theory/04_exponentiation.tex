@@ -1,0 +1,48 @@
+\section{Exponentiation}
+\label{sec:n-exp}
+\source{CSES 1095 (Notion: Number Theory)}{Easy}
+
+\problemstatement{Answer $n\le2\cdot10^5$ queries $a^b\bmod(10^9+7)$ with
+$0\le a,b\le10^9$ and $0^0=1$.}
+
+\begin{patternbox}
+Large exponent $\Rightarrow$ \textbf{binary exponentiation}: square the base,
+multiply it in for every set bit of the exponent.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Write $b=\sum_k b_k2^k$. Then $a^b=\prod_{k:b_k=1}a^{2^k}$, and
+$a^{2^{k+1}}=(a^{2^k})^2$. Scanning the bits of $b$ from the low end we keep
+$a^{2^k}$ and multiply it into the result when bit $k$ is set: $O(\log b)$
+multiplications.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\Function{Power}{$a,e,m$}
+  \State $r\gets1$; $a\gets a\bmod m$
+  \While{$e>0$}
+    \If{$e$ odd} $r\gets r\cdot a\bmod m$ \EndIf
+    \State $a\gets a^2\bmod m$; $e\gets\lfloor e/2\rfloor$
+  \EndWhile
+  \State \Return $r$
+\EndFunction
+\end{algorithmic}
+
+\dryrun{$3^4$: $e=4$ ($100_2$): squares $3,9,81$, only bit $2$ set:
+$r=81$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/04_exponentiation.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(\log b)$ per query. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $0^0=1$ falls out naturally ($r$ starts at $1$, loop never runs).
+  \item Use \texttt{long long}: $(10^9+6)^2\approx10^{18}$ fits, but not in
+        \texttt{int}.
+\end{itemize}
+\end{pitfallbox}

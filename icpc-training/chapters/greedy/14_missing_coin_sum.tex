@@ -1,0 +1,52 @@
+\section{Missing Coin Sum}
+\label{sec:g-missing-coin}
+\source{CSES 2183 (Notion: Greedy)}{Medium}
+
+\problemstatement{You have $n\le2\cdot10^5$ coins with positive values
+$x_i\le10^9$. Find the smallest positive sum that \emph{cannot} be formed by
+a subset of the coins.}
+
+\begin{patternbox}
+Maintain a reachable range $[0,\text{reach})$ while adding items in
+increasing order --- a classic invariant greedy.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Sort the coins. \textbf{Invariant:} after processing some prefix, every sum in
+$[0,r)$ is makeable and $r$ is not. Initially $r=1$ (only $0$ is makeable).
+Take the next coin $x$:
+\begin{itemize}
+  \item If $x\le r$: sums $[0,r)$ plus $x$ give $[x,x+r)$, which overlaps
+        $[0,r)$, so now $[0,r+x)$ is makeable: $r\gets r+x$.
+  \item If $x>r$: this coin and all later ones exceed $r$, and the coins so
+        far cannot make $r$. So $r$ is the answer.
+\end{itemize}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State sort $x$; $r\gets1$
+\For{each $v$ in $x$}
+  \If{$v>r$} \textbf{break} \EndIf
+  \State $r\gets r+v$
+\EndFor
+\State \Return $r$
+\end{algorithmic}
+
+\dryrun{Coins $2,9,1,2,7$ sorted $1,2,2,7,9$: $r=1\to2\to4\to6$; next coin
+$7>6$, stop. Answer $6$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/14_missing_coin_sum.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Start with $r=1$, not $0$.
+  \item $r$ can reach $2\cdot10^{14}+1$: \texttt{long long}.
+  \item If no coin is $1$, the answer is $1$ immediately.
+\end{itemize}
+\end{pitfallbox}

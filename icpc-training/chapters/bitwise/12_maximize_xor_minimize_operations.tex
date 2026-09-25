@@ -1,0 +1,51 @@
+\section{Maximize XOR, Minimize Operations}
+\label{sec:b-maximize-xor}
+\source{Codeforces 2260C (Notion: Bitwise, 1300)}{Medium}
+
+\problemstatement{Given $x,y<2^{29}$. One operation decreases $x$ by $1$ and
+increases $y$ by $1$ (only if $x>0$). Find the maximum possible $x\oplus y$ and
+the minimum number of operations reaching it.}
+
+\begin{patternbox}
+An invariant ($x+y=s$) plus the identity $u+v=(u\oplus v)+2(u\,\&\,v)$
+$\Rightarrow$ the maximum is $s$, reached exactly when $u$ is a
+\textbf{submask} of $s$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+After $k$ operations the pair is $(u,v)=(x-k,y+k)$ with $u+v=s=x+y$. Since
+$u\oplus v=s-2(u\,\&\,v)\le s$, the maximum possible value is $s$, and $u=0$
+(i.e.\ $k=x$) already achieves it. Equality needs $u\,\&\,v=0$, i.e.\ $u$ and
+$v=s-u$ share no bits, i.e.\ $u$ is a submask of $s$. We need $u\le x$ and want
+$k=x-u$ minimal, so we want the \textbf{largest submask of $s$ that is $\le x$}.
+Build it greedily from the top: take bit $b$ of $s$ whenever the value stays
+$\le x$ (a higher bit outweighs all lower bits together).
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $s\gets x+y$; $u\gets0$
+\For{$b=30$ \textbf{down to} $0$}
+  \If{bit $b$ of $s$ \textbf{and} $u\mid2^b\le x$} $u\gets u\mid2^b$ \EndIf
+\EndFor
+\State \Return $(s,\;x-u)$
+\end{algorithmic}
+
+\dryrun{$(6,4)$: $s=10=1010_2$. Bit $3$: $8>6$, skip; bit $1$: $2\le6$, take.
+$u=2$, answer $10$ with $6-2=4$ operations ($2\oplus8=10$). $(3,1)$: $s=4$,
+$u=0$, answer $4\ 3$. \checkmark\ (Checked for all $x,y<64$.)}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/12_maximize_xor_minimize_operations.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(\log s)$ per test. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $s$ can be up to $2^{30}$: loop from bit $30$.
+  \item ``Largest submask'' greedy must compare the full partial value with
+        $x$, not just the single bit.
+\end{itemize}
+\end{pitfallbox}

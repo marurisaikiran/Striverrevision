@@ -1,0 +1,64 @@
+\section{Express the Number}
+\label{sec:b-express}
+\source{ICPC 2020--21 Amritapuri Preliminary, problem 2 (PYQ)}{Easy--Medium}
+
+\begin{reconbox}
+Only the official solution slides survive (CodeDrills is offline). They say:
+``we can use only odd powers; an even power can be written as a sum of odd
+powers; if the top power $2^k>x$ has $k$ odd subtract it, if $k$ is even
+subtract $2^{k-1}$ twice; once $n\le x$ write it as $A[1]$; impossible for odd
+$n$ with $x=0$; complexity $O(\log n)$.'' The statement below is the
+reconstruction that matches every line of the slides. The greedy was checked
+against an exhaustive DP for all $n\le1500$ and nine values of $x$.
+\end{reconbox}
+
+\problemstatement{Given $n$ and $x$, write $n=A_1+A_2+\dots+A_m$ where
+$0\le A_1\le x$ and every other term is an \emph{odd} power of two
+($2,8,32,128,\dots$). Minimise $m$, or print $-1$ if impossible.}
+
+\begin{patternbox}
+Representations with a restricted set of powers of two: process the binary
+expansion from the top bit, and rewrite forbidden powers with allowed ones
+($2^{2j}=2^{2j-1}+2^{2j-1}$).
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+While $n>x$ we must spend terms. Let $2^k$ be the top bit of $n$.
+\begin{itemize}
+  \item $k$ odd: subtract $2^k$ (one term). Using smaller odd powers instead
+        would need at least two terms for the same amount.
+  \item $k$ even: $2^k$ is not allowed; the largest allowed power below $n$ is
+        $2^{k-1}$. Subtract it (one term); after that the top bit is at most
+        $k-1$ (odd) and the loop continues.
+\end{itemize}
+When $n\le x$, the rest becomes $A_1$. If $x=0$ and $n$ is odd we can never
+finish, since all odd powers of two are even.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\If{$x=0$ \textbf{and} $n$ odd} \Return $-1$ \EndIf
+\State $m\gets0$
+\While{$n>x$}
+  \State $k\gets hb(n)$; $n\gets n-(k\text{ odd}\ ?\ 2^k:2^{k-1})$; $m\gets m+1$
+\EndWhile
+\State \Return $m+1$
+\end{algorithmic}
+
+\dryrun{$n=10$, $x=3$: top bit $8=2^3$ (odd), $n\to2\le3$: $m=1$, answer $2$
+($10=2+8$). $n=10$, $x=0$: $10\to2\to0$, answer $3$ ($A_1=0$, $8$, $2$).
+$n=7$, $x=0$: odd, $-1$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/09_express_the_number.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(\log n)$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $2^0=1$ is an \emph{even} power; it is never allowed.
+  \item Use \texttt{unsigned long long} and \texttt{1ULL << k} for large $n$.
+\end{itemize}
+\end{pitfallbox}

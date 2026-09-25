@@ -1,0 +1,75 @@
+\section{Always Changing}
+\label{sec:g-always-changing}
+\source{Codeforces 2252B (Notion: Greedy, 1100)}{Medium}
+
+\problemstatement{A binary string $s$ ($n\le2\cdot10^5$) must be turned into
+an \emph{alternating} string (no two equal neighbours) by deleting characters.
+The deleted characters must strictly alternate in value: after deleting a
+\texttt{0} the next deletion must be a \texttt{1} and vice versa (the first
+may be either). Find the minimum number of deletions, or $-1$.}
+
+\begin{patternbox}
+Two separate questions: \emph{which} characters must go (forced by runs), and
+\emph{can the counts be balanced} ($|\#0-\#1|\le1$ is exactly what an
+alternating deletion order needs).
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Split $s$ into maximal runs. A run of length $L$ must lose at least $L-1$
+characters, otherwise two equal characters stay adjacent. Let $z$ and $o$ be
+these forced deletions of zeros and ones. Deletions can be performed in an
+alternating order iff their counts differ by at most one (order does not change
+the final string).
+
+\begin{itemize}
+  \item If $|z-o|\le1$: answer $z+o$.
+  \item Otherwise we need $need=|z-o|-1$ extra deletions of the
+        \emph{deficient} character. Deleting the last character of an
+        \emph{interior} run of that type merges its two neighbours, forcing one
+        more deletion of the excess type --- the difference does not improve.
+        Only a run at either \emph{end} of the string can be removed cleanly.
+        So there are at most $cap\in\{0,1,2\}$ useful extra deletions.
+\end{itemize}
+
+\begin{ideabox}[Formula]
+\[
+  \text{answer}=\begin{cases}
+  z+o & |z-o|\le1,\\
+  z+o+need & need\le cap,\\
+  -1 & \text{otherwise,}
+  \end{cases}
+\]
+where $cap$ counts the string ends ($s_1$, $s_n$) equal to the deficient
+character. Verified against an exhaustive search over all $2^n$ deletion
+sets for every string with $n\le10$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $z,o\gets$ number of indices $i$ with $s_i=s_{i-1}$, split by character
+\If{$|z-o|\le1$} \Return $z+o$ \EndIf
+\State $need\gets|z-o|-1$; $d\gets$ the character with fewer forced deletions
+\State $cap\gets[s_1=d]+[s_n=d]$
+\State \Return $need\le cap$ ? $z+o+need$ : $-1$
+\end{algorithmic}
+
+\dryrun{\texttt{100010}: runs \texttt{1|000|1|0}, $z=2$, $o=0$, $need=1$, the
+deficient type is \texttt{1} and $s_1=\texttt{1}$, so $cap\ge1$: answer $3$.
+\texttt{011110}: $o=3$, $z=0$, $need=2$, both ends are \texttt{0}: answer
+$5$. \texttt{111}: $o=2$, $need=1$, no zero at an end: $-1$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/21_always_changing.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n)$. \textbf{Space:} $O(1)$ beyond the string.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Deleting an interior single-character run never helps --- this is
+        the trap that makes ``just delete more of the rare character'' wrong.
+  \item $n=1$ or an already alternating string: $0$.
+\end{itemize}
+\end{pitfallbox}

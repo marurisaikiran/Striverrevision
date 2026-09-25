@@ -1,0 +1,46 @@
+\section{Euclid, Sequence and Two Numbers}
+\label{sec:n-euclid-seq}
+\source{Codeforces 2234A (Notion: Number Theory, 800)}{Easy}
+
+\problemstatement{A Euclid sequence for $x\ge y$ is $a_1=x$, $a_2=y$,
+$a_{i+2}=a_i\bmod a_{i+1}$ (all terms positive). Given $n\le100$ numbers
+$b_i\le10^9$, can they be permuted into such a sequence? Print $x\ y$ or $-1$.}
+
+\begin{patternbox}
+Remainders are strictly smaller than the divisor $\Rightarrow$ the sequence
+is \textbf{forced} to be sorted in decreasing order. Construct, then verify.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+For $i\ge1$, $a_{i+2}=a_i\bmod a_{i+1}<a_{i+1}$, so
+$a_2>a_3>\dots>a_n$, and $a_1\ge a_2$ by definition. The only possible order is
+descending; if two equal values exist they must be $a_1=a_2$, which forces
+$a_3=0$ --- allowed only when $n=2$ (and descending order places them there
+anyway). So sort descending and check every triple.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State sort $b$ descending
+\For{$i=1$ \textbf{to} $n-2$} \If{$b_i\bmod b_{i+1}\ne b_{i+2}$} \Return $-1$ \EndIf \EndFor
+\State \Return $(b_1,b_2)$
+\end{algorithmic}
+
+\dryrun{$\{3,8,13,5\}\to13,8,5,3$: $13\bmod8=5$, $8\bmod5=3$. Answer
+$13\ 8$. $\{1,2,3,4\}\to4,3,2,1$: $4\bmod3=1\ne2$, $-1$. $\{1,1,1\}$:
+$1\bmod1=0\ne1$, $-1$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/11_euclid_sequence.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $n=2$: always valid ($x=\max$, $y=\min$).
+  \item Terms must be positive, so the sequence cannot contain the final $0$
+        of Euclid's algorithm.
+\end{itemize}
+\end{pitfallbox}

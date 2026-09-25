@@ -1,0 +1,50 @@
+\section{Tasks and Deadlines}
+\label{sec:g-tasks-deadlines}
+\source{CSES 1630 (Notion: Greedy)}{Easy}
+
+\problemstatement{You must process all $n\le2\cdot10^5$ tasks one after
+another starting at time $0$. Task $i$ has duration $a_i$ and deadline $d_i$;
+finishing it at time $f_i$ earns $d_i-f_i$ (possibly negative). Maximise the
+total reward.}
+
+\begin{patternbox}
+The objective splits into a fixed part ($\sum d_i$) and a part depending on
+the order ($-\sum f_i$). Minimising the sum of completion times is
+\textbf{Shortest Processing Time first}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+$\sum(d_i-f_i)=\sum d_i-\sum f_i$. The deadlines do not depend on the order,
+so we only need to minimise $\sum f_i$. If task $x$ is right before task $y$
+and $a_x>a_y$, swapping them does not change when anything else finishes,
+while the two completion times change from $(t+a_x)+(t+a_x+a_y)$ to
+$(t+a_y)+(t+a_x+a_y)$ --- a decrease of $a_x-a_y>0$. So in an optimal order
+durations are non-decreasing.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State sort tasks by duration
+\State $now\gets0$, $rew\gets0$
+\For{each $(a,d)$} \State $now\gets now+a$; $rew\gets rew+d-now$ \EndFor
+\State \Return $rew$
+\end{algorithmic}
+
+\dryrun{Tasks $(6,10),(8,15),(5,12)$ sorted by $a$: $(5,12),(6,10),(8,15)$.
+Finish times $5,11,19$; rewards $7,-1,-4$; total $2$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/09_tasks_and_deadlines.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Sorting by deadline is the classic wrong answer --- deadlines do
+        not influence the optimal order at all.
+  \item $\sum f_i$ reaches about $2\cdot10^5\cdot2\cdot10^{11}$: use
+        \texttt{long long}.
+\end{itemize}
+\end{pitfallbox}

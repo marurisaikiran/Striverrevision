@@ -1,0 +1,41 @@
+\section{Sieve of Erato67henes}
+\label{sec:n-67}
+\source{Codeforces 2195A (Notion: Number Theory, 800)}{Easy}
+
+\problemstatement{Given $n\le5$ integers $1\le a_i\le67$, can you choose a
+non-empty subset whose product is exactly $67$?}
+
+\begin{patternbox}
+Product equal to a \textbf{prime} $p$: exactly one factor is $p$ and all
+others are $1$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+$67$ is prime. If a product of positive integers equals $67$, one factor is
+divisible by $67$; since every $a_i\le67$, that factor is $67$ itself, and the
+remaining factors multiply to $1$, so they are all $1$. Conversely $\{67\}$
+alone works. Answer: \texttt{YES} iff $67$ occurs in the array.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State \Return ($67\in a$)
+\end{algorithmic}
+
+\dryrun{$[1,7,6,7,67]$: contains $67$, YES. $[1,3,5,7,8]$: NO (the products
+$7\cdot8$, $3\cdot5\cdot7$, \dots\ never equal a prime they do not contain).
+\checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/03_sieve_of_erato67henes.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n)$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The bound $a_i\le67$ matters: without it, $134$ would not help
+        either, but a subset search would be the safe general method.
+\end{itemize}
+\end{pitfallbox}

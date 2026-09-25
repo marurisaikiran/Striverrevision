@@ -1,0 +1,51 @@
+\section{Reading Books}
+\label{sec:g-reading-books}
+\source{CSES 1631 (Notion: Greedy)}{Easy--Medium}
+
+\problemstatement{Two people must each read all $n$ books; book $i$ takes
+$t_i$ time. Nobody can read two books at once and a book cannot be read by
+both at the same time. Find the minimum time until both have read all
+books.}
+
+\begin{patternbox}
+Two lower bounds, one construction: each reader needs $S=\sum t_i$, and the
+longest book $M$ must be read twice without overlap.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Clearly the answer is at least $S$ (each person reads everything) and at
+least $2M$ (the two readings of the longest book cannot overlap, and each
+reader is busy with it for $M$).
+
+\begin{itemize}
+  \item If $M\ge S-M$: reader~1 reads the long book while reader~2 reads all
+        the others (they fit in time $S-M\le M$); then they swap. Total $2M$.
+  \item If $M<S-M$: arrange the books in a circle and let reader~2 start
+        with the book ``half a turn'' ahead; since no book is longer than the
+        rest, the two readers never meet on the same book. Total $S$.
+\end{itemize}
+So the answer is $\max(S,2M)$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $S\gets\sum t_i$, $M\gets\max t_i$
+\State \Return $\max(S,2M)$
+\end{algorithmic}
+
+\dryrun{$t=[2,8,3]$: $S=13$, $M=8$, $2M=16>13$. Answer $16$: reader~1 reads
+$8$ while reader~2 reads $2,3$ (time $5$), then they swap. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/10_reading_books.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n)$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $n=1$: $S=M$, answer $2M$.
+  \item $S$ reaches $2\cdot10^{14}$: \texttt{long long}.
+\end{itemize}
+\end{pitfallbox}

@@ -1,0 +1,60 @@
+\section{Maximum GCD on Whiteboard}
+\label{sec:n-whiteboard}
+\source{Codeforces 2156C (Notion: Number Theory, 1400)}{Medium--Hard}
+
+\problemstatement{$n\le2\cdot10^5$ numbers $1\le a_i\le n$. You may erase at
+most $k$ numbers, and any number of times split $x\ge3$ into
+$x_1\le x_2\le x_3$ with $x_1+x_2+x_3=x$, keeping only $x_1$ and $x_3$.
+Maximise the gcd of the final board.}
+
+\begin{patternbox}
+Fix the answer $d$ and count what \emph{cannot} be fixed for it; values are
+$\le n$, so every candidate $d$ can be checked with prefix counts in
+$O(n/d)$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Fix $d$. Multiples of $d$ are already fine. A non-multiple $x$ must be split
+into pieces that are multiples of $d$ (or be erased). With $x_1=d$,
+$x_3=td$ and $d\le x_2=x-d-td\le td$ we can reach every $x$ with
+$d(t+2)\le x\le d(2t+1)$ for some $t\ge1$; these intervals cover $\{3d\}$ and
+all of $[4d,\infty)$. Smaller $x$ (below $4d$, not a multiple) cannot work:
+$x_1\le x/3<d$ and pieces never grow. (Verified by exhaustive search for
+$d\le6$, $x<60$.)
+
+\begin{ideabox}[Criterion]
+$d$ is achievable iff $\#\{i : a_i<4d,\ d\nmid a_i\}\le k$. Take the largest
+such $d$ ($d=1$ always works).
+\end{ideabox}
+
+With a prefix count array, the number of values $<4d$ is $pre[\min(4d-1,n)]$
+and the good ones among them are the counts of $d,2d,3d$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $cnt[v]$, $pre[v]$ over $1..n$
+\For{$d=n$ \textbf{down to} $1$}
+  \State $bad\gets pre[\min(4d-1,n)]-cnt[d]-cnt[2d]-cnt[3d]$ (existing indices)
+  \If{$bad\le k$} \Return $d$ \EndIf
+\EndFor
+\end{algorithmic}
+
+\dryrun{$[4,9,6,8,2,6,7,8,2]$, $k=1$: $d=2$: values $<8$ that are odd: only
+$7$, so $bad=1\le1$; larger $d$ fail. Answer $2$. With a second $7$ added,
+$bad=2>1$ and the answer drops to $1$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/17_maximum_gcd_on_whiteboard.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n)$ per test. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The threshold is $4d$, not $3d$: $x=7$, $d=2$ cannot be split
+        ($2+2+3$ leaves $3$).
+  \item Erase removes one copy only; count with multiplicity.
+\end{itemize}
+\end{pitfallbox}

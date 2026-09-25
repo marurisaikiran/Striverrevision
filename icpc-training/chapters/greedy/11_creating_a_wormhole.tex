@@ -1,0 +1,58 @@
+\section{Creating a Wormhole}
+\label{sec:g-wormhole}
+\source{ICPC 2013--14 Amritapuri Online Round (PYQ)}{Easy--Medium}
+
+\problemstatement{You have $N$ rods ($3\le N\le10^4$, lengths $a_i\le10^9$).
+Using some of them end to end, form a closed polygon of non-zero area.
+Output the maximum number of rods that can be used, or $-1$ if no polygon is
+possible.}
+
+\begin{patternbox}
+Polygon inequality: a set of sides forms a non-degenerate polygon iff
+\textbf{the longest side is strictly shorter than the sum of the others}.
+Fix the longest side, then take everything shorter.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Sort the rods: $a_0\le a_1\le\dots\le a_{N-1}$. Suppose the longest rod
+used is $a_j$. Adding any rod shorter than (or equal in index below) $a_j$
+only \emph{increases} the sum of the other sides and keeps $a_j$ the
+longest, so the best set with maximum $a_j$ is $\{a_0,\dots,a_j\}$, which is
+valid iff
+\[
+  a_0+a_1+\dots+a_{j-1} > a_j .
+\]
+The answer is the largest $j+1$ ($j\ge2$) satisfying this, or $-1$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State sort $a$; $pre\gets0$; $best\gets-1$
+\For{$j=0$ \textbf{to} $N-1$}
+  \If{$j\ge2$ \textbf{and} $pre>a_j$} \State $best\gets j+1$ \EndIf
+  \State $pre\gets pre+a_j$
+\EndFor
+\State \Return $best$
+\end{algorithmic}
+
+\dryrun{$a=[1,12,3,2,5,1,50]$, sorted $1,1,2,3,5,12,50$.
+$j=2$: $2<2$? no. $j=3$: $4>3$ yes $\to3$. $j=4$: $7>5$ $\to5$. $j=5$:
+$12>12$? no. $j=6$: $24>50$? no. Answer $5$. $[1,1,2]$: $2>2$ fails, $-1$.
+\checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/11_creating_a_wormhole.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(N\log N)$. \textbf{Space:} $O(N)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Strict inequality: $1+1=2$ gives a degenerate (zero-area) triangle.
+  \item Do not stop at the first failure --- a later, longer prefix can
+        become valid again (e.g.\ $1,1,2,3,5$ fails at $2$ but succeeds at
+        $3$).
+  \item Prefix sums reach $10^{13}$: \texttt{long long}.
+\end{itemize}
+\end{pitfallbox}

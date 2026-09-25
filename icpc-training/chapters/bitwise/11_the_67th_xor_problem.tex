@@ -1,0 +1,54 @@
+\section{The 67th XOR Problem}
+\label{sec:b-67th}
+\source{Codeforces 2218E (Notion: Bitwise, 1200)}{Medium}
+
+\problemstatement{Array $a$ of $n$ values ($\sum n\le3105$, $a_i\le10^9$).
+Exactly $n-1$ times: choose an element, let $x$ be its current value, xor
+\emph{every} element with $x$, and delete the chosen one. Maximise the value
+that remains.}
+
+\begin{patternbox}
+Simulate a few steps symbolically: repeated ``xor everything with $x$''
+\textbf{telescopes}. What looks like a game collapses to ``max xor of a
+pair''.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Write the current array as $a_j\oplus S$, where $S$ is the total mask applied
+so far ($S=0$ initially). Removing element $i$ uses $x=a_i\oplus S$, so the new
+mask is $S\oplus x=S\oplus a_i\oplus S=a_i$: after every operation the mask
+equals the \emph{original} value of the element just removed. Hence the
+survivor $j$ ends as $a_j\oplus a_i$, where $i$ is the last removed element.
+Any ordered pair $(i,j)$ is achievable, so
+\[
+  \text{answer}=\max_{i\ne j} a_i\oplus a_j .
+\]
+Use a binary trie: insert numbers one by one and query the best partner from
+the top bit down.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State insert $a_1$ into the trie; $best\gets0$
+\For{$i=2$ \textbf{to} $n$} \State $best\gets\max(best,\textsc{Query}(a_i))$; insert $a_i$ \EndFor
+\end{algorithmic}
+
+\dryrun{$[1,2,3]$: pairs give $3,2,1$, answer $3$ (remove $3$: $[2,1]$, then
+remove $2$: $[3]$). $[67,67]$: $0$. Sample 3: the best pair is $767\oplus267=1012$.
+\checkmark\ (Verified by simulating every removal order on random arrays.)}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/11_the_67th_xor_problem.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(30\,n)$. \textbf{Space:} $O(30\,n)$ trie nodes.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The survivor is xored with the last removed \emph{original} value,
+        not with the xor of all removed values.
+  \item Here $\sum n\le3105$, so an $O(n^2)$ double loop also passes; the trie
+        is the version that scales.
+\end{itemize}
+\end{pitfallbox}

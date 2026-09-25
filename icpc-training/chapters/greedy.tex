@@ -1,0 +1,136 @@
+\chapter{Greedy Algorithms}
+\chapterepigraph{A greedy algorithm commits to the choice that looks best
+right now and never looks back. That is only safe when you can
+\emph{prove} that some optimal solution agrees with your choice. In a
+contest the proof is usually two lines long --- but those two lines are the
+difference between an Accepted and a Wrong Answer on test 37.}
+
+\section{Theory and Must-Know Patterns}
+\label{sec:greedy-theory}
+
+A greedy algorithm builds a solution one decision at a time, always taking
+the locally best option by some rule. Three questions decide whether a
+greedy is correct:
+\begin{enumerate}
+  \item \textbf{What is the rule?} (``earliest end time first'', ``smallest
+        element first'', ``largest coin that fits'', \dots)
+  \item \textbf{Why does some optimal solution follow the rule?} (the
+        proof --- usually an exchange argument)
+  \item \textbf{How do I apply the rule fast?} (sorting, a heap, a
+        multiset, two pointers)
+\end{enumerate}
+
+\subsection*{Proof technique 1: the exchange argument}
+
+Take any optimal solution $O$ that disagrees with the greedy choice $g$.
+Modify $O$ by swapping in $g$ and show the result is still valid and no
+worse. Repeating the swap turns $O$ into the greedy solution without ever
+losing value, so greedy is optimal.
+
+\begin{center}
+\begin{tikzpicture}[x=0.9cm,y=0.75cm,>=Stealth]
+  \draw[->] (0,0) -- (12.5,0) node[right] {\small time};
+  % optimal row
+  \node[left] at (0,1.6) {\small optimal $O$};
+  \draw[fill=blue!15] (2.2,1.3) rectangle (6.0,1.9) node[midway] {\small $o_1$};
+  \draw[fill=blue!15] (6.5,1.3) rectangle (9.0,1.9) node[midway] {\small $o_2$};
+  \draw[fill=blue!15] (9.5,1.3) rectangle (12.0,1.9) node[midway] {\small $o_3$};
+  % greedy row
+  \node[left] at (0,0.6) {\small greedy};
+  \draw[fill=orange!25] (1.0,0.3) rectangle (4.5,0.9) node[midway] {\small $g$ (ends first)};
+  \draw[dashed] (4.5,0) -- (4.5,2.1);
+  \draw[dashed] (6.0,0) -- (6.0,2.1);
+  \draw[decorate,decoration={brace,amplitude=4pt,mirror}] (4.5,-0.15) -- (6.0,-0.15)
+     node[midway,below=4pt] {\small $e(g)\le e(o_1)$};
+\end{tikzpicture}
+\end{center}
+
+\noindent In interval scheduling (Section~\ref{sec:g-movie}) the interval
+$g$ with the earliest end time finishes no later than $o_1$, so replacing
+$o_1$ by $g$ cannot collide with $o_2, o_3, \dots$ --- the solution keeps
+the same size.
+
+\subsection*{Proof technique 2: greedy stays ahead}
+
+Show by induction that after every step the greedy partial solution is at
+least as good as any other partial solution by some measure (``has watched
+at least as many movies and is free at least as early''). Then at the end it
+is at least as good as the optimum.
+
+\subsection*{Proof technique 3: a matching lower bound}
+
+Find a quantity every solution must pay (``each non-survivor unit must be
+removed'', ``someone must miss problem $i$ in $n-a_i$ places'') and show
+the greedy pays exactly that. Several prelim problems in this chapter are
+solved this way: the formula is a lower bound, and the greedy construction
+achieves it.
+
+\subsection*{The ICPC greedy toolkit}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{p{4.2cm}p{5.2cm}p{4.3cm}}
+\toprule
+\textbf{Pattern} & \textbf{Typical rule} & \textbf{Problems here}\\
+\midrule
+Sort + scan & process in sorted order, keep a running value & Movie Festival, Tasks and Deadlines, Wormhole, Missing Coin Sum\\
+Median / extremes & optimum sits at a median or at max/min & Stick Lengths, Task Scheduling, Reading Books\\
+Multiset ``best fit'' & take the closest item $\le$ or $>$ a key & Concert Tickets, Towers, Traffic Lights\\
+Heap of resources & reuse the resource that frees earliest & Room Allocation, Coins (top-$X$ sums)\\
+Sweep line / difference array & $+1$ at start, $-1$ after end & Restaurant Customers, Game of Robots\\
+Two pointers & window never needs to move left & Playlist, Cracker shops\\
+Binary search on the answer & ``can we finish by time $T$?'' is monotone & Factory Machines\\
+Huffman / merge smallest & repeatedly combine the two cheapest & Break, Merge and Sort\\
+Counting argument & answer = forced lower bound & Good Contest, Boss Fight, Reduction Game, Always Changing\\
+Parity invariant & an operation preserves parity of something & Tatar TV Show\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{takeawaybox}[Contest Checklist Before Submitting a Greedy]
+\begin{enumerate}
+  \item Write the exchange (or lower-bound) argument in one sentence. If
+        you cannot, brute-force small cases first.
+  \item Check ties: does the sort key need a secondary key?
+  \item Check overflow: sums of $2\cdot10^5$ values up to $10^9$ need
+        \texttt{long long}.
+  \item Check the empty / single-element / all-equal cases.
+\end{enumerate}
+\end{takeawaybox}
+
+\noindent Problems are ordered roughly from easy to hard. Every C++ listing
+in this chapter is the exact file in \texttt{icpc-training/greedy/}, and
+every one of them passes the official samples plus randomised stress tests
+against an exhaustive brute force (\texttt{tests/}).
+
+\newpage
+
+\input{chapters/greedy/01_task_scheduling.tex}
+\input{chapters/greedy/02_good_contest.tex}
+\input{chapters/greedy/03_boss_fight.tex}
+\input{chapters/greedy/04_flee_to_shelter.tex}
+\input{chapters/greedy/05_ordering_teams.tex}
+\input{chapters/greedy/06_stick_lengths.tex}
+\input{chapters/greedy/07_movie_festival.tex}
+\input{chapters/greedy/08_restaurant_customers.tex}
+\input{chapters/greedy/09_tasks_and_deadlines.tex}
+\input{chapters/greedy/10_reading_books.tex}
+\input{chapters/greedy/11_creating_a_wormhole.tex}
+\input{chapters/greedy/12_concert_tickets.tex}
+\input{chapters/greedy/13_towers.tex}
+\input{chapters/greedy/14_missing_coin_sum.tex}
+\input{chapters/greedy/15_playlist.tex}
+\input{chapters/greedy/16_traffic_lights.tex}
+\input{chapters/greedy/17_room_allocation.tex}
+\input{chapters/greedy/18_factory_machines.tex}
+\input{chapters/greedy/19_tatar_tv_show.tex}
+\input{chapters/greedy/20_delete_and_concatenate.tex}
+\input{chapters/greedy/21_always_changing.tex}
+\input{chapters/greedy/22_mex_multiset.tex}
+\input{chapters/greedy/23_reduction_game.tex}
+\input{chapters/greedy/24_game_of_robots.tex}
+\input{chapters/greedy/25_cracker_shops.tex}
+\input{chapters/greedy/26_jai_hanuman.tex}
+\input{chapters/greedy/27_break_merge_and_sort.tex}
+\input{chapters/greedy/28_min_weight_bipartition.tex}
+\input{chapters/greedy/29_coins.tex}

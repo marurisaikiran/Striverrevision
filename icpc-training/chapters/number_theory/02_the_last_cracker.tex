@@ -1,0 +1,41 @@
+\section{The Last Cracker}
+\label{sec:n-last-cracker}
+\source{ICPC 2014--15 Kharagpur Online Re-contest (PYQ, ACM14KG2)}{Easy}
+
+\problemstatement{$N$ crackers stand in a circle. The spark starts at
+cracker $a$; each cracker fires and passes the spark to the next ($N\to1$).
+The spark dies during pass $M+1$. Which cracker fires last?
+($N,M\le1000$.)}
+
+\begin{patternbox}
+Circular indexing $\Rightarrow$ convert to $0$-based, add, take $\bmod N$,
+convert back.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+After $M$ successful passes the spark is at the cracker $M$ steps after $a$;
+that cracker fires and the next pass fails. In $0$-based terms the position is
+$(a-1+M)\bmod N$, so the answer is $(a-1+M)\bmod N+1$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State \Return $(a-1+M)\bmod N+1$
+\end{algorithmic}
+
+\dryrun{$N=5$, $a=1$: $M=3\to4$, $M=5\to1$, $M=19\to(19\bmod5)+1=5$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/02_the_last_cracker.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(1)$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $(a+M)\bmod N$ gives $0$ instead of $N$ --- always shift to $0$-based
+        first.
+  \item $M=0$: the starting cracker fires and the spark dies; answer $a$.
+\end{itemize}
+\end{pitfallbox}

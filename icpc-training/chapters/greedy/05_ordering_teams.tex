@@ -1,0 +1,46 @@
+\section{Ordering Teams}
+\label{sec:g-ordering-teams}
+\source{ICPC 2017--18 Online Preliminary, Kharagpur (PYQ, ORDTEAMS)}{Easy}
+
+\problemstatement{Three team members have scores $(s_1,s_2,s_3)$ in three
+skills. Person $x$ is \emph{better} than $y$ if $x$ scores no less than $y$ in
+every skill and strictly more in at least one. Decide whether the three can
+be ordered so that each person is strictly better than the previous one.}
+
+\begin{patternbox}
+A dominance chain is increasing in \emph{every} coordinate, hence in the
+coordinate sum. Sorting by the sum fixes the only possible order.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+If $x$ is better than $y$ then $\text{sum}(x)>\text{sum}(y)$ (no coordinate
+drops, one rises). So in any valid chain the sums strictly increase, which
+means the chain must be the order by increasing sum. Sort the three people by
+their sum and check the two consecutive relations. With ties in the sum, the
+two tied people cannot be ordered, and the check fails automatically.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State sort the three people by $s_1+s_2+s_3$
+\State \Return \textsc{Better}$(p_2,p_1)$ \textbf{and} \textsc{Better}$(p_3,p_2)$
+\end{algorithmic}
+
+\dryrun{Case 1: sums $6,9,10$; $(2,3,4)$ beats $(1,2,3)$ and $(2,3,5)$ beats
+$(2,3,4)$ $\Rightarrow$ yes. Case 2: $(2,3,4)$ appears twice, not strictly
+better $\Rightarrow$ no. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/05_ordering_teams.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(1)$ per test. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item ``Better'' needs a \emph{strict} improvement somewhere: identical
+        people cannot be chained.
+  \item Output is lowercase \texttt{yes}/\texttt{no}.
+\end{itemize}
+\end{pitfallbox}

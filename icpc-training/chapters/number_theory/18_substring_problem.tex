@@ -1,0 +1,47 @@
+\section{Substring Problem}
+\label{sec:n-substring}
+\source{ICPC 2013--14 Kharagpur Online Round (PYQ)}{Medium}
+
+\problemstatement{How many times does the decimal string of $K$ occur
+(overlaps allowed) in $123456789101112\ldots N$? ($N,K\le10^6$, sum of $N$
+over tests $\le10^6$.)}
+
+\begin{patternbox}
+Read the constraints: the \emph{sum} of $N$ is small, so the concatenated
+string has at most $\approx6.9\cdot10^6$ characters in total --- build it and
+run \textbf{KMP}. No digit-counting formula needed.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Numbers up to $10^6$ have at most $7$ digits, so the text is at most
+$7\cdot10^6$ characters over all tests. KMP finds all (overlapping) occurrences
+in linear time: after a full match, continue from the failure link instead of
+restarting.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $T\gets$ concatenation of $1..N$; $P\gets$ digits of $K$
+\State build the KMP failure function of $P$; scan $T$, counting full matches
+\end{algorithmic}
+
+\dryrun{$N=11$, $K=1$: \texttt{1234567891011} contains \texttt{1} at
+$1$, in $10$, and twice in $11$: $4$. $N=10$: $2$. $N=100$, $K=333$: in \texttt{\dots32\,33\,34\dots} the digits of $33$
+followed by the first digit of $34$ form \texttt{333}; that is the only
+occurrence, answer $1$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/18_substring_problem.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(|T|+|P|)$ per test. \textbf{Space:} $O(|T|)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Overlapping matches count (\texttt{11} occurs twice in
+        \texttt{111}).
+  \item \texttt{string::find} in a loop with start $+1$ also works for such a
+        short pattern.
+\end{itemize}
+\end{pitfallbox}

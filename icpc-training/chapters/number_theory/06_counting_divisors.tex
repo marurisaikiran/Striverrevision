@@ -1,0 +1,42 @@
+\section{Counting Divisors}
+\label{sec:n-count-div}
+\source{CSES 1713 (Notion: Number Theory)}{Easy--Medium}
+
+\problemstatement{For each of $n\le10^5$ integers $x\le10^6$ print the number
+of divisors of $x$.}
+
+\begin{patternbox}
+Many queries over a small value range $\Rightarrow$ \textbf{precompute for
+every value} with a sieve, then answer in $O(1)$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Instead of factorising each query, let every $d\le V=10^6$ add $1$ to each of
+its multiples. Afterwards $\tau[x]$ is the number of divisors of $x$. The work
+is $\sum_{d\le V}V/d\approx V\ln V\approx1.4\cdot10^7$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\For{$d=1$ \textbf{to} $V$} \For{$m=d,2d,\dots\le V$} $\tau[m]\gets\tau[m]+1$ \EndFor \EndFor
+\State answer each query with $\tau[x]$
+\end{algorithmic}
+
+\dryrun{$16=2^4$: $5$ divisors. $17$: prime, $2$. $18=2\cdot3^2$:
+$2\cdot3=6$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/06_counting_divisors.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(V\log V+n)$. \textbf{Space:} $O(V)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Trial division to $\sqrt x$ per query is $10^5\cdot10^3=10^8$ ---
+        also fine here, but the sieve is the pattern to remember.
+  \item $\tau(n)=\prod(k_i+1)$ with a smallest-prime-factor sieve is the
+        $O(\log x)$-per-query alternative.
+\end{itemize}
+\end{pitfallbox}

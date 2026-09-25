@@ -1,0 +1,45 @@
+\section{Bit Strings}
+\label{sec:b-bit-strings}
+\source{CSES 1617 (Notion: Bitwise)}{Easy}
+
+\problemstatement{Count the bit strings of length $n\le10^6$, modulo
+$10^9+7$.}
+
+\begin{patternbox}
+Independent binary choices $\Rightarrow$ $2^n$; compute it with
+\textbf{fast modular exponentiation}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Each of the $n$ positions is $0$ or $1$ independently, so there are $2^n$
+strings. Binary exponentiation computes $2^n\bmod p$ with $O(\log n)$
+multiplications: write $n$ in binary and multiply together the squares
+$2^{2^k}$ for the set bits $k$ (see Section~\ref{sec:nt-theory}).
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $r\gets1$, $b\gets2$
+\While{$n>0$}
+  \If{$n$ odd} $r\gets rb\bmod p$ \EndIf
+  \State $b\gets b^2\bmod p$; $n\gets\lfloor n/2\rfloor$
+\EndWhile
+\State \Return $r$
+\end{algorithmic}
+
+\dryrun{$n=3=11_2$: $r=2$, then $r=2\cdot4=8$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/02_bit_strings.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(\log n)$. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item \texttt{1 << n} overflows for $n\ge31$ (and $n\ge63$ for
+        \texttt{1LL}).
+  \item Multiply in \texttt{long long}: $(10^9)^2$ does not fit in \texttt{int}.
+\end{itemize}
+\end{pitfallbox}

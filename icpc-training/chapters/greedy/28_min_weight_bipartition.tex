@@ -1,0 +1,61 @@
+\section{Minimum Weight Bi-Partition}
+\label{sec:g-min-bipartition}
+\source{ICPC 2020--21 Amritapuri Preliminary, problem 4 (PYQ)}{Medium}
+
+\begin{reconbox}
+Only the official solution slides survive. They reduce the problem to: ``a
+tree is a connected bipartite graph, so after adding new edges it is enough to
+find an MST; sorting vertices by $A_i$ and joining consecutive ones gives the
+only $n-1$ new edges that matter; existing edges have weight $0$.'' This
+section solves that core task. The full original statement may add conditions
+that this reduction already handles; check the original if you find it.
+\end{reconbox}
+
+\problemstatement{A graph has $n$ vertices with values $A_i$ and $m$ existing
+edges, which are free. You may add an edge $(u,v)$ at cost $|A_u-A_v|$. Find
+the minimum total cost to make the graph connected (equivalently, the weight
+of a minimum spanning tree of the complete graph where existing edges weigh
+$0$).}
+
+\begin{patternbox}
+MST on a complete graph with weights $|A_u-A_v|$ $\Rightarrow$ only
+\textbf{adjacent-in-sorted-order} edges can be useful: $O(n)$ candidate edges
+instead of $O(n^2)$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Sort the vertices by value: $A_{v_1}\le\dots\le A_{v_n}$. For $i<j$ the edge
+$(v_i,v_j)$ has weight $A_{v_j}-A_{v_i}$, which equals the total weight of the
+path $v_i,v_{i+1},\dots,v_j$, and each edge on that path is no heavier. By the
+cycle property of MSTs, a heaviest edge on a cycle is never needed, so the
+long edge can be dropped. The candidate set is: the $m$ free edges plus the
+$n-1$ sorted-neighbour edges. Run Kruskal with a DSU.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $E\gets\{(0,u,v)\text{ for existing edges}\}\cup\{(A_{v_{i+1}}-A_{v_i},v_i,v_{i+1})\}$
+\State sort $E$; DSU on $n$ vertices; $cost\gets0$
+\For{$(w,u,v)\in E$} \If{\textsc{Unite}$(u,v)$} $cost\gets cost+w$ \EndIf \EndFor
+\State \Return $cost$
+\end{algorithmic}
+
+\dryrun{$A=[5,1,9,4]$, existing edge $(1,3)$. Sorted: $v=2,4,1,3$ (values
+$1,4,5,9$). Edges: $(1,3)$ free; $(2,4)=3$, $(4,1)=1$, $(1,3)=4$. Kruskal:
+free $(1,3)$, then $(4,1)$ cost $1$, then $(2,4)$ cost $3$; $(1,3)$ now
+redundant. Total $4$. \checkmark\ (checked against Prim on the full graph)}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/28_min_weight_bipartition.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O((n+m)\log(n+m))$. \textbf{Space:} $O(n+m)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Building all $\binom n2$ edges is $O(n^2)$ --- TLE for $n=10^5$.
+  \item Self-loops and multi-edges among the free edges are harmless in
+        Kruskal.
+\end{itemize}
+\end{pitfallbox}

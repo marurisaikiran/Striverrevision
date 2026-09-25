@@ -1,0 +1,55 @@
+\section{Beautiful XOR}
+\label{sec:b-beautiful-xor}
+\source{Codeforces 2162C (Notion: Bitwise, 1100)}{Medium}
+
+\problemstatement{Given $a,b\le10^9$. One operation picks $0\le x\le a$
+(current $a$) and sets $a\gets a\oplus x$. Transform $a$ into $b$ with at most
+$100$ operations, or print $-1$.}
+
+\begin{patternbox}
+Constructive xor: first find the invariant (the top bit can never rise), then
+use a universal intermediate state --- \textbf{all ones} below the top bit.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+\textbf{Impossible case.} If $x\le a$ then $x<2^{hb(a)+1}$, so $a\oplus x$ also
+stays below $2^{hb(a)+1}$: the top bit never increases. If $hb(b)>hb(a)$ the
+answer is $-1$.
+
+\textbf{Construction.} Let $h=hb(a)$ and $\text{ones}=2^{h+1}-1$.
+\begin{itemize}
+  \item $a=b$: zero operations.
+  \item $a\oplus b\le a$: one operation with $x=a\oplus b$.
+  \item otherwise two operations: $x_1=a\oplus\text{ones}$ (its top bit $h$ is
+        $0$, so $x_1<2^h\le a$) turns $a$ into $\text{ones}$; then
+        $x_2=\text{ones}\oplus b\le\text{ones}$ turns it into $b$.
+\end{itemize}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\If{$hb(b)>hb(a)$} \Return $-1$ \EndIf
+\If{$a=b$} \Return $[\,]$ \EndIf
+\If{$a\oplus b\le a$} \Return $[a\oplus b]$ \EndIf
+\State \Return $[a\oplus\text{ones},\ \text{ones}\oplus b]$
+\end{algorithmic}
+
+\dryrun{$a=9=1001_2$, $b=6=0110_2$: $a\oplus b=15>9$, so two steps:
+$x_1=9\oplus15=6\le9$, $a=15$; $x_2=15\oplus6=9\le15$, $a=6$. $a=292$,
+$b=929$: $hb(929)=9>8$, $-1$. \checkmark\ (Any valid sequence is accepted;
+checked for all $1\le a,b<64$ against BFS reachability.)}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/10_beautiful_xor.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(1)$ per test. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item The bound is the \emph{current} $a$, which changes after each
+        operation.
+  \item For $0$ operations print $0$ and an (empty) second line.
+\end{itemize}
+\end{pitfallbox}

@@ -1,0 +1,63 @@
+\section{MEX Multiset}
+\label{sec:g-mex-multiset}
+\source{Codeforces 2259D (Notion: Greedy, 1200)}{Medium}
+
+\problemstatement{Distribute the $n\ge3$ values $a_i$ ($0\le a_i\le10^9$) into
+three multisets $A,B,C$ so that
+$\operatorname{MEX}(A)+\operatorname{MEX}(B)+\operatorname{MEX}(C)\ge
+2\max(\operatorname{MEX}(A),\operatorname{MEX}(B),\operatorname{MEX}(C))$.
+Print a construction or \texttt{NO}.}
+
+\begin{patternbox}
+Rewrite the condition: with sorted MEX values $p\le q\le r$ it says
+$p+q\ge r$ (``triangle-like''). It holds \emph{automatically} whenever the two
+largest are equal. Look for the cheapest such configuration.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+A set has MEX $\ge1$ only if it contains a $0$. Let $z$ be the number of
+zeros.
+\begin{itemize}
+  \item $z=0$: all three MEX values are $0$ and $0\ge0$ holds. Put
+        everything in $A$.
+  \item $z=1$: exactly one set has MEX $r\ge1$, the others $0$, and $0+0<r$.
+        Impossible.
+  \item $z\ge2$: $B=\{0\}$, $C=$ all the ones, $A=$ everything else (the
+        remaining zeros and all values $\ge2$). Then $A$ and $B$ contain $0$
+        but no $1$, so both have MEX $1$, and $C$ has no $0$, so MEX $0$:
+        $1+1+0\ge 2\cdot1$.
+\end{itemize}
+
+\begin{ideabox}[Only the Number of Zeros Matters]
+Larger values never have to be arranged carefully: once the two biggest MEX
+values are equal, the inequality is satisfied, and MEX $=1$ for two sets costs
+exactly two zeros.
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $z\gets$ number of zeros
+\If{$z=1$} \Return \texttt{NO} \EndIf
+\State all letters \texttt{A}; \textbf{if} $z\ge2$: first zero $\to$ \texttt{B}, every $1\to$ \texttt{C}
+\end{algorithmic}
+
+\dryrun{$[0,2,2]$: one zero, \texttt{NO}. $[1,0,0,1,2,1]$: string
+\texttt{CBACAC}: $A=\{0,2\}$ (MEX $1$), $B=\{0\}$ (MEX $1$), $C=\{1,1,1\}$
+(MEX $0$); $2\ge2$. \checkmark\ (Any valid answer is accepted.)}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/22_mex_multiset.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n)$. \textbf{Space:} $O(n)$ for the output string.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Do not try to maximise MEX values --- a large MEX in one set makes
+        the inequality \emph{harder}.
+  \item The output checker accepts any valid distribution; the sample output
+        is just one of them.
+\end{itemize}
+\end{pitfallbox}

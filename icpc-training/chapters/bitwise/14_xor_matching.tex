@@ -1,0 +1,61 @@
+\section{XOR Matching}
+\label{sec:b-xor-matching}
+\source{AtCoder ABC126 F (Notion: Bitwise, stretch goal)}{Hard}
+
+\problemstatement{Build a sequence of length $2^{M+1}$ ($M\le17$) in which each
+of $0..2^M-1$ appears exactly twice and, for every value, the xor of the
+segment between (and including) its two copies equals $K$. Print $-1$ if
+impossible.}
+
+\begin{patternbox}
+Constructive xor with a symmetric (palindromic) layout; the key fact is
+$0\oplus1\oplus\dots\oplus(2^M-1)=0$ for $M\ge2$.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+\textbf{Impossible:} $K\ge2^M$ (no segment can have a bit that no element has);
+$M=1$, $K=1$ (only $0\,0\,1\,1$-type sequences exist and they give $0$).
+\textbf{Small cases:} $M=0$: \texttt{0 0} iff $K=0$; $M=1$, $K=0$:
+\texttt{0 0 1 1}.
+
+\textbf{$M\ge2$, $K<2^M$:} print
+\[
+  \underbrace{0,1,\dots,2^M-1}_{\text{without }K},\;K,\;\underbrace{2^M-1,\dots,1,0}_{\text{without }K},\;K .
+\]
+\emph{Case $v\ne K$.} The first copy of $v$ is in the ascending half and
+the second in the descending half. Between them lie every value $w>v$ (with
+$w\ne K$) twice --- once on each side --- and $K$ once. Pairs cancel, the
+two copies of $v$ cancel, and the segment xor is $K$.
+
+\emph{Case $v=K$.} The segment is $K$, the whole descending half, $K$. The
+descending half is the xor of all values except $K$, which is
+$0\oplus K=K$ (the xor of all of $0..2^M-1$ is $0$). With the two copies of
+$K$ cancelling, the segment xor is $K$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\If{$M=0$} \Return $K=0$ ? \texttt{0 0} : $-1$ \EndIf
+\If{$M=1$} \Return $K=0$ ? \texttt{0 0 1 1} : $-1$ \EndIf
+\If{$K\ge2^M$} \Return $-1$ \EndIf
+\State print ascending (skip $K$), $K$, descending (skip $K$), $K$
+\end{algorithmic}
+
+\dryrun{$M=2$, $K=1$: \texttt{0 2 3 1 3 2 0 1}. For $3$: segment
+$3,1,3$, xor $1$. For $0$: $0,2,3,1,3,2,0$, xor $1$. For $1$:
+$1,3,2,0,1$, xor $1$. \checkmark\ (All $M\le4$, $K<40$ checked by a
+verifier.)}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/14_xor_matching.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(2^M)$. \textbf{Space:} $O(2^M)$ output.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $K$ can be up to $10^9$ while $2^M\le131072$: check $K\ge2^M$ first.
+  \item $M=1$ is special because $0\oplus1\ne0$.
+\end{itemize}
+\end{pitfallbox}

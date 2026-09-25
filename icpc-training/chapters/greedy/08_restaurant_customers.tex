@@ -1,0 +1,46 @@
+\section{Restaurant Customers}
+\label{sec:g-restaurant}
+\source{CSES 1619 (Notion: Greedy)}{Easy}
+
+\problemstatement{Customer $i$ is in the restaurant from time $a_i$ to $b_i$
+($1\le a_i<b_i\le10^9$, all $2n$ times distinct, $n\le2\cdot10^5$). Find the
+maximum number of customers present at the same time.}
+
+\begin{patternbox}
+``Maximum overlap of intervals'' $\Rightarrow$ \textbf{sweep line}: an
+arrival is a $+1$ event, a departure a $-1$ event; the answer is the maximum
+prefix sum in time order.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+The number of people present only changes at event times. Sorting the $2n$
+events and accumulating $\pm1$ reproduces the head count at every moment; its
+maximum is the answer. Because times are distinct we never have to decide
+whether a departure and an arrival at the same instant overlap.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State events $\gets \{(a_i,+1),(b_i,-1)\}$, sort by time
+\State $cur\gets0$, $best\gets0$
+\For{each event $(t,d)$} \State $cur\gets cur+d$, $best\gets\max(best,cur)$ \EndFor
+\State \Return $best$
+\end{algorithmic}
+
+\dryrun{Intervals $(5,8),(2,4),(3,9)$: events $2^{+},3^{+},4^{-},5^{+},8^{-},9^{-}$,
+counts $1,2,1,2,1,0$. Maximum $2$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/08_restaurant_customers.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(n\log n)$. \textbf{Space:} $O(n)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item If times could coincide you must decide the tie order (process
+        $-1$ before $+1$ for half-open intervals). Here they are distinct.
+  \item Coordinates up to $10^9$: never allocate an array indexed by time.
+\end{itemize}
+\end{pitfallbox}

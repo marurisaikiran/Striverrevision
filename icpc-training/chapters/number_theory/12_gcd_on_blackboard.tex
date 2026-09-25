@@ -1,0 +1,42 @@
+\section{GCD on Blackboard}
+\label{sec:n-gcd-blackboard}
+\source{AtCoder ABC125 C (Notion: Number Theory)}{Medium}
+
+\problemstatement{Replace one of $N\le10^5$ integers ($\le10^9$) by any
+integer in $[1,10^9]$ to maximise the gcd of all $N$ numbers.}
+
+\begin{patternbox}
+``Everything except element $i$'' for an associative operation $\Rightarrow$
+\textbf{prefix and suffix} arrays.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+If we replace $A_i$, the best new value is the gcd $g_i$ of all other numbers
+itself (the gcd can never exceed $g_i$, and choosing $g_i$ attains it). So the
+answer is $\max_i g_i$ with $g_i=\gcd(\text{pre}_{i-1},\text{suf}_{i+1})$,
+using $\gcd(0,x)=x$ for the empty sides.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $pre_0\gets0$, $pre_i\gets\gcd(pre_{i-1},A_i)$; $suf_{N+1}\gets0$, $suf_i\gets\gcd(suf_{i+1},A_i)$
+\State \Return $\max_i\gcd(pre_{i-1},suf_{i+1})$
+\end{algorithmic}
+
+\dryrun{$[7,6,8]$: drop $7\to\gcd(6,8)=2$, drop $6\to1$, drop $8\to1$. Answer
+$2$. $[12,15,18]$: drop $15\to6$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/12_gcd_on_blackboard.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(N\log V)$. \textbf{Space:} $O(N)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $N=2$: answer $\max(A_1,A_2)$ --- replace the smaller by the larger.
+  \item Recomputing the gcd of the other $N-1$ elements for each $i$ is
+        $O(N^2)$.
+\end{itemize}
+\end{pitfallbox}

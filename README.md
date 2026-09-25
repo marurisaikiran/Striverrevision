@@ -56,6 +56,13 @@ groups) with the SDE Sheet's Graph section (18 problems); the only problem uniqu
 the SDE Sheet that A2Z didn't already cover is **Clone a Graph**, folded into the
 Graph Basics chapter.
 
+## ICPC Training
+
+The [`icpc-training/`](icpc-training) folder holds an ICPC India prelim prep book,
+[`ICPC_Training_Greedy_Bitwise_NumberTheory.pdf`](icpc-training/ICPC_Training_Greedy_Bitwise_NumberTheory.pdf):
+63 Greedy, Bitwise and Number Theory problems (tracker problems plus past ICPC
+India preliminaries), with tested C++17 solutions in per-topic folders.
+
 ## Repository structure
 
 ```

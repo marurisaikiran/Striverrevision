@@ -1,0 +1,45 @@
+\section{Common Divisors}
+\label{sec:n-common-div}
+\source{CSES 1081 (Notion: Number Theory)}{Medium}
+
+\problemstatement{Given $n\le2\cdot10^5$ integers $x_i\le10^6$, find the
+maximum $\gcd(x_i,x_j)$ over pairs $i\ne j$.}
+
+\begin{patternbox}
+``Maximum gcd of a pair'' $\Rightarrow$ flip the question: for each candidate
+$d$, count how many elements are \textbf{multiples of $d$}.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+$\gcd(x_i,x_j)\ge d$ for some pair iff some $d'\ge d$ divides two elements.
+So the answer is the largest $d$ that divides at least two elements. With a
+frequency array, check candidates from $V=10^6$ downwards and count multiples of
+$d$; stop at the first $d$ with at least two. Total work $\le\sum_d V/d$.
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $cnt[v]\gets$ frequency of $v$
+\For{$d=V$ \textbf{down to} $1$}
+  \State $c\gets\sum_{k\ge1}cnt[kd]$
+  \If{$c\ge2$} \Return $d$ \EndIf
+\EndFor
+\end{algorithmic}
+
+\dryrun{$[3,14,15,7,9]$: $d=15,14,\dots,8$ each divide at most one element;
+$d=7$ divides $14$ and $7$. Answer $7$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{number-theory/07_common_divisors.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(V\log V)$. \textbf{Space:} $O(V)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Duplicates count: two equal values $x$ give answer $\ge x$ (the
+        frequency array handles it).
+  \item The $O(n^2)$ pair loop is $4\cdot10^{10}$ --- TLE.
+\end{itemize}
+\end{pitfallbox}

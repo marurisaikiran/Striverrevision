@@ -1,0 +1,56 @@
+\section{Good Contest}
+\label{sec:g-good-contest}
+\source{Codeforces 2266A (Notion: Greedy, 800)}{Easy}
+
+\problemstatement{A contest has three problems and $n$ participants
+($1\le n\le 9$). Problem $i$ was solved by exactly $a_i$ participants
+($0\le a_i\le n$). A participant is \emph{weak} if they did not solve all
+three problems. Over all scoreboards consistent with $a$, find the minimum
+possible number of weak participants. ($t\le 3000$ test cases.)}
+
+\begin{patternbox}
+``Minimum number of people who miss \emph{something}'' --- overlap the
+misses as much as possible. The answer is a lower bound that one
+construction meets.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Problem $i$ is \emph{missed} by $n-a_i$ participants, and each of them is
+weak. Hence at least $\max_i(n-a_i)$ participants are weak. To achieve this,
+number the participants $1..n$ and let the misses of every problem fall on
+the \emph{first} participants: problem $i$ is missed by participants
+$1,\dots,n-a_i$. Then exactly participants $1,\dots,\max_i(n-a_i)$ miss
+something.
+
+\begin{ideabox}[Lower Bound Meets Construction]
+\[
+  \text{answer} = \max(n-a_1,\;n-a_2,\;n-a_3).
+\]
+\end{ideabox}
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\For{each test case}
+  \State \textbf{print} $\max(n-a_1,n-a_2,n-a_3)$
+\EndFor
+\end{algorithmic}
+
+\dryrun{$n=6$, $a=(4,3,2)$: misses are $2,3,4$; stacking them on
+participants $1..4$ gives $4$ weak participants. $n=5$, $a=(0,5,5)$: all
+$5$ miss problem~1, answer $5$. \checkmark}
+
+\subsection*{C++17 implementation}
+\cppfile{greedy/02_good_contest.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(1)$ per test. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item Do \emph{not} add the misses: $\sum(n-a_i)$ counts a participant
+        who misses two problems twice.
+  \item $a_i=n$ for all $i$ gives $0$.
+\end{itemize}
+\end{pitfallbox}

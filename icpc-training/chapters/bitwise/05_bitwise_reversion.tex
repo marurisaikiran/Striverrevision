@@ -1,0 +1,50 @@
+\section{Bitwise Reversion}
+\label{sec:b-reversion}
+\source{Codeforces 2153B (Notion: Bitwise, 800)}{Easy}
+
+\problemstatement{Given $x,y,z\le10^9$, do non-negative $a,b,c$ exist with
+$a\,\&\,b=x$, $b\,\&\,c=y$, $a\,\&\,c=z$?}
+
+\begin{patternbox}
+AND conditions only $\Rightarrow$ decide every bit independently.
+\end{patternbox}
+
+\subsection*{Approach and intuition}
+
+Look at one bit. If it is set in two of the targets, e.g.\ in $x=a\,\&\,b$ and
+$y=b\,\&\,c$, then $a$, $b$ and $c$ all have it, so $a\,\&\,c$ has it too:
+the bit must be set in all three. Every other pattern is achievable:
+\begin{itemize}
+  \item in none: set the bit nowhere;
+  \item in exactly one, say $x$: set it in $a$ and $b$ only;
+  \item in all three: set it in $a$, $b$, $c$.
+\end{itemize}
+So the answer is \texttt{NO} iff some bit is set in exactly two of $x,y,z$:
+\[
+  (x\,\&\,y\,\&\,\lnot z)\mid(x\,\&\,z\,\&\,\lnot y)\mid(y\,\&\,z\,\&\,\lnot x)\ne0.
+\]
+
+\subsection*{Algorithm}
+\begin{algorithmic}[1]
+\State $t\gets(x\,\&\,y\,\&\,\lnot z)\mid(x\,\&\,z\,\&\,\lnot y)\mid(y\,\&\,z\,\&\,\lnot x)$
+\State \Return $t=0$
+\end{algorithmic}
+
+\dryrun{$x=4=0100_2$, $y=8=1000_2$, $z=12=1100_2$: bit $2$ is in $x$ and $z$
+but not $y$ $\Rightarrow$ NO. $x=3$, $y=2$, $z=6$: bit $1$ in all three, bit $0$
+only in $x$, bit $2$ only in $z$ $\Rightarrow$ YES. \checkmark\ (Verified on all
+$16^3$ triples against brute force.)}
+
+\subsection*{C++17 implementation}
+\cppfile{bitwise/05_bitwise_reversion.cpp}
+
+\begin{complexitybox}
+\textbf{Time:} $O(1)$ per test. \textbf{Space:} $O(1)$.
+\end{complexitybox}
+
+\begin{pitfallbox}
+\begin{itemize}
+  \item $\lnot z$ on a signed type sets the high bits too; harmless here
+        because it is ANDed with non-negative values.
+\end{itemize}
+\end{pitfallbox}
