@@ -1,4 +1,5 @@
 // ICPC 2014-15 Kharagpur Online Re-contest - The last cracker (ACM14KG2)
+// Link: https://www.codechef.com/problems/ACM14KG2
 // After M passes the spark sits M steps clockwise of a: work 0-indexed mod N.
 #include <iostream>
 using namespace std;

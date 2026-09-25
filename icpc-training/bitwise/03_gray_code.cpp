@@ -1,4 +1,5 @@
 // CSES 2205 - Gray Code
+// Link: https://cses.fi/problemset/task/2205
 // g(i) = i xor (i >> 1): consecutive values differ in exactly one bit.
 #include <iostream>
 #include <string>

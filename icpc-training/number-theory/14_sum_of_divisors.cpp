@@ -1,4 +1,5 @@
 // CSES 1082 - Sum of Divisors
+// Link: https://cses.fi/problemset/task/1082
 // sum_{i<=n} sigma(i) = sum_{d<=n} d * floor(n/d). floor(n/d) takes only
 // O(sqrt n) distinct values; for each block [l, r] with the same q add
 // q * (l + ... + r).

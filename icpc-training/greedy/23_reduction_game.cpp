@@ -1,4 +1,5 @@
 // ICPC 2018-19 Online Preliminary - Reduction Game (REDCGAME)
+// Link: https://www.codechef.com/problems/REDCGAME
 // Work with excesses e_i = a_i - k (> 0 only). The process stops when at
 // most one excess is positive, so keep the largest as the survivor and
 // cancel the others among themselves as much as possible.

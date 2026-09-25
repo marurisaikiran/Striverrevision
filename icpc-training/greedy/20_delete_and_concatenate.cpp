@@ -1,4 +1,5 @@
 // Codeforces 2245B - Delete and Concatenate
+// Link: https://codeforces.com/problemset/problem/2245/B
 // Base: remove everything singly -> sum(a) - n*c. Pairing x <= y instead
 // gains c - x. Pair the k smallest with the k largest while a_(i) < c.
 #include <algorithm>

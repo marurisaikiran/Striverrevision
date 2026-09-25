@@ -1,4 +1,5 @@
 // CSES 1712 - Exponentiation II
+// Link: https://cses.fi/problemset/task/1712
 // Fermat: for p prime and p !| a, a^E = a^(E mod (p-1)) (mod p).
 // Here 0 <= a < p, so only a = 0 needs care: 0^E = 1 iff E = b^c = 0.
 #include <iostream>

@@ -1,4 +1,5 @@
 // AtCoder ABC125 C - GCD on Blackboard
+// Link: https://atcoder.jp/contests/abc125/tasks/abc125_c
 // Replacing A_i by the gcd of all others is optimal, so the answer is
 // max_i gcd(prefix[i-1], suffix[i+1]).
 #include <algorithm>

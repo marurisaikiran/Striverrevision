@@ -1,4 +1,5 @@
 // Codeforces 2218E - The 67th XOR Problem
+// Link: https://codeforces.com/problemset/problem/2218/E
 // After removing element i the whole array has been xored with a_i's
 // ORIGINAL value (the running masks telescope). So the survivor j ends as
 // a_j xor a_last, where "last" is the final removed element:

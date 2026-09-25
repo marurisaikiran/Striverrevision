@@ -1,4 +1,5 @@
 // ICPC 2020-21 Amritapuri Preliminary - Minimum Weight Bi-Partition
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/ICPC%202020%20-%20India%20Prelims%20Solutions.pdf
 // (core task reconstructed from the official solution slides; see the book)
 // Existing edges are free; a new edge (u, v) costs |A_u - A_v|. A minimum
 // spanning tree only ever needs edges between neighbours in sorted-A order.

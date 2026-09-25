@@ -1,4 +1,5 @@
 // Codeforces 2210C1 - A Simple GCD Problem (Easy Version)
+// Link: https://codeforces.com/problemset/problem/2210/C1
 // gcd of a subarray (length >= 2) = gcd of its adjacent-pair gcds, so the
 // condition is: every g_i = gcd(a_i, a_{i+1}) is preserved. a'_i must be a
 // multiple of L_i = lcm(g_{i-1}, g_i); setting a'_i = L_i everywhere keeps

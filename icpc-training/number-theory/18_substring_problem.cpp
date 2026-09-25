@@ -1,4 +1,5 @@
 // ICPC 2013-14 Kharagpur Online - Substring Problem
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/Kharagpur_Site_Online_Problems_2013.pdf
 // Sum of N <= 1e6, so build "123...N" (under 7e6 chars in total) and count
 // (overlapping) occurrences of the digits of K with KMP.
 #include <iostream>

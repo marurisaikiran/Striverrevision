@@ -1,4 +1,5 @@
 // Codeforces 2259D - MEX Multiset
+// Link: https://codeforces.com/problemset/problem/2259/D
 // Only the number of zeros matters:
 //   no zero   -> every MEX is 0, 0 + 0 >= 0 holds;
 //   one zero  -> exactly one set has MEX >= 1 while the other two are 0: NO;

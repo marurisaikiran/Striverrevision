@@ -1,4 +1,5 @@
 // CSES 1141 - Playlist
+// Link: https://cses.fi/problemset/task/1141
 // Two pointers: the window [l, r] never contains a repeated song.
 #include <algorithm>
 #include <iostream>

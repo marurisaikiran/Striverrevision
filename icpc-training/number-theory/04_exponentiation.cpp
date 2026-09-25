@@ -1,4 +1,5 @@
 // CSES 1095 - Exponentiation
+// Link: https://cses.fi/problemset/task/1095
 // Binary exponentiation: a^b in O(log b) multiplications.
 #include <iostream>
 using namespace std;

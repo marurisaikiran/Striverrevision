@@ -1,4 +1,5 @@
 // Codeforces 2200B - Deletion Sort
+// Link: https://codeforces.com/problemset/problem/2200/B
 // A sorted array ends the game at once (answer n). Otherwise keep some
 // inversion pair alive while deleting everything else: answer 1.
 #include <iostream>

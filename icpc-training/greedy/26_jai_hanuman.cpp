@@ -1,4 +1,5 @@
 // ICPC 2014-15 Kharagpur Online Re-contest - Jai Hanuman (ACM14KG4)
+// Link: https://www.codechef.com/problems/ACM14KG4
 // Person N moves last, so nobody can take anything from them: they get their
 // ideal triple. Person N-1 gets the ideal triple among what N does not want,
 // and so on -> assign greedily from N down to 1.

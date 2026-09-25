@@ -1,4 +1,5 @@
 // AtCoder ABC126 F - XOR Matching
+// Link: https://atcoder.jp/contests/abc126/tasks/abc126_f
 // For M >= 2 and K < 2^M:  0 1 .. (2^M-1 without K)  K  (reverse)  K
 // Between the two copies of v != K lie all numbers except v, plus K:
 // xor of all of 0..2^M-1 is 0, so that block xors to K.

@@ -1,4 +1,5 @@
 // Codeforces 2260C - Maximize XOR, Minimize Operations
+// Link: https://codeforces.com/problemset/problem/2260/C
 // x + y = s never changes and u xor v <= u + v, with equality iff u & v = 0.
 // u = 0 already gives s, so the maximum is s. Equality needs u to be a
 // submask of s; the fewest moves use the LARGEST submask of s that is <= x.

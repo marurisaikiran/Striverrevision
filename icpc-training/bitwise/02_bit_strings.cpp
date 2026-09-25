@@ -1,4 +1,5 @@
 // CSES 1617 - Bit Strings
+// Link: https://cses.fi/problemset/task/1617
 // Each of the n positions is independently 0 or 1: 2^n strings.
 #include <iostream>
 using namespace std;

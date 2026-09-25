@@ -1,4 +1,5 @@
 // Codeforces 2195A - Sieve of Erato67henes
+// Link: https://codeforces.com/problemset/problem/2195/A
 // 67 is prime and every a_i <= 67, so a product equal to 67 must use a 67
 // (all other chosen factors must be 1). Answer: is 67 present?
 #include <iostream>

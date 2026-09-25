@@ -1,4 +1,5 @@
 // ICPC 2010-11 Kanpur Online - A New Number System
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/2010problemset_kanpur_online.pdf
 // Blocks of '0': length 1 -> flag = 1, length 2 -> flag = 0,
 // length n > 2 -> append (n - 2) copies of flag. Building a binary number
 // bit by bit is value = 2 * value + bit.

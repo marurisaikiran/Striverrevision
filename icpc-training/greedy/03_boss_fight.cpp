@@ -1,4 +1,5 @@
 // Codeforces 2252A - Boss Fight
+// Link: https://codeforces.com/problemset/problem/2252/A
 // If the most frequent value v fits (f <= others + 1) we can play everything
 // with no equal neighbours. Otherwise the best we can do is
 //   v x v x ... v v   -> all others plus (others + 2) copies of v.

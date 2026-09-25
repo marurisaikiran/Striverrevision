@@ -1,4 +1,5 @@
 // CSES 1081 - Common Divisors
+// Link: https://cses.fi/problemset/task/1081
 // The answer is the largest d that divides at least two array elements:
 // such a pair has gcd >= d, and the best pair's gcd itself is such a d.
 #include <iostream>

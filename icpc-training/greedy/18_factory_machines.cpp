@@ -1,4 +1,5 @@
 // CSES 1620 - Factory Machines
+// Link: https://cses.fi/problemset/task/1620
 // Binary search the answer T: in T seconds machine i makes floor(T / k_i).
 #include <algorithm>
 #include <iostream>

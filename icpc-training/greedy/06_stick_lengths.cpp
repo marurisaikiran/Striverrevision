@@ -1,4 +1,5 @@
 // CSES 1074 - Stick Lengths
+// Link: https://cses.fi/problemset/task/1074
 // sum |p_i - x| is minimised at a median of p.
 #include <algorithm>
 #include <iostream>

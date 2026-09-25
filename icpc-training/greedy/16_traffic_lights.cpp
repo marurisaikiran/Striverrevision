@@ -1,4 +1,5 @@
 // CSES 1163 - Traffic Lights
+// Link: https://cses.fi/problemset/task/1163
 // Keep the cut positions in a set and the segment lengths in a multiset.
 #include <iostream>
 #include <iterator>

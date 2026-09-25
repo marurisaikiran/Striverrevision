@@ -1,4 +1,5 @@
 // AtCoder AGC018 C - Coins
+// Link: https://atcoder.jp/contests/agc018/tasks/agc018_c
 // Subtract C_i: everyone gives bronze by default, then pick X people for
 // a = A - C and Y people for b = B - C. Sorted by a - b (desc), all gold
 // people come before all silver people, so try every split point.

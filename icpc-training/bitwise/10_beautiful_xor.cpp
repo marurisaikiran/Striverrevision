@@ -1,4 +1,5 @@
 // Codeforces 2162C - Beautiful XOR
+// Link: https://codeforces.com/problemset/problem/2162/C
 // Every reachable value stays below 2^(hb(a)+1), so b with a higher top bit
 // is impossible. Otherwise: 0 moves if a = b, 1 move if a^b <= a, else two:
 //   x1 = a ^ ones  (a becomes all-ones below its top bit), x2 = ones ^ b.

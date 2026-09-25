@@ -1,4 +1,5 @@
 // CSES 1073 - Towers
+// Link: https://cses.fi/problemset/task/1073
 // Put each cube on the tower with the smallest top strictly greater than it.
 #include <iostream>
 #include <set>

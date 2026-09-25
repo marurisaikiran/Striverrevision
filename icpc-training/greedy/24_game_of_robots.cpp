@@ -1,4 +1,5 @@
 // ICPC 2018-19 Online Preliminary - A Game of Robots (ROBOGAME)
+// Link: https://www.codechef.com/problems/ROBOGAME
 // Two robots can be made to collide iff their movement ranges share a cell;
 // so the grid is safe iff no cell is covered by two ranges.
 #include <algorithm>

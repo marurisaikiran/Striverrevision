@@ -1,4 +1,5 @@
 // CSES 1629 - Movie Festival
+// Link: https://cses.fi/problemset/task/1629
 // Classic interval scheduling: always take the movie that ends first.
 #include <algorithm>
 #include <iostream>

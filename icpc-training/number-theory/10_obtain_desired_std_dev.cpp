@@ -1,4 +1,5 @@
 // ICPC 2017-18 Online Preliminary - Obtain Desired Standard Deviation (STDDEV)
+// Link: https://www.codechef.com/problems/STDDEV
 // N even : N/2 copies of +s and N/2 of -s  -> mean 0, every deviation s.
 // N odd  : one 0 and (N-1)/2 pairs of +-c with (N-1) c^2 / N = s^2.
 // N = 1  : the deviation is always 0.

@@ -1,4 +1,5 @@
 // ICPC 2017-18 Online Preliminary - Modulo Equality (EQUALMOD)
+// Link: https://www.codechef.com/problems/EQUALMOD
 // Target remainder r < min B. Cost(r) = sum (r - c_i) + sum_{c_i > r} B_i
 // with c_i = A_i mod B_i. Between two c-values the cost only grows with r,
 // so the optimum is r = 0 or r = some c_i (< min B). Sweeping the sorted

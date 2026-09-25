@@ -1,4 +1,5 @@
 // ICPC 2020-21 Amritapuri Preliminary - Express the Number
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/ICPC%202020%20-%20India%20Prelims%20Solutions.pdf
 // (statement reconstructed from the official solution slides; see the book)
 // Write n = A1 + (odd powers of two), 0 <= A1 <= x, using the fewest terms.
 // While n > x remove the top bit 2^k if k is odd, else remove 2^(k-1)

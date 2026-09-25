@@ -1,4 +1,5 @@
 // AtCoder ABC197 C - ORXOR
+// Link: https://atcoder.jp/contests/abc197/tasks/abc197_c
 // N <= 20: enumerate the 2^(N-1) ways to cut between neighbours.
 // Bit i of mask set <=> cut after position i.
 #include <algorithm>

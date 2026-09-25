@@ -1,4 +1,5 @@
 // CSES 2185 - Prime Multiples
+// Link: https://cses.fi/problemset/task/2185
 // Inclusion-exclusion over the 2^k subsets of primes. A subset whose product
 // exceeds n contributes 0 (and stops the multiplication before overflow).
 #include <iostream>

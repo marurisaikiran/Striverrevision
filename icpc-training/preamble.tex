@@ -167,3 +167,8 @@
 \newcommand{\cppfile}[1]{\lstinputlisting{#1}}
 
 \lstset{literate={~}{{\textasciitilde}}1}
+
+% Clickable link to the original problem, shown right under each title
+\hypersetup{colorlinks=true,linkcolor=black,urlcolor=blue!70!black}
+\newcommand{\problemlink}[2]{\noindent{\small\textbf{Problem link:}
+  \href{#1}{#2\ \ensuremath{\nearrow}}}\par}

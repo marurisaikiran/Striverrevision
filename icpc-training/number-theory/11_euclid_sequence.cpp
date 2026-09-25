@@ -1,4 +1,5 @@
 // Codeforces 2234A - Euclid, Sequence and Two Numbers
+// Link: https://codeforces.com/problemset/problem/2234/A
 // a_1 >= a_2 > a_3 > ... (each remainder is below its divisor and must stay
 // positive), so the only candidate order is "sorted descending". Verify it.
 #include <algorithm>

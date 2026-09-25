@@ -1,4 +1,5 @@
 // CSES 1713 - Counting Divisors
+// Link: https://cses.fi/problemset/task/1713
 // Divisor-count sieve: every d contributes 1 to each of its multiples.
 // Total work sum_{d <= V} V / d = O(V log V).
 #include <iostream>

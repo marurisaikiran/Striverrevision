@@ -1,4 +1,5 @@
 // CSES 3396 - Next Prime
+// Link: https://cses.fi/problemset/task/3396
 // Prime gaps below 1e12 are tiny (< 600), so test n+1, n+2, ... with a
 // deterministic Miller-Rabin (bases 2..37 are exact for 64-bit integers).
 #include <cstdint>

@@ -1,4 +1,5 @@
 // ICPC 2014-15 Amritapuri Online - ISRO Digit Sum (run-length encoded N)
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/2014amrita_online.pdf
 // Standard digit sum-of-sums, scanning digits of N from the left. At a digit d
 // with k digits after it and prefix digit-sum ps, the numbers that branch off
 // with a smaller digit c < d contribute

@@ -1,4 +1,5 @@
 // CSES 1630 - Tasks and Deadlines
+// Link: https://cses.fi/problemset/task/1630
 // Reward = sum d - sum f. sum d is fixed; minimise sum of finishing
 // times with Shortest-Processing-Time-first (exchange argument).
 #include <algorithm>

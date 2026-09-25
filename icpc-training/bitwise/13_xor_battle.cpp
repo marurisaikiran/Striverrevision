@@ -1,4 +1,5 @@
 // AtCoder AGC045 A - Xor Battle
+// Link: https://atcoder.jp/contests/agc045/tasks/agc045_a
 // Scan from the last round. Keep a linear (xor) basis of person 0's later
 // numbers. If person 1 owns an A_i that the basis cannot produce, person 1
 // wins: whatever x is later, 0 cannot undo that bit pattern.

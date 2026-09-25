@@ -1,4 +1,5 @@
 // ICPC 2014-15 Amritapuri Online - Steel Bar Segment Durability
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/2014amrita_online.pdf
 // cnt[r] = number of segments ending at the current block with value = r
 // (mod M). Extending every segment by digit d maps r -> (10 r + d) mod M,
 // and the new one-block segment adds d mod M. O(|S| * M) per query.

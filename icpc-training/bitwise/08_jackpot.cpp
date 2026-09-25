@@ -1,4 +1,5 @@
 // ICPC 2013-14 Kharagpur Online - Jackpot
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/Kharagpur_Site_Online_Problems_2013.pdf
 // Reaching v from 1 with (+1, x2) takes f(v) = hb(v) + popcount(v) - 1 steps
 // (hb = index of the highest set bit). Alice and Bob work in parallel, so
 // answer = min over a + b = N of max(f(a), f(b)).

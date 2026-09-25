@@ -1,4 +1,5 @@
 // CSES 1619 - Restaurant Customers
+// Link: https://cses.fi/problemset/task/1619
 // Sweep line over +1 (arrival) / -1 (leave) events.
 #include <algorithm>
 #include <iostream>

@@ -1,4 +1,5 @@
 // Codeforces 2236B - Tatar TV Show
+// Link: https://codeforces.com/problemset/problem/2236/B
 // Positions with equal index mod k form a chain; a move flips two adjacent
 // chain cells, so a chain can be cleared iff it holds an even number of 1s.
 #include <iostream>

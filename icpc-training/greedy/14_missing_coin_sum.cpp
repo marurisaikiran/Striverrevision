@@ -1,4 +1,5 @@
 // CSES 2183 - Missing Coin Sum
+// Link: https://cses.fi/problemset/task/2183
 // Invariant: after the first i sorted coins, every sum in [0, reach) is
 // makeable. A coin x <= reach extends it to reach + x; x > reach leaves a gap.
 #include <algorithm>

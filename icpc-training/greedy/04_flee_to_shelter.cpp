@@ -1,4 +1,5 @@
 // ICPC 2013-14 Amritapuri Online - Flee to Shelter
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/2013amritapuri_online.pdf
 // Carry the maximum M each time: ceil(N / M) round trips of 2T minutes.
 #include <iostream>
 using namespace std;

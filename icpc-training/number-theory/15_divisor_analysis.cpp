@@ -1,4 +1,5 @@
 // CSES 2182 - Divisor Analysis
+// Link: https://cses.fi/problemset/task/2182
 // n = prod x_i^k_i.
 //   count   = prod (k_i + 1)
 //   sum     = prod (x_i^(k_i+1) - 1) / (x_i - 1)

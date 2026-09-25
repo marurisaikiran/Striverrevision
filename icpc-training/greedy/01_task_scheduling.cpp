@@ -1,4 +1,5 @@
 // AtCoder ABC103 A - Task Scheduling Problem
+// Link: https://atcoder.jp/contests/abc103/tasks/abc103_a
 // Greedy: visiting values in sorted order costs exactly max - min.
 #include <algorithm>
 #include <iostream>

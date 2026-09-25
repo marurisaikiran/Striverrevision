@@ -1,4 +1,5 @@
 // AtCoder Math & Algorithm 015 - Calculate GCD
+// Link: https://atcoder.jp/contests/math-and-algorithm/tasks/math_and_algorithm_o
 // Euclid: gcd(a, b) = gcd(b, a mod b), gcd(a, 0) = a.
 #include <iostream>
 using namespace std;

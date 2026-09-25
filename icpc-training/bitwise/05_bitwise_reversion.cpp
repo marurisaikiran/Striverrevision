@@ -1,4 +1,5 @@
 // Codeforces 2153B - Bitwise Reversion
+// Link: https://codeforces.com/problemset/problem/2153/B
 // Bits are independent. If a bit is set in two of x, y, z (say x = a&b and
 // y = b&c), then a, b, c all have it, so the third AND has it too.
 // => impossible exactly when some bit is set in exactly two of x, y, z.

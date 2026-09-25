@@ -1,4 +1,5 @@
 // ICPC 2020-21 Amritapuri Preliminary - Break, Merge and Sort
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/ICPC%202020%20-%20India%20Prelims%20Solutions.pdf
 // (statement reconstructed from the official solution slides; see the book)
 // Cost model: splitting an array costs the length of the shorter part,
 // merging two sorted arrays costs the sum of their lengths.

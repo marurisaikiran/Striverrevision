@@ -1,4 +1,5 @@
 // CSES 1164 - Room Allocation
+// Link: https://cses.fi/problemset/task/1164
 // Process by arrival; reuse the room that frees up earliest if it is free.
 #include <algorithm>
 #include <functional>

@@ -1,4 +1,5 @@
 // Codeforces 2156C - Maximum GCD on Whiteboard
+// Link: https://codeforces.com/problemset/problem/2156/C
 // For a candidate d: a multiple of d is fine; a non-multiple x can be split
 // into multiples of d iff x >= 4d (x = d + x2 + t*d with d <= x2 <= t*d).
 // So d needs #{x < 4d, d !| x} <= k erasures. Take the largest such d.

@@ -1,4 +1,5 @@
 // ICPC 2017-18 Online Preliminary - Ordering teams (ORDTEAMS)
+// Link: https://www.codechef.com/problems/ORDTEAMS
 // Sort by total score; any valid chain must be in increasing-sum order,
 // so we only need to check consecutive pairs of that order.
 #include <algorithm>

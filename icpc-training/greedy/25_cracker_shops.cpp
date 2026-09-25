@@ -1,4 +1,5 @@
 // ICPC 2014-15 Kharagpur Online Re-contest - Cracker shops (ACM14KG1)
+// Link: https://www.codechef.com/problems/ACM14KG1
 // Step 1 (two pointers): e[j] = least k such that shops j..k cover all M types.
 // Step 2: for shop i the best window starting at j is [j, max(e[j], i)].
 //   * starts j with e[j] < i form a prefix; the best of them is the last one.

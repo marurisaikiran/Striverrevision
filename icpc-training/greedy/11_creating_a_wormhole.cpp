@@ -1,4 +1,5 @@
 // ICPC 2013-14 Amritapuri Online - Creating a Wormhole
+// Link: https://github.com/m-e-r-l-i-n/icpc-india/blob/main/src/2013amritapuri_online.pdf
 // Polygon exists iff longest side < sum of the others. For a fixed longest
 // stick a[j] (sorted) it is best to take every shorter stick too.
 #include <algorithm>

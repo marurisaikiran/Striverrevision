@@ -1,4 +1,5 @@
 // Codeforces 2252B - Always Changing
+// Link: https://codeforces.com/problemset/problem/2252/B
 // Forced deletions: L-1 from every run. If the 0/1 counts differ by more
 // than 1, the deficient type can only be topped up by deleting a whole
 // run of that type sitting at an end of the string (at most two).

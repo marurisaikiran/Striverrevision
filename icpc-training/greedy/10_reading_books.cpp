@@ -1,4 +1,5 @@
 // CSES 1631 - Reading Books
+// Link: https://cses.fi/problemset/task/1631
 // Answer = max(sum, 2 * longest book).
 #include <algorithm>
 #include <iostream>
